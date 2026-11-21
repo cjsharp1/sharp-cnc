@@ -1,7 +1,10 @@
+import type { AlarmGuide } from "../grbl";
+
 interface SafetyControlsProps {
   connected: boolean;
   machineState: string;
   alarmMessage: string | null;
+  alarmGuide?: AlarmGuide | null;
   usingMock?: boolean;
   onEstop: () => void;
   onHold: () => void;
@@ -9,12 +12,15 @@ interface SafetyControlsProps {
   onReset: () => void;
   onUnlock: () => void;
   onSimulateAlarm?: () => void;
+  onSimulateSoftLimit?: () => void;
+  onSimulateProbeFail?: () => void;
 }
 
 export function SafetyControls({
   connected,
   machineState,
   alarmMessage,
+  alarmGuide = null,
   usingMock = false,
   onEstop,
   onHold,
@@ -22,6 +28,8 @@ export function SafetyControls({
   onReset,
   onUnlock,
   onSimulateAlarm,
+  onSimulateSoftLimit,
+  onSimulateProbeFail,
 }: SafetyControlsProps) {
   const inAlarm = machineState === "Alarm";
   const inHold = machineState === "Hold";
@@ -43,10 +51,25 @@ export function SafetyControls({
 
       {inAlarm && (
         <div className="safety__banner" role="alert">
-          <p className="safety__banner-title">Alarm lock</p>
+          <p className="safety__banner-title">
+            {alarmGuide?.headline ?? "Alarm lock"}
+          </p>
           <p className="safety__banner-body">
             {alarmMessage ??
               "Motion blocked. Unlock ($X) after clearing the fault."}
+          </p>
+          {alarmGuide ? (
+            <ol className="safety__guide">
+              {alarmGuide.steps.map((step) => (
+                <li key={step.title}>
+                  <strong>{step.title}</strong>
+                  <span>{step.detail}</span>
+                </li>
+              ))}
+            </ol>
+          ) : null}
+          <p className="safety__guide-hint">
+            {alarmGuide?.unlockReadyHint ?? "Clear the fault, then Unlock ($X)."}
           </p>
         </div>
       )}
@@ -100,15 +123,39 @@ export function SafetyControls({
         </button>
       </div>
 
-      {usingMock && onSimulateAlarm && (
-        <button
-          type="button"
-          className="safety__mock"
-          disabled={!connected || inAlarm}
-          onClick={onSimulateAlarm}
-        >
-          Simulate alarm (mock)
-        </button>
+      {usingMock && (onSimulateAlarm || onSimulateSoftLimit || onSimulateProbeFail) && (
+        <div className="safety__mock-row">
+          {onSimulateAlarm && (
+            <button
+              type="button"
+              className="safety__mock"
+              disabled={!connected || inAlarm}
+              onClick={onSimulateAlarm}
+            >
+              Simulate hard limit
+            </button>
+          )}
+          {onSimulateSoftLimit && (
+            <button
+              type="button"
+              className="safety__mock"
+              disabled={!connected || inAlarm}
+              onClick={onSimulateSoftLimit}
+            >
+              Simulate soft limit
+            </button>
+          )}
+          {onSimulateProbeFail && (
+            <button
+              type="button"
+              className="safety__mock"
+              disabled={!connected || inAlarm}
+              onClick={onSimulateProbeFail}
+            >
+              Simulate probe fail
+            </button>
+          )}
+        </div>
       )}
     </section>
   );

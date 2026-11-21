@@ -16,11 +16,12 @@ The window is built so you always see **connection**, **position**, and **safety
 
 ## Essentials strip (always visible)
 
-Three blocks side by side:
+Blocks side by side:
 
 1. **Connect** — port, baud note, Connect / Disconnect / Reset  
 2. **Position** — Work and Machine X / Y / Z plus machine state (Idle, Jog, Run, Hold, Alarm, …)  
-3. **Safety** — E-Stop, Hold, Resume, Reset, Unlock (+ alarm banner when locked)
+3. **Safety** — E-Stop, Hold, Resume, Reset, Unlock (+ guided alarm steps when locked)  
+4. **Live overrides** (while Running / Held) — feed %, rapid % (100/50/25), spindle % with coarse steps
 
 Keep an eye on this strip while jogging or running. If state flips to **Alarm** or **Hold**, stop and read the banner before continuing.
 
@@ -32,7 +33,8 @@ Shows:
 - Stock rectangle (from Material & tool)
 - Loaded toolpath (job or SVG preview)
 - Toolhead (bit Ø sized) with a short motion trail while jogging / running
-- Optional **Simulate** overlay when a job path is loaded — preview only, not serial motion
+- **Dual origin** markers — **Work 0** at the job origin and **Machine 0** from WCO
+- Optional **Simulate** overlay when a job path is loaded — preview only, not serial motion (playback speed + Z/lift cues)
 
 Labels on the view call out bed size, stock, path name, and whether you are in preview or live motion.
 
@@ -40,8 +42,8 @@ Labels on the view call out bed size, stock, path name, and whether you are in p
 
 | Tab | Contents |
 |-----|----------|
-| **Move** | Jog pad, work zero / go-to-zero, spindle On/Off + feed/spindle overrides |
-| **Job** | Material & tool (incl. material presets), External jobs, SVG → G-code, Load / Prepare / Start / Simulate |
+| **Move** | Jog, work zero, **homing**, **G54–G59 offsets**, **XY/tool-length probe**, **console + macros**, spindle / overrides |
+| **Job** | Material & tool, External jobs, SVG → G-code, Load / Prepare / scrubber / dry run / Start / Simulate |
 | **Log** | Live activity (TX/RX/events); with **Debug mode** on — export, Copy, Debug bridge |
 
 Job tab can show a small badge (`Ready`, `Run`, `Held`, `SVG`, …) so you know job state at a glance.

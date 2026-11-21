@@ -53,6 +53,15 @@ export interface GrblStatus {
   /** Spindle speed when reported (RPM). */
   spindleSpeed?: number;
   /**
+   * Runtime override percents from `Ov:feed,rapid,spindle` when GRBL reports them.
+   * Clients may also track local estimates from override keystrokes.
+   */
+  overrides?: {
+    feed: number;
+    rapid: number;
+    spindle: number;
+  };
+  /**
    * Active input pins from `Pn:` (limits, probe, control). Present when GRBL
    * reports any triggered pin; cleared when the field is omitted.
    */

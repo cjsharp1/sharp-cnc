@@ -62,6 +62,11 @@ interface MachineViewProps {
   simulating?: boolean;
   /** Current sim activity (retract / plunge / cut / rapid). */
   simActivity?: SimActivity | null;
+  /**
+   * Work coordinate offset (WCO = MPos − WPos). When set, draw dual origins:
+   * work zero at (0,0) and machine zero at (−WCO.x, −WCO.y) in work space.
+   */
+  wco?: Position3 | null;
   /** Optional overlay (e.g. simulate controls). */
   overlay?: ReactNode;
 }
@@ -150,6 +155,7 @@ export function MachineView({
   liveMoving = false,
   simulating = false,
   simActivity = null,
+  wco = null,
   overlay = null,
 }: MachineViewProps) {
   const uid = useId().replace(/:/g, "");
@@ -821,6 +827,80 @@ export function MachineView({
               vectorEffect="non-scaling-stroke"
             />
           ))}
+
+          {/* Dual origin: work zero (0,0) and machine zero (−WCO) in work space */}
+          {(() => {
+            const workOrigin = mapPoint(0, 0);
+            const cross = Math.max(6 / vis.pxPerMm, bitRMm * 1.2);
+            const machineWork =
+              wco != null
+                ? mapPoint(-wco.x, -wco.y)
+                : null;
+            return (
+              <g className="machine__origins" aria-hidden>
+                <g className="machine__origin machine__origin--work">
+                  <line
+                    x1={workOrigin.x - cross}
+                    y1={workOrigin.y}
+                    x2={workOrigin.x + cross}
+                    y2={workOrigin.y}
+                    stroke="var(--viz-origin-work, var(--viz-tool-fill))"
+                    strokeWidth={1.5}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <line
+                    x1={workOrigin.x}
+                    y1={workOrigin.y - cross}
+                    x2={workOrigin.x}
+                    y2={workOrigin.y + cross}
+                    stroke="var(--viz-origin-work, var(--viz-tool-fill))"
+                    strokeWidth={1.5}
+                    vectorEffect="non-scaling-stroke"
+                  />
+                  <text
+                    x={workOrigin.x + cross * 0.7}
+                    y={workOrigin.y - cross * 0.5}
+                    fill="var(--viz-origin-work, var(--viz-tool-fill))"
+                    fontSize={labelSize}
+                  >
+                    Work 0
+                  </text>
+                </g>
+                {machineWork ? (
+                  <g className="machine__origin machine__origin--machine">
+                    <line
+                      x1={machineWork.x - cross}
+                      y1={machineWork.y}
+                      x2={machineWork.x + cross}
+                      y2={machineWork.y}
+                      stroke="var(--viz-origin-machine, var(--viz-bed-edge))"
+                      strokeWidth={1.5}
+                      strokeDasharray="3 2"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <line
+                      x1={machineWork.x}
+                      y1={machineWork.y - cross}
+                      x2={machineWork.x}
+                      y2={machineWork.y + cross}
+                      stroke="var(--viz-origin-machine, var(--viz-bed-edge))"
+                      strokeWidth={1.5}
+                      strokeDasharray="3 2"
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <text
+                      x={machineWork.x + cross * 0.7}
+                      y={machineWork.y - cross * 0.5}
+                      fill="var(--viz-origin-machine, var(--viz-bed-edge))"
+                      fontSize={labelSize}
+                    >
+                      Machine 0
+                    </text>
+                  </g>
+                ) : null}
+              </g>
+            );
+          })()}
 
           <g className={toolClass}>
             {simulating && (

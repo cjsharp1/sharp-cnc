@@ -55,6 +55,28 @@ Typical touch-off:
 
 > **Safety:** Never leave a spinning bit while leaning in to measure. Prefer power-off or spindle-off touch-offs when learning. Prefer the probe wizard for repeatable Z0.
 
+## Homing
+
+**Home ($H)** runs GRBL’s homing cycle (needs home switches and `$22=1`). SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+
+## Work offsets (G54–G59)
+
+Under **Work offsets**:
+
+- Select **G54–G59** (sends that modal to GRBL).  
+- **Save** stores the current WCO for that slot in SharpCNC.  
+- **Recall** writes `G10 L2 Pn …` then selects the WCS.
+
+Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54).
+
+## XY probe & tool length
+
+**XY probe** runs `G38.2` along +X/−X or +Y/−Y, or an outside/inside **corner** sequence with bit-radius compensation. **Tool length (Z)** re-zeros work Z on the touch plate after a bit change (same plate thickness as Prepare).
+
+## Console & macros
+
+Send one or more G-code lines when Idle (not while a job streams). Dangerous lines like `$H` / `$RST=` are refused here — use Homing / Calibration instead. Save the draft as a named **macro** for one-click replay.
+
 ## Spindle & feed overrides (Move tab)
 
 Below jog / zero:
@@ -62,6 +84,6 @@ Below jog / zero:
 - **Spindle RPM** — **On (M3)** sends `M3 S…`; **Off (M5)** stops PWM spindle.  
 - **Feed override** / **Spindle override** — GRBL 1.1 realtime percent steps (−10 / −1 / 100% / +1 / +10). Work during a running job; soft limits unchanged.
 
-Live F/S from status show when GRBL reports them. Soft reset returns tracked overrides to 100%.
+While a job runs, the essentials strip also shows **Feed / Rapid / Spindle %** (rapid is 100 / 50 / 25). Soft reset returns tracked overrides to 100%.
 
 Next: [Calibration wizard](05-calibration.md).

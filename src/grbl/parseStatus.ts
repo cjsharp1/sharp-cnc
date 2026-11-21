@@ -63,6 +63,7 @@ export function parseStatusReport(
   let wco: Position3 | null = null;
   let feedRate: number | undefined;
   let spindleSpeed: number | undefined;
+  let overrides: GrblStatus["overrides"] | undefined;
   let pinsRaw: string | null = null;
 
   for (let i = 1; i < fields.length; i++) {
@@ -81,6 +82,18 @@ export function parseStatusReport(
     } else if (key === "Pn") {
       // Present only while at least one pin is active; empty → clear.
       pinsRaw = value;
+    } else if (key === "Ov") {
+      const nums = value.split(",").map(Number);
+      if (
+        nums.length >= 3 &&
+        nums.slice(0, 3).every((n) => Number.isFinite(n))
+      ) {
+        overrides = {
+          feed: nums[0]!,
+          rapid: nums[1]!,
+          spindle: nums[2]!,
+        };
+      }
     } else if (key === "FS" || key === "F") {
       const nums = value.split(",").map(Number);
       if (Number.isFinite(nums[0])) feedRate = nums[0];
@@ -114,6 +127,7 @@ export function parseStatusReport(
     wco: wco ?? rememberedWco ?? undefined,
     feedRate: feedRate ?? prev?.feedRate,
     spindleSpeed: spindleSpeed ?? prev?.spindleSpeed,
+    overrides: overrides ?? prev?.overrides,
     // When Pn: is omitted, all pins are inactive (do not retain previous).
     pins: pinsRaw !== null ? parseActivePins(pinsRaw) : undefined,
     raw: trimmed,

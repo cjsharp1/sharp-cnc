@@ -16,6 +16,21 @@ export const FEED_OVERRIDE_FINE_PLUS = 0x93;
 /** Feed override: −1%. */
 export const FEED_OVERRIDE_FINE_MINUS = 0x94;
 
+/** Rapid override: set to 100%. */
+export const RAPID_OVERRIDE_RESET = 0x95;
+/** Rapid override: 50%. */
+export const RAPID_OVERRIDE_MEDIUM = 0x96;
+/** Rapid override: 25%. */
+export const RAPID_OVERRIDE_LOW = 0x97;
+
+export type RapidOverrideStep = "100" | "50" | "25";
+
+const RAPID_BYTES: Record<RapidOverrideStep, number> = {
+  "100": RAPID_OVERRIDE_RESET,
+  "50": RAPID_OVERRIDE_MEDIUM,
+  "25": RAPID_OVERRIDE_LOW,
+};
+
 /** Spindle override: set programmed speed to 100%. */
 export const SPINDLE_OVERRIDE_RESET = 0x99;
 /** Spindle override: +10%. */
@@ -64,6 +79,16 @@ export function feedOverrideByte(step: OverrideStep): number {
 /** Byte for a spindle-override step. */
 export function spindleOverrideByte(step: OverrideStep): number {
   return SPINDLE_BYTES[step];
+}
+
+/** Byte for a rapid-override step (100 / 50 / 25%). */
+export function rapidOverrideByte(step: RapidOverrideStep): number {
+  return RAPID_BYTES[step];
+}
+
+/** Apply a rapid override step to a tracked percent. */
+export function applyRapidOverrideStep(step: RapidOverrideStep): number {
+  return Number(step);
 }
 
 /**
