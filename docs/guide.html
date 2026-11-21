@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>User guide · SharpCNC docs</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta
+      name="description"
+      content="SharpCNC user guide — install, connect, jog, calibrate, prepare, run, and safety."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Sora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <script src="js/theme.js"></script>
+    <script src="js/marked.min.js"></script>
+    <script src="js/guide.js"></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="site-brand" href="index.html">
+          <span class="site-brand__mark">SharpCNC</span>
+          <span class="site-brand__tag">Docs</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="index.html">Home</a>
+          <a href="guide.html" aria-current="page">User guide</a>
+          <a href="index.html#getting-started">Getting started</a>
+          <a
+            href="https://github.com/cjsharp1/sharp-cnc"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+          <button type="button" class="theme-toggle" id="theme-toggle">
+            Light
+          </button>
+        </nav>
+      </header>
+
+      <div class="guide-layout">
+        <aside class="guide-sidebar" aria-label="Guide chapters">
+          <h2>Chapters</h2>
+          <ul class="guide-toc" id="guide-toc"></ul>
+        </aside>
+
+        <article class="guide-article" id="guide-article" aria-live="polite">
+          <p class="guide-status" id="guide-status">Loading guide…</p>
+        </article>
+      </div>
+
+      <footer class="site-footer">
+        SharpCNC docs ·
+        <a href="index.html">Getting started</a>
+        ·
+        <a
+          href="https://www.designsbyphil.com/demon-shield-1.html"
+          target="_blank"
+          rel="noopener noreferrer"
+          >Demon Shield</a
+        >
+      </footer>
+    </div>
+  </body>
+</html>

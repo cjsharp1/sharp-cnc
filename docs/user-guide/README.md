@@ -4,6 +4,8 @@ Friendly, practical docs for running **one** home CNC: Demon Shield + Arduino + 
 
 SharpCNC is a personal controller — connect, see where the tool is, jog and zero, calibrate, prepare (Z probe), load a job, simulate, then run. It is not a multi-machine CAM suite.
 
+**Browse on GitHub Pages** (same workshop fonts as the app): [docs home](../index.html) · [this guide in the viewer](../guide.html)
+
 ## How to use this guide
 
 Read chapters in order the first time you set up the machine. After that, jump to the chapter you need (calibration, prepare/probe, jobs, alarms, etc.).
@@ -40,4 +42,7 @@ Illustrations live in [`assets/`](assets/). Diagrams are SVG (easy to read at a 
 
 ## Related project docs
 
+- [Demon Shield vendor page](https://www.designsbyphil.com/demon-shield-1.html) — PWM, limits/probe, feed-control buttons, touch plate
+- [Demon Shield external controls](../demon-shield-controls.md) — how SharpCNC mirrors Abort / Hold / Resume
 - [Google Drive setup](../google-drive-setup.md) — OAuth client ID for native Drive (optional; watched folder works without it)
+- [Getting started (Pages)](../index.html) — download, what to open, first steps

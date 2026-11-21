@@ -2,6 +2,8 @@
 
 SharpCNC mirrors the physical buttons on a **Demon Shield** (Arduino Uno + GRBL) so the UI job state stays in sync with the machine.
 
+Vendor reference: [Designs By Phil — Demon Shield](https://www.designsbyphil.com/demon-shield-1.html)
+
 ## Hardware (typical)
 
 | Button | Shield label | Arduino pin | GRBL action | Status `Pn:` letter |

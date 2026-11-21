@@ -1,0 +1,307 @@
+/**
+ * SharpCNC theme tokens — workshop steel + brass.
+ * Mirrored from `src/theme.css` for the GitHub Pages docs site.
+ * Keep in sync when app tokens change (see CONTRIBUTING.md).
+ *
+ * Usage: set `data-theme="dark"|"light"` on <html>.
+ */
+
+:root,
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  /* Surfaces */
+  --bg-0: #0e1012;
+  --bg-1: #16191d;
+  --bg-2: #1e2329;
+  --panel: rgba(22, 25, 29, 0.72);
+  --panel-soft: rgba(22, 25, 29, 0.55);
+  --panel-deep: rgba(14, 16, 18, 0.45);
+  --inset-bg: rgba(14, 16, 18, 0.55);
+  --inset-bg-soft: rgba(14, 16, 18, 0.35);
+  --inset-bg-faint: rgba(14, 16, 18, 0.25);
+  --input-bg: rgba(14, 16, 18, 0.85);
+  --control-bg: rgba(14, 16, 18, 0.65);
+  --menu-bg: rgba(18, 21, 26, 0.96);
+  --overlay-bg: rgba(14, 18, 22, 0.9);
+  --overlay-sim-bg: rgba(18, 28, 36, 0.88);
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.35);
+
+  /* Atmosphere */
+  --atmosphere:
+    radial-gradient(
+      900px 520px at 18% 12%,
+      rgba(212, 168, 75, 0.14),
+      transparent 55%
+    ),
+    radial-gradient(
+      700px 480px at 88% 78%,
+      rgba(91, 120, 110, 0.12),
+      transparent 50%
+    ),
+    linear-gradient(165deg, #12151a 0%, #0e1012 48%, #0c0e10 100%);
+  --atmosphere-grain-opacity: 0.35;
+  --machine-frame-bg: linear-gradient(
+    180deg,
+    rgba(30, 35, 41, 0.55),
+    rgba(14, 16, 18, 0.75)
+  );
+
+  /* Brand metals */
+  --steel: #8a949e;
+  --steel-dim: #6a737c;
+  --brass: #d4a84b;
+  --brass-hot: #e6c06a;
+  --brass-bright: #f0d89a;
+  --ink: #e8eaed;
+  --muted: #9aa3ad;
+
+  /* Borders */
+  --line: rgba(138, 148, 158, 0.22);
+  --border-strong: rgba(138, 148, 158, 0.35);
+  --border-soft: rgba(138, 148, 158, 0.18);
+  --border-faint: rgba(138, 148, 158, 0.12);
+  --border-mid: rgba(138, 148, 158, 0.4);
+  --border-hover: rgba(138, 148, 158, 0.55);
+
+  /* Brass interaction */
+  --brass-border: rgba(212, 168, 75, 0.45);
+  --brass-border-hot: rgba(212, 168, 75, 0.55);
+  --brass-border-strong: rgba(212, 168, 75, 0.7);
+  --brass-fill: rgba(212, 168, 75, 0.1);
+  --brass-fill-strong: rgba(212, 168, 75, 0.18);
+  --brass-fill-active: rgba(212, 168, 75, 0.28);
+  --brass-grad: linear-gradient(
+    180deg,
+    rgba(212, 168, 75, 0.18),
+    rgba(212, 168, 75, 0.08)
+  );
+  --brass-grad-hover: linear-gradient(
+    180deg,
+    rgba(212, 168, 75, 0.28),
+    rgba(212, 168, 75, 0.12)
+  );
+
+  /* Status / danger */
+  --danger: #c45c4a;
+  --danger-text: #f0b8ac;
+  --danger-text-soft: #e8a090;
+  --danger-text-body: #e8c0b4;
+  --danger-border: rgba(196, 92, 74, 0.55);
+  --danger-border-strong: rgba(196, 92, 74, 0.75);
+  --danger-fill: rgba(196, 92, 74, 0.12);
+  --danger-fill-soft: rgba(196, 92, 74, 0.08);
+  --danger-grad: linear-gradient(
+    180deg,
+    rgba(196, 92, 74, 0.42),
+    rgba(140, 40, 32, 0.55)
+  );
+  --danger-grad-hover: linear-gradient(
+    180deg,
+    rgba(220, 90, 70, 0.55),
+    rgba(160, 45, 35, 0.65)
+  );
+  --estop-text: #ffe8e2;
+  --estop-border-hover: #e07060;
+
+  --warn: #e0b060;
+  --warn-text: #e8c090;
+  --warn-border: rgba(224, 176, 96, 0.5);
+  --ok: #8fbf8a;
+  --ok-hot: #a8d4a3;
+  --ok-border: rgba(143, 191, 138, 0.45);
+  --ok-fill: rgba(143, 191, 138, 0.1);
+
+  /* Preview / sim (cool steel-blue, not purple) */
+  --sim: #78b4dc;
+  --sim-text: #c5dff0;
+  --sim-text-soft: #9ec9e4;
+  --sim-border: rgba(120, 180, 220, 0.45);
+  --sim-fill: rgba(40, 70, 90, 0.55);
+  --sim-fill-hover: rgba(55, 95, 120, 0.7);
+  --sim-bar: linear-gradient(90deg, #5a8eae, #78b4dc);
+  --sim-done: #9bbb8a;
+
+  /* Focus */
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--brass);
+
+  /* Type scale */
+  --font-brand: "Oswald", "Arial Narrow", sans-serif;
+  --font-ui: "Sora", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", "Consolas", monospace;
+  --text-2xs: 0.62rem;
+  --text-xs: 0.68rem;
+  --text-sm: 0.72rem;
+  --text-md: 0.78rem;
+  --text-base: 0.85rem;
+  --text-lg: 0.95rem;
+  --text-xl: 1.05rem;
+  --text-2xl: 1.15rem;
+  --text-brand: clamp(2.35rem, 5.2vw, 3.6rem);
+  --tracking-label: 0.12em;
+  --tracking-title: 0.14em;
+
+  /* Visualizer (SVG + chrome) */
+  --viz-outside: rgba(10, 12, 14, 0.92);
+  --viz-grid-minor: rgba(196, 168, 90, 0.14);
+  --viz-grid-major: rgba(196, 168, 90, 0.32);
+  --viz-grid-line: rgba(196, 168, 90, 0.26);
+  --viz-bed-edge: rgba(138, 148, 158, 0.55);
+  --viz-bed-glow-0: rgba(212, 168, 75, 0.16);
+  --viz-bed-glow-1: rgba(18, 20, 22, 0);
+  --viz-label: rgba(232, 234, 237, 0.45);
+  --viz-stock-fill: rgba(90, 72, 48, 0.45);
+  --viz-stock-stroke: rgba(196, 152, 90, 0.75);
+  --viz-stock-hatch: rgba(140, 110, 70, 0.35);
+  --viz-stock-label: rgba(232, 214, 170, 0.75);
+  --viz-path-todo-rapid: rgba(138, 148, 158, 0.4);
+  --viz-path-todo-feed: rgba(212, 168, 75, 0.5);
+  --viz-path-done-rapid: rgba(138, 148, 158, 0.6);
+  --viz-path-done-feed: rgba(232, 196, 110, 0.95);
+  --viz-trail: rgba(212, 168, 75, 0.75);
+  --viz-trail-sim: rgba(120, 180, 220, 0.8);
+  --viz-tool-fill: rgba(212, 168, 75, 0.4);
+  --viz-tool-stroke: #d4a84b;
+  --viz-tool-sim-fill: rgba(120, 180, 220, 0.45);
+  --viz-tool-sim-stroke: #78b4dc;
+  --viz-tool-core: #1a1c1e;
+  --viz-hud: rgba(232, 234, 237, 0.62);
+  --viz-toolbar-bg: rgba(18, 22, 26, 0.88);
+  --viz-toolbar-fg: rgba(232, 234, 237, 0.92);
+
+  color: var(--ink);
+  background: var(--bg-0);
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+
+  --bg-0: #e6eaee;
+  --bg-1: #f2f4f6;
+  --bg-2: #ffffff;
+  --panel: rgba(255, 255, 255, 0.88);
+  --panel-soft: rgba(255, 255, 255, 0.72);
+  --panel-deep: rgba(232, 236, 240, 0.9);
+  --inset-bg: rgba(226, 231, 236, 0.95);
+  --inset-bg-soft: rgba(232, 236, 240, 0.85);
+  --inset-bg-faint: rgba(236, 240, 244, 0.7);
+  --input-bg: #ffffff;
+  --control-bg: rgba(255, 255, 255, 0.92);
+  --menu-bg: rgba(255, 255, 255, 0.98);
+  --overlay-bg: rgba(255, 255, 255, 0.94);
+  --overlay-sim-bg: rgba(232, 242, 248, 0.95);
+  --shadow: 0 12px 28px rgba(30, 40, 50, 0.14);
+
+  --atmosphere:
+    radial-gradient(
+      900px 520px at 16% 10%,
+      rgba(180, 130, 40, 0.12),
+      transparent 55%
+    ),
+    radial-gradient(
+      700px 480px at 90% 80%,
+      rgba(70, 110, 100, 0.1),
+      transparent 50%
+    ),
+    linear-gradient(165deg, #eef1f4 0%, #e6eaee 48%, #dde3e9 100%);
+  --atmosphere-grain-opacity: 0.18;
+  --machine-frame-bg: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.92),
+    rgba(232, 236, 240, 0.95)
+  );
+
+  --steel: #4a5560;
+  --steel-dim: #5c6772;
+  --brass: #a67c28;
+  --brass-hot: #8f6818;
+  --brass-bright: #6e5010;
+  --ink: #1a1e24;
+  --muted: #4a5560;
+
+  --line: rgba(70, 80, 92, 0.2);
+  --border-strong: rgba(70, 80, 92, 0.32);
+  --border-soft: rgba(70, 80, 92, 0.16);
+  --border-faint: rgba(70, 80, 92, 0.1);
+  --border-mid: rgba(70, 80, 92, 0.38);
+  --border-hover: rgba(70, 80, 92, 0.5);
+
+  --brass-border: rgba(166, 124, 40, 0.55);
+  --brass-border-hot: rgba(166, 124, 40, 0.7);
+  --brass-border-strong: rgba(143, 104, 24, 0.85);
+  --brass-fill: rgba(166, 124, 40, 0.12);
+  --brass-fill-strong: rgba(166, 124, 40, 0.18);
+  --brass-fill-active: rgba(166, 124, 40, 0.26);
+  --brass-grad: linear-gradient(
+    180deg,
+    rgba(212, 168, 75, 0.35),
+    rgba(212, 168, 75, 0.16)
+  );
+  --brass-grad-hover: linear-gradient(
+    180deg,
+    rgba(212, 168, 75, 0.48),
+    rgba(212, 168, 75, 0.22)
+  );
+
+  --danger: #b04538;
+  --danger-text: #8c2e24;
+  --danger-text-soft: #9a382c;
+  --danger-text-body: #6e2a22;
+  --danger-border: rgba(176, 69, 56, 0.55);
+  --danger-border-strong: rgba(176, 69, 56, 0.8);
+  --danger-fill: rgba(176, 69, 56, 0.1);
+  --danger-fill-soft: rgba(176, 69, 56, 0.06);
+  --danger-grad: linear-gradient(180deg, #d45a4a, #a03830);
+  --danger-grad-hover: linear-gradient(180deg, #e06858, #b04038);
+  --estop-text: #fff8f6;
+  --estop-border-hover: #c04030;
+
+  --warn: #8a6418;
+  --warn-text: #7a5814;
+  --warn-border: rgba(166, 124, 40, 0.55);
+  --ok: #2f6b3a;
+  --ok-hot: #245830;
+  --ok-border: rgba(47, 107, 58, 0.5);
+  --ok-fill: rgba(47, 107, 58, 0.1);
+
+  --sim: #2a6a90;
+  --sim-text: #1e4f6c;
+  --sim-text-soft: #2a6a90;
+  --sim-border: rgba(42, 106, 144, 0.45);
+  --sim-fill: rgba(42, 106, 144, 0.12);
+  --sim-fill-hover: rgba(42, 106, 144, 0.2);
+  --sim-bar: linear-gradient(90deg, #3a7a9e, #2a6a90);
+  --sim-done: #2f6b3a;
+
+  --focus-ring: 0 0 0 2px var(--bg-0), 0 0 0 4px var(--brass);
+
+  --viz-outside: rgba(210, 216, 222, 0.95);
+  --viz-grid-minor: rgba(120, 100, 50, 0.18);
+  --viz-grid-major: rgba(120, 100, 50, 0.38);
+  --viz-grid-line: rgba(120, 100, 50, 0.32);
+  --viz-bed-edge: rgba(70, 80, 92, 0.55);
+  --viz-bed-glow-0: rgba(180, 130, 40, 0.14);
+  --viz-bed-glow-1: rgba(240, 242, 244, 0);
+  --viz-label: rgba(40, 48, 56, 0.55);
+  --viz-stock-fill: rgba(180, 150, 100, 0.35);
+  --viz-stock-stroke: rgba(140, 100, 40, 0.8);
+  --viz-stock-hatch: rgba(120, 90, 40, 0.4);
+  --viz-stock-label: rgba(90, 70, 30, 0.85);
+  --viz-path-todo-rapid: rgba(70, 80, 92, 0.45);
+  --viz-path-todo-feed: rgba(166, 124, 40, 0.55);
+  --viz-path-done-rapid: rgba(70, 80, 92, 0.65);
+  --viz-path-done-feed: rgba(140, 100, 30, 0.95);
+  --viz-trail: rgba(166, 124, 40, 0.8);
+  --viz-trail-sim: rgba(42, 106, 144, 0.85);
+  --viz-tool-fill: rgba(166, 124, 40, 0.35);
+  --viz-tool-stroke: #a67c28;
+  --viz-tool-sim-fill: rgba(42, 106, 144, 0.35);
+  --viz-tool-sim-stroke: #2a6a90;
+  --viz-tool-core: #1a1e24;
+  --viz-hud: rgba(40, 48, 56, 0.7);
+  --viz-toolbar-bg: rgba(255, 255, 255, 0.92);
+  --viz-toolbar-fg: rgba(26, 30, 36, 0.92);
+
+  color: var(--ink);
+  background: var(--bg-0);
+}
