@@ -4,7 +4,7 @@ Personal GRBL controller for one custom CNC. Windows desktop first (Tauri + nati
 
 ## Status
 
-Desktop **USB serial connect + live MPos/WPos** plus **jog / work zeros**:
+Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, and **G-code load / run**:
 
 - List / refresh serial ports; connect at **115200** baud (Demon Shield / Arduino)
 - Soft reset (`0x18`) on connect + manual Reset
@@ -12,9 +12,11 @@ Desktop **USB serial connect + live MPos/WPos** plus **jog / work zeros**:
 - Jog X/Y/Z (and XY+ diagonal) via GRBL `$J=` — step or hold modes, step size + feed
 - Soft-limit awareness from known travel (default X/Y **1000 mm**; Z unset until calibrated)
 - Work zeros via `G10 L20` (per-axis or XYZ); go-to-zero with confirm (safe Z-up then XY)
-- Jog cancel (`0x85`) on hold-release / Stop
+- Load `.nc` / `.gcode` (picker + drag-drop); stream with Start / Pause (`!`) / Resume (`~`) / Stop (soft reset)
+- Progress (line / %) and toolpath overlay on the machine view
+- Start blocked when disconnected or in Alarm
 
-Browser / cloud shells without Tauri use a **mock GRBL** port that simulates jog + zero so the UX can be exercised without hardware. Web Serial parity is still stubbed.
+Browser / cloud shells without Tauri use a **mock GRBL** port that simulates jog, zero, and job motion so the UX can be exercised without hardware. Web Serial parity is still stubbed.
 
 ## Prerequisites
 
@@ -62,8 +64,8 @@ npm run smoke
 
 1. Scaffold — Tauri + React + GRBL stubs  
 2. Desktop serial connect + status / position streaming  
-3. Jog / zero + machine view ← **this**  
-4. G-code load and streaming sender  
+3. Jog / zero + machine view  
+4. G-code load and streaming sender ← **this**  
 5. Web Serial parity  
 6. SVG → simple cut/engrave → G-code  
 

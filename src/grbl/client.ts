@@ -105,6 +105,13 @@ export function createGrblClient(
     async cancelJog() {
       await transport.write(new Uint8Array([JOG_CANCEL_BYTE]));
     },
+    async feedHold() {
+      // Real-time command — no newline.
+      await transport.write("!");
+    },
+    async cycleStart() {
+      await transport.write("~");
+    },
     async requestStatus() {
       await transport.write("?");
     },

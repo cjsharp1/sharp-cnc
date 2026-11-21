@@ -12,19 +12,25 @@ import {
   bedSizeFromLimits,
   buildJogCommand,
   buildSetWorkZeroCommand,
+  canStartJob,
   checkSoftLimits,
   continuousJogDelta,
+  createGcodeStreamer,
   createSessionClient,
   isDesktopShell,
   jogDeltaFromAxes,
   listAvailablePorts,
+  loadJobFromText,
   OFFLINE_STATUS,
   planGoToWorkZero,
   type DesktopPortInfo,
+  type GcodeStreamer,
   type GrblClient,
   type GrblStatus,
   type JogMode,
+  type LoadedJob,
   type SoftTravelLimits,
+  type StreamProgress,
   type ZeroAxisSelection,
 } from "./grbl";
 import "./App.css";
@@ -33,6 +39,7 @@ const CONTINUOUS_JOG_MS = 180;
 
 export default function App() {
   const clientRef = useRef<GrblClient | null>(null);
+  const streamerRef = useRef<GcodeStreamer | null>(null);
   const continuousTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const continuousAxesRef = useRef<JogAxisMap | null>(null);
   const statusRef = useRef<GrblStatus>(OFFLINE_STATUS);
@@ -42,7 +49,6 @@ export default function App() {
   const [ports, setPorts] = useState<DesktopPortInfo[]>([]);
   const [selectedPath, setSelectedPath] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [jobName, setJobName] = useState<string | null>(null);
 
   const [jogMode, setJogMode] = useState<JogMode>("incremental");
   const [stepMm, setStepMm] = useState<number>(JOG_STEP_OPTIONS_MM[1]);
@@ -51,12 +57,39 @@ export default function App() {
   const [pendingGoTo, setPendingGoTo] = useState<ZeroAxisSelection | null>(null);
   const [zeroMessage, setZeroMessage] = useState<string | null>(null);
 
+  const [job, setJob] = useState<LoadedJob | null>(null);
+  const [streamProgress, setStreamProgress] = useState<StreamProgress | null>(
+    null,
+  );
+
   /** Soft travel known to the app — defaults until calibration UI lands. */
   const [softTravel] = useState<SoftTravelLimits>(DEFAULT_SOFT_TRAVEL);
 
   const usingMock = !isDesktopShell();
   const connected = phase === "connected";
   const bedMm = bedSizeFromLimits(softTravel);
+
+  const streaming =
+    streamProgress?.phase === "running" ||
+    streamProgress?.phase === "paused" ||
+    streamProgress?.phase === "stopping";
+
+  const startGate = canStartJob(status.state, connected);
+  const startBlockedReason = !job
+    ? null
+    : !startGate.ok
+      ? (startGate.reason ?? "Cannot start")
+      : streaming
+        ? "Job already running"
+        : null;
+
+  /** Estimate completed path segments from acked line ratio. */
+  const pathProgress =
+    job && streamProgress && job.lines.length > 0
+      ? Math.round(
+          (streamProgress.ackedLines / job.lines.length) * job.path.length,
+        )
+      : 0;
 
   useEffect(() => {
     const client = createSessionClient();
@@ -68,8 +101,15 @@ export default function App() {
         setPhase((prev) => (prev === "connecting" ? prev : "disconnected"));
       }
     });
+
+    streamerRef.current = createGcodeStreamer(client.transport, {
+      onProgress: (p) => setStreamProgress({ ...p }),
+    });
+
     return () => {
       unsub();
+      streamerRef.current?.dispose();
+      streamerRef.current = null;
       void client.disconnect().catch(() => undefined);
       clientRef.current = null;
     };
@@ -140,6 +180,9 @@ export default function App() {
   };
 
   const handleDisconnect = async () => {
+    if (streaming) {
+      await streamerRef.current?.stop();
+    }
     await stopContinuousJog();
     const client = clientRef.current;
     if (!client) return;
@@ -150,11 +193,15 @@ export default function App() {
       setStatus(OFFLINE_STATUS);
       setErrorMessage(null);
       setPendingGoTo(null);
+      setStreamProgress(null);
     }
   };
 
   const handleSoftReset = async () => {
     await stopContinuousJog();
+    if (streaming) {
+      await streamerRef.current?.stop();
+    }
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
     try {
@@ -170,6 +217,7 @@ export default function App() {
   const sendJogDelta = async (axes: JogAxisMap, continuous: boolean) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
+    if (streaming) return;
 
     const delta = continuous
       ? continuousJogDelta(axes, feedMmMin, CONTINUOUS_JOG_MS / 1000)
@@ -201,7 +249,7 @@ export default function App() {
   };
 
   const handleJog = (axes: JogAxisMap) => {
-    if (!connected) return;
+    if (!connected || streaming) return;
     if (jogMode === "incremental") {
       void sendJogDelta(axes, false);
       return;
@@ -223,7 +271,7 @@ export default function App() {
 
   const handleZero = async (axes: ZeroAxisSelection) => {
     const client = clientRef.current;
-    if (!client || !client.transport.isOpen) return;
+    if (!client || !client.transport.isOpen || streaming) return;
     try {
       await client.sendLine(buildSetWorkZeroCommand(axes));
       setZeroMessage(
@@ -231,7 +279,6 @@ export default function App() {
           ? "Work XYZ zero set at current position (G10 L20)."
           : `Work ${axes} zero set at current position (G10 L20).`,
       );
-      // Ask for a fresh status so WCO/WPos update promptly.
       await client.requestStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -242,7 +289,7 @@ export default function App() {
   const handleConfirmGoTo = async () => {
     const axes = pendingGoTo;
     setPendingGoTo(null);
-    if (!axes) return;
+    if (!axes || streaming) return;
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
 
@@ -267,8 +314,6 @@ export default function App() {
     try {
       for (const cmd of plan.commands) {
         await client.sendLine(cmd);
-        // Small gap so GRBL can accept the next jog after the previous finishes
-        // in the mock; real GRBL buffers jog commands while planning.
         await new Promise((r) => setTimeout(r, usingMock ? 320 : 40));
       }
       setZeroMessage(
@@ -282,8 +327,79 @@ export default function App() {
     }
   };
 
-  const handleLoadJob = () => {
-    setJobName("untitled.nc");
+  const handleLoadFile = (file: File) => {
+    if (streaming) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      const loaded = loadJobFromText(file.name, text);
+      setJob(loaded);
+      setStreamProgress({
+        phase: "idle",
+        sentLines: 0,
+        ackedLines: 0,
+        totalLines: loaded.lines.length,
+        percent: 0,
+      });
+    };
+    reader.onerror = () => {
+      setErrorMessage(`Failed to read ${file.name}`);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearJob = () => {
+    if (streaming) return;
+    setJob(null);
+    setStreamProgress(null);
+  };
+
+  const handleStartJob = async () => {
+    const streamer = streamerRef.current;
+    const client = clientRef.current;
+    if (!streamer || !client || !job) return;
+
+    const gate = canStartJob(statusRef.current.state, connected);
+    if (!gate.ok) {
+      setErrorMessage(gate.reason ?? "Cannot start");
+      return;
+    }
+
+    await stopContinuousJog();
+    setErrorMessage(null);
+    try {
+      await streamer.start(job.lines);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handlePauseJob = async () => {
+    try {
+      await streamerRef.current?.pause();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleResumeJob = async () => {
+    try {
+      await streamerRef.current?.resume();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleStopJob = async () => {
+    try {
+      await streamerRef.current?.stop();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
   };
 
   const portLabel =
@@ -292,6 +408,8 @@ export default function App() {
       : phase === "connecting"
         ? "Opening…"
         : selectedPath || "No port";
+
+  const jogEnabled = connected && !streaming;
 
   return (
     <div className="shell">
@@ -303,7 +421,12 @@ export default function App() {
       </header>
 
       <div className="shell__stage">
-        <MachineView tool={status.work} bedMm={bedMm} />
+        <MachineView
+          tool={status.work}
+          bedMm={bedMm}
+          path={job?.path}
+          pathProgress={pathProgress}
+        />
 
         <aside className="shell__rail">
           <ConnectPanel
@@ -329,7 +452,7 @@ export default function App() {
           />
           <CoordinateReadout status={status} />
           <JogPanel
-            enabled={connected}
+            enabled={jogEnabled}
             mode={jogMode}
             stepMm={stepMm}
             feedMmMin={feedMmMin}
@@ -341,7 +464,7 @@ export default function App() {
             onJogEnd={handleJogEnd}
           />
           <WorkZeroPanel
-            enabled={connected}
+            enabled={jogEnabled}
             pendingGoTo={pendingGoTo}
             message={zeroMessage}
             onZero={(axes) => {
@@ -353,7 +476,27 @@ export default function App() {
             }}
             onCancelGoTo={() => setPendingGoTo(null)}
           />
-          <JobLoad jobName={jobName} onLoadClick={handleLoadJob} />
+          <JobLoad
+            job={job}
+            progress={streamProgress}
+            connected={connected}
+            machineState={status.state}
+            startBlockedReason={startBlockedReason}
+            onLoadFile={handleLoadFile}
+            onClear={handleClearJob}
+            onStart={() => {
+              void handleStartJob();
+            }}
+            onPause={() => {
+              void handlePauseJob();
+            }}
+            onResume={() => {
+              void handleResumeJob();
+            }}
+            onStop={() => {
+              void handleStopJob();
+            }}
+          />
         </aside>
       </div>
     </div>

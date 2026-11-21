@@ -1,0 +1,15 @@
+%
+(SharpCNC sample square — 40×40 mm)
+G21 G90
+G0 Z5
+G0 X0 Y0
+G0 X10 Y10
+G1 Z-0.5 F300
+G1 X50 F800
+G1 Y50
+G1 X10
+G1 Y10
+G0 Z5
+G0 X0 Y0
+M2
+%

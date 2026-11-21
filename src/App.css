@@ -689,16 +689,148 @@ button {
 
 .job {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 1rem;
+  flex-direction: column;
+  gap: 0.65rem;
   margin-top: auto;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(138, 148, 158, 0.12);
+  transition: background 160ms ease, outline-color 160ms ease;
+  outline: 1px dashed transparent;
+  outline-offset: 4px;
+}
+
+.job.is-dragover {
+  outline-color: rgba(212, 168, 75, 0.55);
+  background: rgba(212, 168, 75, 0.06);
 }
 
 .job__hint {
   margin: 0.35rem 0 0;
   font-size: 0.75rem;
   color: var(--steel-dim);
+}
+
+.job__file {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.job__status {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.job__status-row {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
+.job__phase {
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--steel);
+}
+
+.job__phase.is-running {
+  color: var(--brass-hot);
+}
+
+.job__phase.is-paused {
+  color: #e0b060;
+}
+
+.job__phase.is-completed {
+  color: #8fbf8a;
+}
+
+.job__phase.is-error {
+  color: #e8a090;
+}
+
+.job__line {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--steel-dim);
+}
+
+.job__warn {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #e8a090;
+}
+
+.job__warn-text,
+.job__error {
+  margin: 0;
+  font-size: 0.75rem;
+  color: #e8a090;
+  font-family: var(--font-mono);
+  line-height: 1.35;
+}
+
+.job__bar {
+  height: 4px;
+  background: rgba(138, 148, 158, 0.18);
+  overflow: hidden;
+}
+
+.job__bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, rgba(212, 168, 75, 0.55), #d4a84b);
+  transition: width 120ms ease;
+}
+
+.job__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.job__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.job__btn--ghost {
+  border-color: rgba(138, 148, 158, 0.35);
+  background: transparent;
+  color: var(--steel);
+}
+
+.job__btn--ghost:hover:not(:disabled) {
+  border-color: rgba(138, 148, 158, 0.55);
+  background: rgba(138, 148, 158, 0.08);
+  color: var(--ink);
+}
+
+.job__btn--hold {
+  border-color: rgba(224, 176, 96, 0.5);
+  color: #e0b060;
+}
+
+.job__btn--stop {
+  border-color: rgba(196, 92, 74, 0.55);
+  background: linear-gradient(
+    180deg,
+    rgba(196, 92, 74, 0.22),
+    rgba(196, 92, 74, 0.08)
+  );
+  color: #e8a090;
+}
+
+.job__btn--stop:hover:not(:disabled) {
+  border-color: rgba(196, 92, 74, 0.75);
+  color: #f0b8aa;
 }
 
 @media (max-width: 900px) {
