@@ -47,9 +47,20 @@ export function CoordinateReadout({ status }: CoordinateReadoutProps) {
       <header className="coords__head">
         <h2 className="coords__title">Position</h2>
         <span
-          className={`coords__state${status.state === "Alarm" ? " is-alarm" : ""}`}
+          className={`coords__state${status.state === "Alarm" ? " is-alarm" : ""}${status.state === "Hold" ? " is-hold" : ""}`}
+          title={
+            status.state === "Alarm"
+              ? "Alarm lock — clear fault, then Unlock"
+              : status.state === "Hold"
+                ? "Feed hold — Resume to continue"
+                : undefined
+          }
         >
-          {status.state}
+          {status.state === "Alarm"
+            ? "Alarm"
+            : status.state === "Hold"
+              ? "Hold"
+              : status.state}
         </span>
       </header>
       <div className="coords__legend" aria-hidden>

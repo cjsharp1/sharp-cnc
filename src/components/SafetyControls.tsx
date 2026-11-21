@@ -57,7 +57,8 @@ export function SafetyControls({
           className="safety__estop"
           disabled={!connected}
           onClick={onEstop}
-          title="Feed hold, then soft reset / cancel job"
+          title="Emergency stop: feed hold, then soft reset / cancel job"
+          aria-label="Emergency stop"
         >
           E-Stop
         </button>

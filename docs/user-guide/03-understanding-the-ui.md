@@ -10,7 +10,7 @@ The window is built so you always see **connection**, **position**, and **safety
 
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
-- **Menu** — Material & tool, External jobs, Calibration, Prepare to run, and **Debug mode** (wizards / panels that should not clutter the main chrome)
+- **Menu** — Material & tool, External jobs, Calibration, Prepare to run, **Appearance** (dark / light), and **Debug mode** (wizards / panels that should not clutter the main chrome)
 
 ![Menu open](assets/menu-open.webp)
 
@@ -54,6 +54,7 @@ Use **tabs** for day-to-day jog / run / logs. Use **Menu** for setup that you do
 - External jobs…  
 - Calibration… (full wizard modal)  
 - Prepare to run… (pre-start / Z probe wizard)  
+- **Appearance** — Dark or Light (persisted). Workshop steel & brass in both modes; visualizer grid and toolpath stay readable.  
 - **Debug mode** — toggle (persisted; default off). When on, the Log tab shows Export / Copy / Debug bridge and the menu label reads **Menu · Debug**.
 
 Next: [Jogging & zeros](04-jogging-and-zeros.md).
