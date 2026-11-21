@@ -71,6 +71,8 @@ interface CalibrationPanelProps {
   onWriteManual: (id: number, value: number) => void;
   onZero: (axes: ZeroAxisSelection) => void;
   onClose?: () => void;
+  /** Open the post-calibration full bed travel test (clear entry). */
+  onOpenBedTravelTest?: () => void;
 }
 
 function settingValue(
@@ -111,6 +113,7 @@ export function CalibrationPanel({
   onWriteManual,
   onZero,
   onClose,
+  onOpenBedTravelTest,
 }: CalibrationPanelProps) {
   const {
     stepIndex,
@@ -708,6 +711,23 @@ export function CalibrationPanel({
             label={STEP_CONFIRM_LABELS.travel}
             onChange={setStepConfirmed}
           />
+
+          {onOpenBedTravelTest ? (
+            <div className="cal__offer">
+              <button
+                type="button"
+                className="cal__btn"
+                disabled={!canAct}
+                onClick={onOpenBedTravelTest}
+              >
+                Bed travel test…
+              </button>
+              <p className="cal__offer-hint">
+                After soft travel is set, run the full-bed corner walk (safe Z,
+                cruise, slow approach).
+              </p>
+            </div>
+          ) : null}
         </div>
       )}
 
@@ -850,17 +870,34 @@ export function CalibrationPanel({
           {WIZARD_STEPS[stepIndex]?.short}
         </span>
         {isLast ? (
-          <button
-            type="button"
-            className="cal__btn"
-            onClick={onClose}
-            disabled={!onClose || !isConfirmed}
-            title={
-              isConfirmed ? undefined : "Confirm this step before finishing"
-            }
-          >
-            Done
-          </button>
+          <>
+            {onOpenBedTravelTest ? (
+              <button
+                type="button"
+                className="cal__btn cal__btn--ghost"
+                disabled={!isConfirmed}
+                onClick={onOpenBedTravelTest}
+                title={
+                  isConfirmed
+                    ? "Finish calibration and open the bed travel test"
+                    : "Confirm this step before finishing"
+                }
+              >
+                Done → Bed travel test
+              </button>
+            ) : null}
+            <button
+              type="button"
+              className="cal__btn"
+              onClick={onClose}
+              disabled={!onClose || !isConfirmed}
+              title={
+                isConfirmed ? undefined : "Confirm this step before finishing"
+              }
+            >
+              Done
+            </button>
+          </>
         ) : (
           <button
             type="button"

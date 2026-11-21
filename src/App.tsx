@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityLogPanel } from "./components/ActivityLogPanel";
 import { AppMenu } from "./components/AppMenu";
+import {
+  BedTravelTestPanel,
+  type BedTravelRunPhase,
+} from "./components/BedTravelTestPanel";
 import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { ConsolePanel } from "./components/ConsolePanel";
@@ -108,8 +112,10 @@ import {
   parseConsoleLines,
   pauseSim,
   planGoToWorkZero,
+  playProximityBeep,
   publishDebugSnapshot,
   rapidOverrideByte,
+  softLimitsEnabled,
   rememberRecentJob,
   removeRecentJob,
   resumeSim,
@@ -164,6 +170,7 @@ import {
   type RapidOverrideStep,
   type RecentJobEntry,
   type SimSpeedRate,
+  type BedTravelPlan,
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
@@ -291,6 +298,17 @@ export default function App() {
   const [calBusy, setCalBusy] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
   const [calOpen, setCalOpen] = useState(false);
+  const [bedTravelOpen, setBedTravelOpen] = useState(false);
+  const [bedTravelPhase, setBedTravelPhase] =
+    useState<BedTravelRunPhase>("idle");
+  const [bedTravelPlan, setBedTravelPlan] = useState<BedTravelPlan | null>(
+    null,
+  );
+  const [bedTravelSegmentIndex, setBedTravelSegmentIndex] = useState(0);
+  const [bedTravelMessage, setBedTravelMessage] = useState<string | null>(null);
+  const [bedTravelSound, setBedTravelSound] = useState(true);
+  const bedTravelAbortRef = useRef(false);
+  const bedTravelRunningRef = useRef(false);
   const [prepareOpen, setPrepareOpen] = useState(false);
   const [firstRunOpen, setFirstRunOpen] = useState(
     () => !loadFirstRunState().completed,
@@ -711,6 +729,23 @@ export default function App() {
   }, [calOpen]);
 
   useEffect(() => {
+    if (!bedTravelOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (
+          bedTravelPhase === "running" ||
+          bedTravelPhase === "paused"
+        ) {
+          return;
+        }
+        setBedTravelOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [bedTravelOpen, bedTravelPhase]);
+
+  useEffect(() => {
     if (!prepareOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setPrepareOpen(false);
@@ -911,6 +946,7 @@ export default function App() {
   };
 
   const handleSoftReset = async () => {
+    bedTravelAbortRef.current = true;
     await stopContinuousJog();
     externalControlsRef.current.noteSoftwareAction("abort");
     if (streaming) {
@@ -926,6 +962,11 @@ export default function App() {
       setHomed(false);
       setErrorMessage(null);
       setSoftLimitHint(null);
+      if (bedTravelRunningRef.current) {
+        bedTravelRunningRef.current = false;
+        setBedTravelPhase("aborted");
+        setBedTravelMessage("Aborted by soft reset / E-Stop.");
+      }
       activityLog.append("event", "Soft reset");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2202,6 +2243,9 @@ export default function App() {
 
   const jogGate = canJogOrZero(status.state, connected, streaming);
   const jogEnabled = jogGate.ok;
+  const softLimitsOn = grblSettings
+    ? softLimitsEnabled(grblSettings)
+    : false;
 
   const jobBadge = streaming
     ? streamProgress?.phase === "paused"
@@ -2218,6 +2262,158 @@ export default function App() {
     if (connected && settingsGate.ok && !grblSettings) {
       void handleRefreshSettings();
     }
+  };
+
+  const openBedTravelTest = () => {
+    setCalOpen(false);
+    setBedTravelOpen(true);
+    setBedTravelMessage(null);
+    if (bedTravelPhase === "done" || bedTravelPhase === "aborted") {
+      setBedTravelPhase("idle");
+      setBedTravelPlan(null);
+      setBedTravelSegmentIndex(0);
+    }
+    if (connected && settingsGate.ok) {
+      void handleRefreshSettings();
+    }
+  };
+
+  const waitBedTravelIdle = async (client: GrblClient) => {
+    const deadline = Date.now() + (usingMock ? 8000 : 180_000);
+    await new Promise((r) => setTimeout(r, usingMock ? 40 : 80));
+    while (Date.now() < deadline) {
+      if (bedTravelAbortRef.current) return;
+      await client.requestStatus().catch(() => undefined);
+      const st = statusRef.current.state;
+      if (st === "Alarm") {
+        throw new Error(alarmMessage ?? "Alarm during bed travel test");
+      }
+      if (st === "Hold") {
+        // Feed Hold — wait until resumed or abort.
+        await new Promise((r) => setTimeout(r, usingMock ? 80 : 200));
+        continue;
+      }
+      if (st === "Idle" || st === "Check") return;
+      await new Promise((r) => setTimeout(r, usingMock ? 50 : 120));
+    }
+  };
+
+  const handleBedTravelStart = async (plan: BedTravelPlan) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen || streaming) return;
+    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setBedTravelMessage(gate.reason ?? "Cannot start bed travel");
+      return;
+    }
+    if (!plan.ok || plan.segments.length === 0) {
+      setBedTravelMessage(plan.blocked ?? "No bed travel plan");
+      return;
+    }
+
+    bedTravelAbortRef.current = false;
+    bedTravelRunningRef.current = true;
+    setBedTravelPlan(plan);
+    setBedTravelSegmentIndex(0);
+    setBedTravelPhase("running");
+    setBedTravelMessage(
+      plan.warnings.length
+        ? `Running… ${plan.warnings.join(" ")}`
+        : "Running bed travel test…",
+    );
+    activityLog.append(
+      "event",
+      `Bed travel test start (${plan.segments.length} segments)`,
+    );
+
+    try {
+      await stopContinuousJog();
+      for (let i = 0; i < plan.segments.length; i++) {
+        if (bedTravelAbortRef.current || !bedTravelRunningRef.current) break;
+        const seg = plan.segments[i]!;
+        setBedTravelSegmentIndex(i);
+        if (bedTravelSound && seg.proximityPulse) {
+          playProximityBeep();
+        }
+        const check = checkSoftLimits(
+          statusRef.current.machine,
+          seg.delta,
+          softTravel,
+        );
+        if (!check.ok) {
+          throw new Error(check.reason ?? "Soft-limit gate blocked segment");
+        }
+        await client.sendLine(seg.command);
+        activityLog.append(
+          "event",
+          `Bed travel ${seg.label} (${seg.phase} F${seg.feedMmMin})`,
+        );
+        await waitBedTravelIdle(client);
+        if (bedTravelAbortRef.current || !bedTravelRunningRef.current) break;
+        if (statusRef.current.state === "Alarm") {
+          throw new Error(alarmMessage ?? "Alarm during bed travel test");
+        }
+      }
+
+      if (bedTravelAbortRef.current || !bedTravelRunningRef.current) {
+        setBedTravelPhase("aborted");
+        setBedTravelMessage("Bed travel test aborted.");
+        activityLog.append("event", "Bed travel test aborted");
+      } else {
+        setBedTravelSegmentIndex(plan.segments.length);
+        setBedTravelPhase("done");
+        setBedTravelMessage("Bed travel test complete — all corners visited.");
+        activityLog.append("event", "Bed travel test complete");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setBedTravelPhase("aborted");
+      setBedTravelMessage(message);
+      setErrorMessage(message);
+      activityLog.append("event", `Bed travel test failed: ${message}`);
+      try {
+        await client.cancelJog();
+      } catch {
+        /* ignore */
+      }
+    } finally {
+      bedTravelRunningRef.current = false;
+    }
+  };
+
+  const handleBedTravelStop = async () => {
+    bedTravelAbortRef.current = true;
+    bedTravelRunningRef.current = false;
+    setBedTravelPhase("paused");
+    setBedTravelMessage("Stop — canceling jog…");
+    activityLog.append("event", "Bed travel stop (cancel jog)");
+    externalControlsRef.current.noteSoftwareAction("hold");
+    await stopContinuousJog();
+    const client = clientRef.current;
+    if (client?.transport.isOpen) {
+      try {
+        await client.feedHold();
+      } catch {
+        /* ignore */
+      }
+      try {
+        await client.cancelJog();
+      } catch {
+        /* ignore */
+      }
+    }
+    setBedTravelPhase("aborted");
+    setBedTravelMessage("Stopped — jog canceled. Re-confirm to restart.");
+  };
+
+  const handleBedTravelAbort = async () => {
+    bedTravelAbortRef.current = true;
+    bedTravelRunningRef.current = false;
+    setBedTravelPhase("aborted");
+    setBedTravelMessage("Abort — soft reset…");
+    activityLog.append("event", "Bed travel abort");
+    await handleEstop();
+    setBedTravelMessage("Aborted. Unlock / re-home if needed, then re-confirm.");
   };
 
   const openFirstRun = () => {
@@ -2393,6 +2589,7 @@ export default function App() {
         </div>
         <AppMenu
           onOpenCalibration={openCalibration}
+          onOpenBedTravelTest={openBedTravelTest}
           onOpenPrepareRun={openPrepareRun}
           onOpenMaterialTool={openMaterialTool}
           onOpenExternalJobs={openExternalJobs}
@@ -2971,6 +3168,86 @@ export default function App() {
                   void handleZero(axes);
                 }}
                 onClose={() => setCalOpen(false)}
+                onOpenBedTravelTest={openBedTravelTest}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bedTravelOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Bed travel test"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close bed travel test"
+            disabled={
+              bedTravelPhase === "running" || bedTravelPhase === "paused"
+            }
+            onClick={() => {
+              if (
+                bedTravelPhase === "running" ||
+                bedTravelPhase === "paused"
+              ) {
+                return;
+              }
+              setBedTravelOpen(false);
+            }}
+          />
+          <div className="cal-modal__sheet cal-modal__sheet--wide">
+            <header className="cal-modal__head">
+              <div>
+                <p className="cal-modal__eyebrow">After calibration</p>
+                <h2 className="cal-modal__title">Bed travel test</h2>
+              </div>
+              <button
+                type="button"
+                className="cal-modal__close"
+                disabled={
+                  bedTravelPhase === "running" || bedTravelPhase === "paused"
+                }
+                onClick={() => setBedTravelOpen(false)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="cal-modal__body">
+              <BedTravelTestPanel
+                enabled={jogEnabled && !streaming}
+                blockedReason={
+                  !connected
+                    ? "Connect first."
+                    : streaming
+                      ? "Stop the job first."
+                      : !jogGate.ok
+                        ? (jogGate.reason ?? "Motion locked")
+                        : null
+                }
+                softTravel={softTravel}
+                softLimitsOn={softLimitsOn}
+                status={status}
+                machinePos={status.machine}
+                runPhase={bedTravelPhase}
+                segmentIndex={bedTravelSegmentIndex}
+                plan={bedTravelPlan}
+                message={bedTravelMessage}
+                soundEnabled={bedTravelSound}
+                onSoundEnabledChange={setBedTravelSound}
+                onStart={(plan) => {
+                  void handleBedTravelStart(plan);
+                }}
+                onStop={() => {
+                  void handleBedTravelStop();
+                }}
+                onAbort={() => {
+                  void handleBedTravelAbort();
+                }}
+                onClose={() => setBedTravelOpen(false)}
               />
             </div>
           </div>
