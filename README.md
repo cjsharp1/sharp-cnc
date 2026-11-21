@@ -67,6 +67,7 @@ Web Serial for a second PC is still stubbed; mock GRBL covers UI without hardwar
 Controller: **Demon Shield** on Arduino + GRBL over USB.
 
 - Vendor page: [Designs By Phil — Demon Shield](https://www.designsbyphil.com/demon-shield-1.html)
+- Hardware soak playbook: [docs/demon-shield-soak-playbook.md](docs/demon-shield-soak-playbook.md)
 - In-repo button mapping: [docs/demon-shield-controls.md](docs/demon-shield-controls.md)
 
 ## Docs & Pages

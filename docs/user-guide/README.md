@@ -27,6 +27,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | 9 | [External jobs](09-external-jobs.md) | Watched folder + Drive setup pointer |
 | 10 | [Debug bridge](10-debug-bridge.md) | Debug mode, logs, export, localhost agent status |
 | 11 | [Safety](11-safety.md) | E-Stop, alarms, unlock, good habits |
+| 12 | [Hardware soak](12-hardware-soak.md) | Demon Shield home, `$3`, soft limits, probe, buttons, PWM |
 
 ## Quick start (experienced)
 
@@ -43,6 +44,7 @@ Illustrations live in [`assets/`](assets/). Diagrams are SVG (easy to read at a 
 ## Related project docs
 
 - [Demon Shield vendor page](https://www.designsbyphil.com/demon-shield-1.html) — PWM, limits/probe, feed-control buttons, touch plate
+- [Demon Shield soak playbook](../demon-shield-soak-playbook.md) — home, `$3`, soft limits, Z probe, Abort/Hold/Resume, PWM
 - [Demon Shield external controls](../demon-shield-controls.md) — how SharpCNC mirrors Abort / Hold / Resume
 - [Google Drive setup](../google-drive-setup.md) — OAuth client ID for native Drive (optional; watched folder works without it)
 - [Getting started (Pages)](../index.html) — download, what to open, first steps
