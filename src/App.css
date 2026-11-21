@@ -2697,6 +2697,26 @@ button {
   color: var(--steel);
 }
 
+.cal__step.is-locked,
+.cal__step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.cal__step.is-locked:hover,
+.cal__step:disabled:hover {
+  border-color: var(--line);
+  color: var(--steel-dim);
+}
+
+.wizard-gate {
+  margin-top: 0.75rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid var(--line);
+  color: var(--ink);
+  font-weight: 600;
+}
+
 .cal__step-num {
   display: inline-flex;
   align-items: center;
@@ -3166,6 +3186,29 @@ button {
   background: var(--brass-fill);
 }
 
+.firstrun__step.is-locked,
+.firstrun__step:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.firstrun__check {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+  padding-top: 0.55rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  font-size: var(--text-md);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.firstrun__check input {
+  margin-top: 0.15rem;
+  accent-color: var(--brass);
+}
+
 .firstrun__body {
   display: flex;
   flex-direction: column;
@@ -3258,6 +3301,10 @@ button {
   gap: 0.45rem;
   padding-top: 0.35rem;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.prep__steps {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
 .prep__corners {
