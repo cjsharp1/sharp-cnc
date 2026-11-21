@@ -1502,6 +1502,125 @@ button {
   line-height: 1.35;
 }
 
+.extjobs__health {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--brass-hot);
+}
+
+.recentjobs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding: 0.75rem 0.8rem;
+  border: 1px solid var(--line);
+  background: var(--panel-deep);
+  margin-bottom: 0.65rem;
+}
+
+.recentjobs__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.recentjobs__title {
+  margin: 0;
+  font-size: var(--text-lg);
+}
+
+.recentjobs__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--steel-dim);
+}
+
+.recentjobs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.recentjobs__item {
+  display: flex;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.recentjobs__card {
+  flex: 1;
+  display: flex;
+  gap: 0.55rem;
+  align-items: center;
+  text-align: left;
+  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--ink);
+  padding: 0.35rem 0.45rem;
+  cursor: pointer;
+}
+
+.recentjobs__card:hover:not(:disabled) {
+  border-color: var(--brass-border-hot);
+}
+
+.recentjobs__card:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.recentjobs__thumb {
+  flex-shrink: 0;
+  width: 56px;
+  height: 56px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+
+.recentjobs__thumb svg {
+  display: block;
+}
+
+.recentjobs__info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.recentjobs__info strong {
+  font-size: var(--text-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.recentjobs__info span {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.recentjobs__remove {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  padding: 0.35rem 0.45rem;
+  cursor: pointer;
+}
+
+.recentjobs__remove:hover:not(:disabled) {
+  border-color: var(--danger, #c45c4a);
+  color: var(--danger, #c45c4a);
+}
+
 .extjobs__hint-inline code {
   font-family: var(--font-mono);
   font-size: var(--text-xs);

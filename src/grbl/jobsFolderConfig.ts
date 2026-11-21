@@ -19,6 +19,24 @@ const JOBS_FOLDER_STORAGE_KEY = "sharpcnc.jobsFolder.v1";
 /** Poll interval while watching (ms). Network / Drive-for-Desktop friendly. */
 export const JOBS_FOLDER_POLL_MS = 2500;
 
+/** Back off after consecutive list failures (ms). */
+export const JOBS_FOLDER_ERROR_BACKOFF_MS = 8000;
+
+export type JobsFolderHealth = "idle" | "ok" | "missing" | "error";
+
+export function jobsFolderHealthLabel(health: JobsFolderHealth): string {
+  switch (health) {
+    case "ok":
+      return "Watching";
+    case "missing":
+      return "Folder missing";
+    case "error":
+      return "List failed — retrying";
+    default:
+      return "Idle";
+  }
+}
+
 export function loadJobsFolderConfig(): JobsFolderConfig {
   try {
     const raw = localStorage.getItem(JOBS_FOLDER_STORAGE_KEY);
