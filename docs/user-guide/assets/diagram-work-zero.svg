@@ -33,14 +33,14 @@
   <text class="lab" x="210" y="224" font-weight="700">Stock</text>
 
   <circle cx="72" cy="302" r="7" fill="#3a4550"/>
-  <text class="lab m" x="86" y="290">Machine 0</text>
-  <text class="tiny" x="86" y="308">(home)</text>
+  <text class="lab m" x="86" y="286">Machine 0</text>
+  <text class="tiny" x="86" y="320">(home)</text>
   <line class="axis-m" x1="72" y1="302" x2="200" y2="302"/>
   <line class="axis-m" x1="72" y1="302" x2="72" y2="120"/>
 
   <circle cx="180" cy="256" r="7" fill="#b85c2a"/>
-  <text class="lab w" x="194" y="248">Work 0</text>
-  <text class="tiny" x="194" y="266">(stock corner)</text>
+  <text class="lab w" x="194" y="242">Work 0</text>
+  <text class="tiny" x="220" y="278">(stock corner)</text>
   <line class="axis-w" x1="180" y1="256" x2="290" y2="256"/>
   <line class="axis-w" x1="180" y1="256" x2="180" y2="180"/>
 

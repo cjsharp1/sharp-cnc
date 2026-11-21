@@ -26,22 +26,23 @@
   <text class="lab big" x="100" y="50">Home</text>
   <text class="lab act" x="100" y="84">Clear bed → Home ($H) → wait Idle</text>
 
-  <rect class="bed" x="120" y="140" width="420" height="300" rx="10"/>
-  <text class="tiny" x="140" y="168">Machine bed</text>
+  <rect class="bed" x="120" y="130" width="420" height="270" rx="10"/>
+  <text class="tiny" x="140" y="158">Machine bed</text>
 
-  <!-- origin / home switches -->
-  <circle class="sw" cx="160" cy="400" r="14"/>
-  <rect class="sw" x="148" y="250" width="12" height="140" rx="2"/>
-  <rect class="sw" x="160" y="388" width="140" height="12" rx="2"/>
-  <text class="lab" x="180" y="370" font-weight="700" font-size="16">Home switches</text>
-  <text class="tiny" x="180" y="392">zero side only</text>
+  <!-- L-shaped home switches at zero corner; labels outside bed -->
+  <circle class="sw" cx="160" cy="360" r="14"/>
+  <rect class="sw" x="148" y="210" width="12" height="140" rx="2"/>
+  <rect class="sw" x="160" y="348" width="140" height="12" rx="2"/>
 
-  <path class="arrow" d="M360 280 L200 380"/>
-  <circle fill="#3a4550" cx="360" cy="280" r="10"/>
-  <text class="tiny" x="372" y="270">tool</text>
+  <path class="arrow" d="M360 250 L200 340"/>
+  <circle fill="#3a4550" cx="360" cy="250" r="10"/>
+  <text class="tiny" x="372" y="240">tool</text>
 
-  <text class="tiny warn" x="340" y="200" text-anchor="middle">Far side = no switches</text>
-  <text class="tiny warn" x="340" y="220" text-anchor="middle">(soft travel later)</text>
+  <text class="tiny warn" x="340" y="190" text-anchor="middle">Far side = no switches</text>
+  <text class="tiny warn" x="340" y="210" text-anchor="middle">(soft travel later)</text>
+
+  <text class="lab" x="160" y="440" font-weight="700" font-size="16" fill="#1f6a4a">Home switches</text>
+  <text class="tiny" x="160" y="462">zero side only</text>
 
   <rect class="btn" x="600" y="220" width="280" height="90" rx="14"/>
   <text class="w" x="740" y="275" text-anchor="middle" font-size="24">Home ($H)</text>
