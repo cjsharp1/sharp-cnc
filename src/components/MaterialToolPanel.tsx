@@ -1,5 +1,6 @@
 import {
   TOOL_BIT_LABELS,
+  stockOffsetForCorner,
   type StockConfig,
   type StockCorner,
   type ToolBitType,
@@ -47,6 +48,14 @@ export function MaterialToolPanel({
   const patchTool = (partial: Partial<ToolConfig>) => {
     onToolChange({ ...tool, ...partial });
   };
+
+  const activeCorner = (CORNERS.find(({ id }) => {
+    const expected = stockOffsetForCorner(stock, id, bedMm.width, bedMm.depth);
+    return (
+      Math.abs(expected.offsetXMm - stock.offsetXMm) < 1e-6 &&
+      Math.abs(expected.offsetYMm - stock.offsetYMm) < 1e-6
+    );
+  })?.id ?? null);
 
   return (
     <section className="mattool" aria-label="Material and tool">
@@ -115,8 +124,9 @@ export function MaterialToolPanel({
                 <button
                   key={id}
                   type="button"
-                  className="mattool__corner"
+                  className={`mattool__corner${activeCorner === id ? " is-active" : ""}`}
                   title={title}
+                  aria-pressed={activeCorner === id}
                   onClick={() => onPlaceCorner(id)}
                 >
                   {label}
