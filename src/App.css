@@ -285,6 +285,88 @@ button {
   display: block;
   width: 100%;
   height: 100%;
+  touch-action: none;
+  cursor: grab;
+  user-select: none;
+}
+
+.machine.is-panning .machine__svg {
+  cursor: grabbing;
+}
+
+.machine__toolbar {
+  position: absolute;
+  top: 0.55rem;
+  left: 0.55rem;
+  z-index: 3;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  max-width: calc(100% - 7.5rem);
+  pointer-events: auto;
+}
+
+.machine__zoom-btn {
+  appearance: none;
+  border: 1px solid rgba(138, 148, 158, 0.4);
+  background: rgba(18, 22, 26, 0.88);
+  color: rgba(232, 234, 237, 0.92);
+  font: inherit;
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+}
+
+.machine__zoom-btn:hover:not(:disabled),
+.machine__zoom-btn:focus-visible:not(:disabled) {
+  border-color: rgba(212, 168, 75, 0.55);
+  color: var(--brass-hot);
+}
+
+.machine__zoom-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.machine__zoom-btn--fit {
+  border-color: rgba(212, 168, 75, 0.4);
+  color: #e8d6aa;
+}
+
+.machine__zoom-readout {
+  margin-left: 0.15rem;
+  padding: 0.2rem 0.4rem;
+  color: rgba(210, 216, 222, 0.85);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.machine__zoom-readout-dim {
+  color: rgba(139, 147, 156, 0.9);
+}
+
+.machine__hud {
+  position: absolute;
+  left: 0.65rem;
+  right: 0.65rem;
+  bottom: 0.55rem;
+  z-index: 2;
+  margin: 0;
+  padding: 0.2rem 0;
+  color: rgba(232, 234, 237, 0.55);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.02em;
+  pointer-events: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .machine__tool {
@@ -320,7 +402,7 @@ button {
 .machine__overlay {
   position: absolute;
   left: 0.65rem;
-  bottom: 0.65rem;
+  bottom: 1.85rem;
   z-index: 2;
   max-width: min(16.5rem, calc(100% - 1.3rem));
 }
