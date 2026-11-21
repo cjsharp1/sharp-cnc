@@ -48,6 +48,7 @@ import {
   createDemonShieldExternalControlAdapter,
   createGcodeStreamer,
   createIdleSim,
+  DEFAULT_SIM_SPEED,
   createSessionClient,
   fetchGrblSettings,
   importSvg,
@@ -111,6 +112,7 @@ import {
   type OverrideStep,
   type PathSimSnapshot,
   type ProbeConfig,
+  type SimSpeedRate,
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
@@ -164,11 +166,13 @@ export default function App() {
   );
   const [svgDraft, setSvgDraft] = useState<SvgImportResult | null>(null);
   const [sim, setSim] = useState<PathSimSnapshot>(() => createIdleSim([]));
+  const [simSpeed, setSimSpeed] = useState<SimSpeedRate>(DEFAULT_SIM_SPEED);
   const [displayTool, setDisplayTool] = useState(() => OFFLINE_STATUS.work);
   const [trail, setTrail] = useState<TrailPoint[]>([]);
   const displayToolRef = useRef(OFFLINE_STATUS.work);
   const trailRef = useRef<TrailPoint[]>([]);
   const simRef = useRef<PathSimSnapshot>(createIdleSim([]));
+  const simSpeedRef = useRef<SimSpeedRate>(DEFAULT_SIM_SPEED);
   const jobPathRef = useRef<LoadedJob["path"]>([]);
 
   /** Soft travel / bed size — persisted for the visualizer. */
@@ -308,6 +312,10 @@ export default function App() {
   }, [sim]);
 
   useEffect(() => {
+    simSpeedRef.current = simSpeed;
+  }, [simSpeed]);
+
+  useEffect(() => {
     streamPhaseRef.current = streamProgress?.phase ?? "idle";
   }, [streamProgress]);
 
@@ -330,13 +338,29 @@ export default function App() {
       }
     };
 
-    const pushTrail = (x: number, y: number) => {
+    const pushTrail = (
+      x: number,
+      y: number,
+      z?: number,
+      activity?: TrailPoint["activity"],
+    ) => {
       const prev = trailRef.current;
       const last = prev[prev.length - 1];
       if (last && Math.hypot(x - last.x, y - last.y) < TRAIL_MIN_STEP_MM) {
+        // Still update activity/z on the tip so pure-Z moves refresh cues.
+        if (
+          last &&
+          (last.activity !== activity ||
+            (z != null && Math.abs((last.z ?? 0) - z) > 0.02))
+        ) {
+          const tip = { ...last, x, y, z, activity };
+          const next = [...prev.slice(0, -1), tip];
+          trailRef.current = next;
+          setTrail(next);
+        }
         return;
       }
-      const next = [...prev, { x, y }];
+      const next = [...prev, { x, y, z, activity }];
       if (next.length > TRAIL_MAX_POINTS) {
         next.splice(0, next.length - TRAIL_MAX_POINTS);
       }
@@ -351,12 +375,16 @@ export default function App() {
       const path = jobPathRef.current;
 
       if (snap.phase === "playing" && path.length > 0) {
-        const advanced = advanceSim(snap, path, dt);
+        const advanced = advanceSim(snap, path, dt, {
+          rate: simSpeedRef.current,
+        });
         simRef.current = advanced;
         if (
           advanced.phase !== snap.phase ||
           advanced.completedSegments !== snap.completedSegments ||
-          Math.abs(advanced.progress - snap.progress) > 0.002
+          advanced.activity !== snap.activity ||
+          Math.abs(advanced.progress - snap.progress) > 0.002 ||
+          Math.abs(advanced.position.z - snap.position.z) > 0.02
         ) {
           setSim(advanced);
         }
@@ -364,15 +392,15 @@ export default function App() {
         publishTool({
           x: pos.x,
           y: pos.y,
-          z: displayToolRef.current.z,
+          z: pos.z,
         });
-        pushTrail(pos.x, pos.y);
+        pushTrail(pos.x, pos.y, pos.z, advanced.activity ?? undefined);
       } else if (snap.phase === "paused" || snap.phase === "done") {
         const pos = snap.position;
         publishTool({
           x: pos.x,
           y: pos.y,
-          z: displayToolRef.current.z,
+          z: pos.z,
         });
       } else {
         const target = statusRef.current.work;
@@ -1845,6 +1873,7 @@ export default function App() {
             trail={trail}
             liveMoving={liveMoving}
             simulating={simulating}
+            simActivity={simulating ? sim.activity : null}
             overlay={
               job && job.path.length > 0 ? (
                 <div className="machine__overlay">
@@ -1852,6 +1881,10 @@ export default function App() {
                     variant="overlay"
                     phase={sim.phase}
                     progress={sim.progress}
+                    speed={simSpeed}
+                    onSpeedChange={setSimSpeed}
+                    zMm={simulating ? sim.position.z : null}
+                    activity={simulating ? sim.activity : null}
                     disabled={streaming}
                     disabledReason={
                       streaming
@@ -1985,6 +2018,10 @@ export default function App() {
                     startBlockedReason={startBlockedReason}
                     simPhase={sim.phase}
                     simProgress={sim.progress}
+                    simSpeed={simSpeed}
+                    onSimSpeedChange={setSimSpeed}
+                    simZMm={simulating ? sim.position.z : null}
+                    simActivity={simulating ? sim.activity : null}
                     simDisabled={streaming}
                     simDisabledReason={
                       streaming

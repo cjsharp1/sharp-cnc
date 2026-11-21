@@ -315,8 +315,8 @@ export function polylinesToPreview(polys: Polyline2[]): ToolpathSegment[] {
     const pts = poly.points;
     for (let i = 1; i < pts.length; i++) {
       segs.push({
-        from: { x: pts[i - 1].x, y: pts[i - 1].y },
-        to: { x: pts[i].x, y: pts[i].y },
+        from: { x: pts[i - 1].x, y: pts[i - 1].y, z: 0 },
+        to: { x: pts[i].x, y: pts[i].y, z: 0 },
         motion: "feed",
       });
     }
@@ -325,8 +325,8 @@ export function polylinesToPreview(polys: Polyline2[]): ToolpathSegment[] {
       const b = pts[0];
       if (a.x !== b.x || a.y !== b.y) {
         segs.push({
-          from: { x: a.x, y: a.y },
-          to: { x: b.x, y: b.y },
+          from: { x: a.x, y: a.y, z: 0 },
+          to: { x: b.x, y: b.y, z: 0 },
           motion: "feed",
         });
       }

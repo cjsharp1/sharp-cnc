@@ -5,10 +5,10 @@ export const GCODE_EXTENSIONS = [".nc", ".gcode", ".ngc", ".tap"] as const;
 
 export type PathMotion = "rapid" | "feed";
 
-/** One planar segment for machine-view overlay (work coordinates, mm). */
+/** One toolpath segment for overlay + sim (work coordinates, mm). Includes Z. */
 export interface ToolpathSegment {
-  from: { x: number; y: number };
-  to: { x: number; y: number };
+  from: { x: number; y: number; z: number };
+  to: { x: number; y: number; z: number };
   motion: PathMotion;
 }
 
@@ -72,8 +72,9 @@ function hasMotion(line: string): "rapid" | "feed" | null {
 }
 
 /**
- * Approximate XY path from G-code for overlay.
+ * Approximate XYZ path from G-code for overlay + simulation.
  * Tracks G90/G91 and G20/G21; arcs (G2/G3) become a straight chord.
+ * Pure Z moves (plunge / retract) are kept so sim can show lift and depth.
  */
 export function extractToolpath(lines: string[]): {
   path: ToolpathSegment[];
@@ -116,7 +117,6 @@ export function extractToolpath(lines: string[]): {
       continue;
     }
 
-    // Only draw when this line has XY or inherits a motion mode with XY words.
     const next = { ...pos };
     if (xWord !== undefined) {
       next.x = absolute ? toMm(xWord) : pos.x + toMm(xWord);
@@ -129,15 +129,18 @@ export function extractToolpath(lines: string[]): {
     }
 
     const xyChanged = next.x !== pos.x || next.y !== pos.y;
-    if (xyChanged && (motion || modalMotion)) {
+    const zChanged = next.z !== pos.z;
+    if ((xyChanged || zChanged) && (motion || modalMotion)) {
       const kind = motion ?? modalMotion ?? "feed";
       path.push({
-        from: { x: pos.x, y: pos.y },
-        to: { x: next.x, y: next.y },
+        from: { x: pos.x, y: pos.y, z: pos.z },
+        to: { x: next.x, y: next.y, z: next.z },
         motion: kind,
       });
-      note(pos.x, pos.y);
-      note(next.x, next.y);
+      if (xyChanged) {
+        note(pos.x, pos.y);
+        note(next.x, next.y);
+      }
     }
 
     pos = next;

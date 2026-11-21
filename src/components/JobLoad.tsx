@@ -1,7 +1,9 @@
 import { useRef, useState, type DragEvent } from "react";
 import type {
   LoadedJob,
+  SimActivity,
   SimPhase,
+  SimSpeedRate,
   StreamPhase,
   StreamProgress,
 } from "../grbl";
@@ -20,6 +22,10 @@ interface JobLoadProps {
   /** Pre-run visualizer simulation (no serial). */
   simPhase?: SimPhase;
   simProgress?: number;
+  simSpeed?: SimSpeedRate;
+  onSimSpeedChange?: (rate: SimSpeedRate) => void;
+  simZMm?: number | null;
+  simActivity?: SimActivity | null;
   simDisabled?: boolean;
   simDisabledReason?: string | null;
   onSimPlay?: () => void;
@@ -62,6 +68,10 @@ export function JobLoad({
   startBlockedReason,
   simPhase = "idle",
   simProgress = 0,
+  simSpeed,
+  onSimSpeedChange,
+  simZMm = null,
+  simActivity = null,
   simDisabled = false,
   simDisabledReason = null,
   onSimPlay,
@@ -205,6 +215,10 @@ export function JobLoad({
           variant="panel"
           phase={simPhase}
           progress={simProgress}
+          speed={simSpeed}
+          onSpeedChange={onSimSpeedChange}
+          zMm={simZMm}
+          activity={simActivity}
           disabled={!canSimulate && !simulating}
           disabledReason={
             streaming

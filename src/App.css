@@ -367,6 +367,23 @@ button {
   filter: drop-shadow(0 0 6px rgba(120, 180, 220, 0.4));
 }
 
+.machine.is-simulating .machine__tool.is-lifted {
+  filter: drop-shadow(0 0 8px rgba(170, 210, 230, 0.55));
+}
+
+.machine.is-simulating .machine__tool.is-plunging {
+  filter: drop-shadow(0 0 7px rgba(220, 140, 70, 0.55));
+}
+
+.machine.is-simulating .machine__tool.is-cutting {
+  filter: drop-shadow(0 0 6px rgba(100, 170, 210, 0.5));
+}
+
+.machine__tool-stem {
+  pointer-events: none;
+  opacity: 0.85;
+}
+
 .machine__trail {
   pointer-events: none;
 }
@@ -390,7 +407,7 @@ button {
   left: 0.65rem;
   bottom: 1.85rem;
   z-index: 2;
-  max-width: min(16.5rem, calc(100% - 1.3rem));
+  max-width: min(18.5rem, calc(100% - 1.3rem));
 }
 
 @keyframes tool-settle {
@@ -479,6 +496,30 @@ button {
   font-variant-numeric: tabular-nums;
 }
 
+.sim__zcue {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+  color: var(--sim-text-soft);
+}
+
+.sim__zcue.is-retract {
+  color: var(--viz-tool-sim-retract-stroke);
+}
+
+.sim__zcue.is-plunge {
+  color: var(--viz-tool-sim-plunge-stroke);
+}
+
+.sim__zcue.is-cut {
+  color: var(--viz-tool-sim-cut-stroke);
+}
+
+.sim__zcue.is-rapid {
+  color: var(--steel);
+}
+
 .sim__bar {
   height: 3px;
   background: rgba(80, 90, 100, 0.45);
@@ -489,6 +530,49 @@ button {
   height: 100%;
   background: var(--sim-bar);
   transition: width 80ms linear;
+}
+
+.sim__speed {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.sim__speed-label {
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.sim__speed-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.sim__speed-btn {
+  appearance: none;
+  border: 1px solid var(--border-mid);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  padding: 0.18rem 0.4rem;
+  min-width: 2.4rem;
+  cursor: pointer;
+}
+
+.sim__speed-btn:hover {
+  border-color: var(--sim-border);
+  color: var(--sim-text-soft);
+}
+
+.sim__speed-btn.is-active {
+  border-color: var(--sim-border);
+  background: var(--sim-fill);
+  color: var(--sim-text);
 }
 
 .sim__warn {
