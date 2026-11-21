@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 380" role="img" aria-labelledby="t d">
+  <title id="t">Stock on bed</title>
+  <desc id="d">Material placed on the machine bed with corner labels</desc>
+  <defs>
+    <style>
+      .bg { fill: #f4f6f8; }
+      .bed { fill: #d7e0e8; stroke: #2c3e50; stroke-width: 2.5; }
+      .stock { fill: #e8c9a0; stroke: #8a5a2b; stroke-width: 2.5; }
+      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 14px; }
+      .title { font-size: 18px; font-weight: 700; }
+      .corner { font-size: 13px; font-weight: 700; fill: #c45c26; }
+      .tiny { font-size: 12px; fill: #4a5568; }
+      .dot { fill: #2c3e50; }
+    </style>
+  </defs>
+  <rect class="bg" width="600" height="380" rx="8"/>
+  <text class="lab title" x="24" y="34">Stock on the bed</text>
+
+  <rect class="bed" x="80" y="70" width="360" height="250" rx="6"/>
+  <text class="tiny" x="94" y="92">Bed (soft travel X × Y)</text>
+
+  <!-- Corners -->
+  <circle class="dot" cx="100" cy="300" r="6"/>
+  <text class="corner" x="112" y="304">SW</text>
+  <text class="tiny" x="112" y="320">Front-left</text>
+
+  <circle class="dot" cx="420" cy="300" r="6"/>
+  <text class="corner" x="380" y="304">SE</text>
+  <text class="tiny" x="360" y="320">Front-right</text>
+
+  <circle class="dot" cx="100" cy="90" r="6"/>
+  <text class="corner" x="112" y="94">NW</text>
+  <text class="tiny" x="112" y="110">Back-left</text>
+
+  <circle class="dot" cx="420" cy="90" r="6"/>
+  <text class="corner" x="380" y="94">NE</text>
+  <text class="tiny" x="360" y="110">Back-right</text>
+
+  <!-- Example stock SE -->
+  <rect class="stock" x="260" y="200" width="150" height="90" rx="4"/>
+  <text class="lab" x="300" y="250" font-weight="700">Stock</text>
+  <text class="tiny" x="278" y="268">Width × Length</text>
+
+  <text class="tiny" x="80" y="350">Pick a corner (SW/SE/NW/NE) or type Offset X / Offset Y in Material &amp; tool.</text>
+  <text class="tiny" x="80" y="368">The orange rectangle appears on the visualizer relative to the bed.</text>
+</svg>

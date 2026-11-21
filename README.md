@@ -2,6 +2,10 @@
 
 Personal GRBL controller for one custom CNC. Windows desktop first (Tauri + native serial); the same React UI will also run in Chrome/Edge with Web Serial later.
 
+## User guide
+
+**[docs/user-guide/](docs/user-guide/)** — install, connect, UI map, jogging, full calibration wizard, material/tool, jobs & SVG, external folder / Drive, debug bridge, and safety notes (with diagrams and screenshots).
+
 ## Status
 
 Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code load / run**, **activity log / safety**, **guided calibration / soft travel**, **SVG → simple G-code**, plus **AI debug bridge**:

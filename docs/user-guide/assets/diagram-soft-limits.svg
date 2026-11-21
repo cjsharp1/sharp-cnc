@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 380" role="img" aria-labelledby="t d">
+  <title id="t">Home switches vs soft limits</title>
+  <desc id="d">Zero-side switches and software max travel on the far side</desc>
+  <defs>
+    <style>
+      .bg { fill: #f4f6f8; }
+      .bed { fill: #d7e0e8; stroke: #2c3e50; stroke-width: 2.5; }
+      .soft { fill: none; stroke: #c45c26; stroke-width: 3; stroke-dasharray: 8 5; }
+      .sw { fill: #1f6a4a; }
+      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 14px; }
+      .title { font-size: 18px; font-weight: 700; }
+      .note { font-size: 12px; fill: #4a5568; }
+      .warn { fill: #fff3e8; stroke: #c45c26; stroke-width: 1.5; }
+    </style>
+  </defs>
+  <rect class="bg" width="640" height="380" rx="8"/>
+  <text class="lab title" x="24" y="34">Home switches vs soft limits</text>
+
+  <rect class="bed" x="80" y="70" width="360" height="240" rx="6"/>
+  <rect class="soft" x="90" y="80" width="340" height="220" rx="4"/>
+
+  <!-- Switches on zero side -->
+  <rect class="sw" x="70" y="280" width="18" height="40" rx="3"/>
+  <rect class="sw" x="80" y="300" width="40" height="18" rx="3"/>
+  <text class="lab" x="130" y="312" font-weight="700" fill="#1f6a4a">Home / limit switches</text>
+  <text class="note" x="130" y="330">Physical switches only on the zero side</text>
+
+  <!-- Far end -->
+  <text class="lab" x="300" y="120" font-weight="700" fill="#c45c26">Max travel ($130 / $131)</text>
+  <text class="note" x="300" y="140">No switch here — software stops you</text>
+  <text class="note" x="300" y="158">Enable with $20 = 1</text>
+
+  <!-- Origin -->
+  <circle cx="100" cy="290" r="8" fill="#2c3e50"/>
+  <text class="lab" x="114" y="276">Machine 0,0</text>
+
+  <!-- Legend box -->
+  <rect class="warn" x="470" y="90" width="150" height="200" rx="8"/>
+  <text class="lab" x="486" y="118" font-weight="700">Remember</text>
+  <text class="note" x="486" y="148">Zero side = hard</text>
+  <text class="note" x="486" y="166">switches</text>
+  <text class="note" x="486" y="198">Far side = soft</text>
+  <text class="note" x="486" y="216">limits you set</text>
+  <text class="note" x="486" y="248">Default bed:</text>
+  <text class="note" x="486" y="266">1000 × 1000 mm</text>
+  <text class="note" x="486" y="284">(Z unset until</text>
+  <text class="note" x="486" y="302">you measure)</text>
+</svg>
