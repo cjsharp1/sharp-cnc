@@ -22,7 +22,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | 6 | [Material & tool](06-material-and-tool.md) | Stock size, bed corners, bit diameter |
 | 7 | [Jobs, SVG & run](07-jobs-and-svg.md) | Load G-code / SVG, simulate, start / pause / stop |
 | 8 | [External jobs](08-external-jobs.md) | Watched folder + Drive setup pointer |
-| 9 | [Debug bridge](09-debug-bridge.md) | Logs, export, localhost agent status |
+| 9 | [Debug bridge](09-debug-bridge.md) | Debug mode, logs, export, localhost agent status |
 | 10 | [Safety](10-safety.md) | E-Stop, alarms, unlock, good habits |
 
 ## Quick start (experienced)

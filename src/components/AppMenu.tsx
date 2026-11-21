@@ -4,12 +4,17 @@ interface AppMenuProps {
   onOpenCalibration: () => void;
   onOpenMaterialTool: () => void;
   onOpenExternalJobs: () => void;
+  /** When true, Log tab shows Export / Copy / Debug bridge chrome. */
+  debugMode: boolean;
+  onDebugModeChange: (enabled: boolean) => void;
 }
 
 export function AppMenu({
   onOpenCalibration,
   onOpenMaterialTool,
   onOpenExternalJobs,
+  debugMode,
+  onDebugModeChange,
 }: AppMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -36,12 +41,12 @@ export function AppMenu({
     <div className="appmenu" ref={rootRef}>
       <button
         type="button"
-        className={`appmenu__trigger${open ? " is-open" : ""}`}
+        className={`appmenu__trigger${open ? " is-open" : ""}${debugMode ? " is-debug" : ""}`}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={() => setOpen((v) => !v)}
       >
-        Menu
+        Menu{debugMode ? " · Debug" : ""}
       </button>
       {open && (
         <div className="appmenu__panel" role="menu">
@@ -86,6 +91,20 @@ export function AppMenu({
           </button>
           <p className="appmenu__hint">
             Guided wizard: zero, steps/mm, soft travel, manual settings.
+          </p>
+          <div className="appmenu__divider" role="separator" />
+          <label className="appmenu__toggle" role="menuitemcheckbox" aria-checked={debugMode}>
+            <input
+              type="checkbox"
+              checked={debugMode}
+              onChange={(e) => onDebugModeChange(e.target.checked)}
+            />
+            <span>Debug mode</span>
+          </label>
+          <p className="appmenu__hint">
+            {debugMode
+              ? "On — Log tab shows Export, Copy, and Debug bridge."
+              : "Off — keep the Log tab clean for everyday use."}
           </p>
         </div>
       )}

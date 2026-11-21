@@ -19,8 +19,8 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - Work zeros via `G10 L20` (per-axis or XYZ); go-to-zero with confirm (safe Z-up then XY)
 - Load `.nc` / `.gcode` (picker + drag-drop); stream with Start / Pause (`!`) / Resume (`~`) / Stop (soft reset)
 - Progress (line / %) and toolpath overlay on the machine view
-- Live activity log (TX/RX + events); categories; clear / filter / export text+JSON / copy last N
-- Optional **debug bridge** (desktop): localhost `127.0.0.1:17832` read-only status + logs for a same-machine Cursor agent — see project docs `debug-bridge.md`
+- Live activity log (TX/RX + events); clear / filter always; **Menu → Debug mode** (persisted, default off) reveals export text+JSON / copy last N / category tags / Raw filter
+- Optional **debug bridge** (desktop, behind Debug mode): localhost `127.0.0.1:17832` read-only status + logs for a same-machine Cursor agent — see [docs/user-guide/09-debug-bridge.md](docs/user-guide/09-debug-bridge.md)
 - Safety: prominent E-Stop (feed hold + soft reset), Hold / Resume / Reset / Unlock (`$X`)
 - **External Demon Shield buttons:** Abort / Feed Hold / Resume (A0–A2) detected via GRBL state + `Pn:` and mirrored in job UI / activity log — see [docs/demon-shield-controls.md](docs/demon-shield-controls.md)
 - Alarm banner + refuse jog / job start while locked; job soft-limit gate before start
