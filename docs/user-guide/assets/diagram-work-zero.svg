@@ -1,50 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 300" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" role="img" aria-labelledby="t d">
   <title id="t">Work zero vs machine zero</title>
   <desc id="d">Machine coordinates from home and work coordinates from stock origin</desc>
   <defs>
     <style>
-      .bg { fill: #f4f6f8; }
-      .bed { fill: #d7e0e8; stroke: #2c3e50; stroke-width: 2; }
+      .bg { fill: #f1f3f5; }
+      .bed { fill: #d8e0e8; stroke: #3a4550; stroke-width: 2.5; }
       .stock { fill: #e8c9a0; stroke: #8a5a2b; stroke-width: 2; }
-      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 13px; }
+      .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
       .title { font-size: 18px; font-weight: 700; }
-      .m { fill: #2c3e50; font-weight: 700; }
-      .w { fill: #c45c26; font-weight: 700; }
-      .tiny { font-size: 11px; fill: #4a5568; }
-      .axis-m { stroke: #2c3e50; stroke-width: 2; marker-end: url(#am); }
-      .axis-w { stroke: #c45c26; stroke-width: 2; marker-end: url(#aw); }
+      .m { fill: #3a4550; font-weight: 700; }
+      .w { fill: #b85c2a; font-weight: 700; }
+      .tiny { font-size: 12px; fill: #5a6570; }
+      .axis-m { stroke: #3a4550; stroke-width: 2.25; marker-end: url(#am); }
+      .axis-w { stroke: #b85c2a; stroke-width: 2.25; marker-end: url(#aw); }
     </style>
     <marker id="am" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="#2c3e50"/>
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a4550"/>
     </marker>
     <marker id="aw" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="#c45c26"/>
+      <path d="M0,0 L6,3 L0,6 Z" fill="#b85c2a"/>
     </marker>
   </defs>
-  <rect class="bg" width="600" height="300" rx="8"/>
-  <text class="lab title" x="24" y="34">Machine position vs work zero</text>
 
-  <rect class="bed" x="60" y="60" width="320" height="200" rx="6"/>
-  <rect class="stock" x="180" y="130" width="140" height="90" rx="4"/>
+  <rect class="bg" width="760" height="400" rx="10"/>
+  <text class="lab title" x="28" y="36">Machine position vs work zero</text>
+  <text class="tiny" x="28" y="56">Two coordinate systems on the same bed</text>
 
-  <circle cx="80" cy="240" r="7" fill="#2c3e50"/>
-  <text class="lab m" x="92" y="230">Machine 0</text>
-  <text class="tiny" x="92" y="246">(home)</text>
-  <line class="axis-m" x1="80" y1="240" x2="200" y2="240"/>
-  <line class="axis-m" x1="80" y1="240" x2="80" y2="100"/>
+  <rect class="bed" x="48" y="78" width="320" height="250" rx="8"/>
+  <text class="tiny" x="62" y="98">Machine bed</text>
+  <rect class="stock" x="168" y="168" width="150" height="100" rx="4"/>
+  <text class="lab" x="210" y="224" font-weight="700">Stock</text>
 
-  <circle cx="190" cy="210" r="7" fill="#c45c26"/>
-  <text class="lab w" x="204" y="200">Work 0</text>
-  <text class="tiny" x="204" y="216">(stock corner)</text>
-  <line class="axis-w" x1="190" y1="210" x2="300" y2="210"/>
-  <line class="axis-w" x1="190" y1="210" x2="190" y2="140"/>
+  <circle cx="72" cy="302" r="7" fill="#3a4550"/>
+  <text class="lab m" x="86" y="290">Machine 0</text>
+  <text class="tiny" x="86" y="308">(home)</text>
+  <line class="axis-m" x1="72" y1="302" x2="200" y2="302"/>
+  <line class="axis-m" x1="72" y1="302" x2="72" y2="120"/>
 
-  <text class="tiny" x="410" y="100">Position panel shows both:</text>
-  <text class="lab m" x="410" y="128">Machine = from home</text>
-  <text class="lab w" x="410" y="152">Work = from job origin</text>
-  <text class="tiny" x="410" y="184">Zero X/Y/Z/XYZ uses</text>
-  <text class="tiny" x="410" y="202">G10 L20 — sets origin</text>
-  <text class="tiny" x="410" y="220">at the current tool tip.</text>
-  <text class="tiny" x="410" y="248">It does not move the</text>
-  <text class="tiny" x="410" y="266">machine by itself.</text>
+  <circle cx="180" cy="256" r="7" fill="#b85c2a"/>
+  <text class="lab w" x="194" y="248">Work 0</text>
+  <text class="tiny" x="194" y="266">(stock corner)</text>
+  <line class="axis-w" x1="180" y1="256" x2="290" y2="256"/>
+  <line class="axis-w" x1="180" y1="256" x2="180" y2="180"/>
+
+  <rect class="panel" x="400" y="78" width="332" height="250" rx="10"/>
+  <text class="lab" x="420" y="112" font-weight="700">Position panel shows both</text>
+  <text class="lab m" x="420" y="148">Machine = from home</text>
+  <text class="lab w" x="420" y="176">Work = from job origin</text>
+  <text class="tiny" x="420" y="214">Zero X / Y / Z / XYZ uses</text>
+  <text class="tiny" x="420" y="234">G10 L20 — sets origin at the</text>
+  <text class="tiny" x="420" y="254">current tool tip.</text>
+  <text class="tiny" x="420" y="286">It does not move the machine</text>
+  <text class="tiny" x="420" y="306">by itself.</text>
 </svg>
