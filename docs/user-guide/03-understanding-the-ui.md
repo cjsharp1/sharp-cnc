@@ -10,7 +10,7 @@ The window is built so you always see **connection**, **position**, and **safety
 
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
-- **Menu** — Material & tool, External jobs, Calibration, and **Debug mode** (wizards / panels that should not clutter the main chrome)
+- **Menu** — Material & tool, External jobs, Calibration, Prepare to run, and **Debug mode** (wizards / panels that should not clutter the main chrome)
 
 ![Menu open](assets/menu-open.webp)
 
@@ -41,7 +41,7 @@ Labels on the view call out bed size, stock, path name, and whether you are in p
 | Tab | Contents |
 |-----|----------|
 | **Move** | Jog pad, work zero / go-to-zero, spindle On/Off + feed/spindle overrides |
-| **Job** | Material & tool (incl. material presets), External jobs, SVG → G-code, Load / Start / Simulate |
+| **Job** | Material & tool (incl. material presets), External jobs, SVG → G-code, Load / Prepare / Start / Simulate |
 | **Log** | Live activity (TX/RX/events); with **Debug mode** on — export, Copy, Debug bridge |
 
 Job tab can show a small badge (`Ready`, `Run`, `Held`, `SVG`, …) so you know job state at a glance.
@@ -53,6 +53,7 @@ Use **tabs** for day-to-day jog / run / logs. Use **Menu** for setup that you do
 - Material & tool…  
 - External jobs…  
 - Calibration… (full wizard modal)  
+- Prepare to run… (pre-start / Z probe wizard)  
 - **Debug mode** — toggle (persisted; default off). When on, the Log tab shows Export / Copy / Debug bridge and the menu label reads **Menu · Debug**.
 
 Next: [Jogging & zeros](04-jogging-and-zeros.md).

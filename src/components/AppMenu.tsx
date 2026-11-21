@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 interface AppMenuProps {
   onOpenCalibration: () => void;
+  onOpenPrepareRun: () => void;
   onOpenMaterialTool: () => void;
   onOpenExternalJobs: () => void;
   /** When true, Log tab shows Export / Copy / Debug bridge chrome. */
@@ -11,6 +12,7 @@ interface AppMenuProps {
 
 export function AppMenu({
   onOpenCalibration,
+  onOpenPrepareRun,
   onOpenMaterialTool,
   onOpenExternalJobs,
   debugMode,
@@ -91,6 +93,20 @@ export function AppMenu({
           </button>
           <p className="appmenu__hint">
             Guided wizard: zero, steps/mm, soft travel, manual settings.
+          </p>
+          <button
+            type="button"
+            role="menuitem"
+            className="appmenu__item"
+            onClick={() => {
+              setOpen(false);
+              onOpenPrepareRun();
+            }}
+          >
+            Prepare to run…
+          </button>
+          <p className="appmenu__hint">
+            Pre-start wizard: stock, tool, XY zero, Z probe, then Start.
           </p>
           <div className="appmenu__divider" role="separator" />
           <label className="appmenu__toggle" role="menuitemcheckbox" aria-checked={debugMode}>

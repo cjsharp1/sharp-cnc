@@ -30,6 +30,8 @@ export interface GrblActivePins {
   feedHold: boolean;
   reset: boolean;
   door: boolean;
+  /** Probe input active (`P` in `Pn:`). */
+  probe: boolean;
   /** Raw letters after `Pn:` (may also include XYZ limits / P probe). */
   raw: string;
 }

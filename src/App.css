@@ -2715,6 +2715,70 @@ button {
   overflow: hidden;
 }
 
+.cal-modal__sheet--wide {
+  width: min(48rem, 100%);
+}
+
+.prep__corners {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.prep__corners .cal__btn.is-active {
+  border-color: rgba(212, 168, 75, 0.65);
+  color: var(--brass-hot);
+  background: rgba(212, 168, 75, 0.12);
+}
+
+.prep__jog {
+  margin: 0.5rem 0 0.75rem;
+}
+
+.prep__jog .jog {
+  border-color: rgba(138, 148, 158, 0.28);
+  background: rgba(14, 16, 18, 0.45);
+}
+
+.prep__pin {
+  color: var(--brass-hot);
+  font-weight: 600;
+}
+
+.prep__ok {
+  color: #7dba8c;
+}
+
+.prep__checklist {
+  margin: 0.75rem 0 1rem;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.prep__checklist li {
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--line);
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.prep__checklist li.is-ok {
+  border-color: rgba(125, 186, 140, 0.45);
+  color: #9fd0ab;
+}
+
+.prep__checklist li.is-ok::before {
+  content: "✓ ";
+  color: #7dba8c;
+}
+
+.job__btn.is-ready {
+  border-color: rgba(125, 186, 140, 0.55);
+  color: #9fd0ab;
+}
+
 .cal-modal__head {
   display: flex;
   align-items: flex-start;

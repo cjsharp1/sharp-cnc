@@ -1,4 +1,4 @@
-# 10. Safety notes
+# 11. Safety notes
 
 SharpCNC helps you see position and refuse some bad moves, but **you** are still the safety system.
 
@@ -49,7 +49,7 @@ Wrong numbers = false safety. Re-measure after mechanical changes.
 1. **E-Stop** (UI or hardware).  
 2. Kill spindle power if needed.  
 3. Open **Log** — filter **Alarms**, Export / Copy for later.  
-4. Optional: enable [Debug bridge](09-debug-bridge.md) and share status with an agent.  
+4. Optional: enable [Debug bridge](10-debug-bridge.md) and share status with an agent.  
 5. Fix the cause → Unlock → re-zero → Simulate → careful Start.
 
 Back to the [guide index](README.md).

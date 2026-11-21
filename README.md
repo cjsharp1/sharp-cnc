@@ -4,7 +4,7 @@ Personal GRBL controller for one custom CNC. Windows desktop first (Tauri + nati
 
 ## User guide
 
-**[docs/user-guide/](docs/user-guide/)** — install, connect, UI map, jogging, full calibration wizard, material/tool, jobs & SVG, external folder / Drive, debug bridge, and safety notes (with diagrams and screenshots).
+**[docs/user-guide/](docs/user-guide/)** — install, connect, UI map, jogging, calibration, material/tool, **prepare / Z probe**, jobs & SVG, external folder / Drive, debug bridge, and safety notes (with diagrams and screenshots).
 
 ## Status
 
@@ -20,7 +20,8 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - Load `.nc` / `.gcode` (picker + drag-drop); stream with Start / Pause (`!`) / Resume (`~`) / Stop (soft reset)
 - Progress (line / %) and toolpath overlay on the machine view
 - Live activity log (TX/RX + events); clear / filter always; **Menu → Debug mode** (persisted, default off) reveals export text+JSON / copy last N / category tags / Raw filter
-- Optional **debug bridge** (desktop, behind Debug mode): localhost `127.0.0.1:17832` read-only status + logs for a same-machine Cursor agent — see [docs/user-guide/09-debug-bridge.md](docs/user-guide/09-debug-bridge.md)
+- Optional **debug bridge** (desktop, behind Debug mode): localhost `127.0.0.1:17832` read-only status + logs for a same-machine Cursor agent — see [docs/user-guide/10-debug-bridge.md](docs/user-guide/10-debug-bridge.md)
+- **Prepare to run** wizard (Menu / Job): stock + tool confirm, XY zero, **Z probe** (`G38.2` + plate thickness → work Z0), safe Z; required before Start each session / after load
 - Safety: prominent E-Stop (feed hold + soft reset), Hold / Resume / Reset / Unlock (`$X`)
 - **External Demon Shield buttons:** Abort / Feed Hold / Resume (A0–A2) detected via GRBL state + `Pn:` and mirrored in job UI / activity log — see [docs/demon-shield-controls.md](docs/demon-shield-controls.md)
 - Alarm banner + refuse jog / job start while locked; job soft-limit gate before start

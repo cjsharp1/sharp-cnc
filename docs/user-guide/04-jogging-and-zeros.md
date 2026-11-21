@@ -49,11 +49,11 @@ Confirm dialogs matter: **Confirm move** sends motion; **Cancel** does nothing.
 Typical touch-off:
 
 1. Jog XY so the bit is over your stock origin.  
-2. Jog Z carefully to touch the surface (paper feel / probe habit of your own).  
+2. Jog Z carefully to touch the surface (paper feel), **or** use the [Prepare to run Z probe](07-prepare-and-z-probe.md).  
 3. **Zero XYZ** (or Zero Z alone if XY already set).  
 4. Raise Z before running anything.
 
-> **Safety:** Never leave a spinning bit while leaning in to measure. Prefer power-off or spindle-off touch-offs when learning.
+> **Safety:** Never leave a spinning bit while leaning in to measure. Prefer power-off or spindle-off touch-offs when learning. Prefer the probe wizard for repeatable Z0.
 
 ## Spindle & feed overrides (Move tab)
 

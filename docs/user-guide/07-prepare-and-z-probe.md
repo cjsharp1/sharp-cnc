@@ -1,0 +1,79 @@
+# 7. Prepare to run & Z probe
+
+Before **Start**, SharpCNC walks you through a stepped **Prepare to run** wizard (same modal style as Calibration). It confirms stock and tool, sets work XY, runs a Z probe (or manual Z zero), then unlocks Start for this session.
+
+![Prepare wizard steps](assets/diagram-prepare-flow.svg)
+
+## When to open it
+
+- **Job → Prepare…** (after a file is loaded)  
+- **Menu → Prepare to run…**  
+- Clicking **Start** while work zero is not confirmed opens the wizard  
+
+Prepare is **required before Start** until you finish **Mark ready** for the current session. Loading a new job or disconnecting clears that ready flag. **Simulate** still works without Prepare.
+
+> **Safety:** Preparing moves Z during probe. Clear clamps from the seek path. Keep E-Stop reachable. Remove the plate before cutting.
+
+---
+
+## Wizard steps
+
+| Step | Goal |
+|------|------|
+| 1 · Stock | Confirm size / thickness / bed corner (same settings as Material & tool) |
+| 2 · Tool | Confirm bit type and diameter |
+| 3 · XY zero | Jog to job origin → **Zero XY** (`G10 L20`) |
+| 4 · Z probe | Touch plate cycle (or **Manual Zero Z**) |
+| 5 · Safe Z | Optional retract; confirm plate removed / clear |
+| 6 · Ready | **Mark ready & close** → Start unlocks |
+
+Footer **Next** stays disabled until that step’s confirmations are done (checkboxes, zeros, probe).
+
+---
+
+## Touch plate setup
+
+Chris’s hardware path: conductive plate on the stock top (or table), alligator clip on the bit. Contact closes the GRBL probe input.
+
+![Clip, plate, stock](assets/diagram-z-probe.svg)
+
+### Assumptions (verify on Demon Shield)
+
+1. **Probe pin** is wired to GRBL’s PROBE input (Arduino Uno GRBL 1.1 default **A5**). Demon Shield should expose this the same way as a stock Uno shield — confirm continuity from plate/clip to that pin.  
+2. **`$6` probe invert** matches your polarity (normally-open plate vs inverted wiring). Wrong invert → Alarm 5 (already contacting) or never-trigger.  
+3. Soft limits (`$20` / `$130`–`$132`) allow the seek distance downward from your start Z.  
+4. Spindle / bit is conductive enough for the clip; coatings or collet isolation can break the circuit.  
+5. Plate thickness is measured accurately — SharpCNC sets work Z0 at the **stock face** by offsetting that thickness.
+
+---
+
+## Probe cycle (what SharpCNC sends)
+
+![G38.2 cycle](assets/diagram-probe-cycle.svg)
+
+1. Gate: connected, Idle-capable, not Alarm / Hold / streaming; probe pin not already ON.  
+2. `G91` then `G38.2 Z-{seek} F{feed}` (default seek 30 mm, feed 80 mm/min — editable in the wizard).  
+3. On success: `[PRB:x,y,z:1]` then `ok`.  
+4. `G90` then `G10 L20 P1 Z{plateThickness}` so stock top is work Z0.  
+5. Optional retract jog to a safe work Z.
+
+| Failure | Meaning |
+|---------|---------|
+| **ALARM:4** | No contact within seek — raise start height, check wiring, or increase seek |
+| **ALARM:5** | Probe already active at start — clear contact / invert `$6` |
+| Pin already ON | UI refuses to seek (same early-contact risk) |
+
+**Manual Zero Z** is the paper-feel fallback (`G10 L20 P1 Z0` at the current tip) if the plate is unavailable.
+
+---
+
+## After Prepare
+
+1. Job tab shows **Prepared** instead of Prepare….  
+2. **Start** is allowed (still needs Linked + Idle-capable + soft-limit OK).  
+3. Prefer **Simulate** once more, then Start.  
+4. Hardware Demon Shield start button follows the same Start gate.
+
+If you change zeros on the Move tab after marking ready, run Prepare again if you want the session flag to match — loading a new file always requires Prepare again.
+
+Next: [Jobs, SVG & run](08-jobs-and-svg.md).

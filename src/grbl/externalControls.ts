@@ -73,6 +73,7 @@ const EMPTY_PINS: GrblActivePins = {
   feedHold: false,
   reset: false,
   door: false,
+  probe: false,
   raw: "",
 };
 
@@ -85,6 +86,7 @@ export function parseActivePins(raw: string | undefined | null): GrblActivePins 
     feedHold: letters.includes("H"),
     reset: letters.includes("R"),
     door: letters.includes("D"),
+    probe: letters.includes("P"),
     raw: letters,
   };
 }

@@ -1,4 +1,4 @@
-# 8. External jobs folder
+# 9. External jobs folder
 
 Keep job files in a folder SharpCNC watches, then click to open them into the normal Job / SVG loaders.
 
@@ -36,4 +36,4 @@ Practical approach today: point the watched folder at Drive for Desktop.
 
 > **Safety:** Opening a file does not run it. Still Simulate and verify stock / zeros before Start.
 
-Next: [Debug bridge](09-debug-bridge.md).
+Next: [Debug bridge](10-debug-bridge.md).

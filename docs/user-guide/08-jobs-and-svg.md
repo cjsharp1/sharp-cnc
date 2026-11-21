@@ -1,10 +1,12 @@
-# 7. Jobs, SVG & run
+# 8. Jobs, SVG & run
 
-The **Job** tab is where files become motion. Flow: load (or generate) → simulate → start.
+The **Job** tab is where files become motion. Flow: load (or generate) → **Prepare** (zeros / Z probe) → simulate → start.
 
 ![Job flow](assets/diagram-job-flow.svg)
 
 ![Simulate controls](assets/job-simulate.webp)
+
+Before the first **Start** after load (or whenever work zero is not confirmed this session), run **Prepare…** — see [Prepare to run & Z probe](07-prepare-and-z-probe.md).
 
 ## Load G-code
 
@@ -43,14 +45,15 @@ Banner: **Preview — not sending to CNC**.
 
 | Button | What it does |
 |--------|----------------|
-| **Start** | Streams G-code to GRBL (needs Linked, Idle-capable state, soft-limit OK) |
+| **Prepare…** | Opens the pre-start wizard (stock, tool, XY, Z probe). Shows **Prepared** when ready. |
+| **Start** | Streams G-code to GRBL (needs Linked, Idle-capable state, soft-limit OK, **and** Prepare ready) |
 | **Pause** | Feed hold (`!`) |
 | **Resume** | Cycle start (`~`) from Hold |
 | **Stop** | Soft reset / cancel stream — treat as abort |
 
 Progress shows line counts and a bar. State badges: Ready / Running / Held / Stopping / Done / Error.
 
-Hardware **start / pause / stop** buttons on the Demon Shield are part of the product plan — keep them reachable; the UI mirrors job state when presses are detected.
+Hardware **start / pause / stop** buttons on the Demon Shield stay in sync; Start from hardware respects the same Prepare gate.
 
 > **Safety:** Stay at the machine while Running. Know where **E-Stop** is (UI and physical). Do not Start if clamps, bit, or soft travel look wrong. When in doubt, Simulate again or jog a dry pass with Z raised.
 
@@ -64,6 +67,6 @@ If GRBL alarms (limit, abort, etc.):
 4. **Unlock** (`$X`) only when safe.  
 5. Re-zero / re-check before Start again.
 
-See [Safety](10-safety.md).
+See [Safety](11-safety.md).
 
-Next: [External jobs](08-external-jobs.md).
+Next: [External jobs](09-external-jobs.md).
