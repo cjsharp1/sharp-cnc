@@ -78,7 +78,8 @@ Far-end protection is **software travel**. Measure the real bed; do not guess.
 1. Run **Calibration → Soft travel** (or write `$130`/`$131`/`$132` max travel and enable `$20=1`).
 2. With soft limits on, jog toward each **far** rail slowly — SharpCNC / GRBL should refuse or alarm before a crash.
 3. Confirm UI soft-limit hints appear when a jog would exceed stored travel.
-4. Intentionally request a tiny illegal jog in mock or with spindle off to see Alarm → Unlock flow once.
+4. Run **Menu → Bed travel test…** (or Calibration **Done → Bed travel test**): clear bed, confirm gate, watch full-corner walk with slow approach; Abort ready.
+5. Intentionally request a tiny illegal jog in mock or with spindle off to see Alarm → Unlock flow once.
 
 **Fail:** numbers larger than the physical bed. Re-measure after belts, endstops, or table changes.
 

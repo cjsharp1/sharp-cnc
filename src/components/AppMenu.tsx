@@ -3,6 +3,7 @@ import type { UiTheme } from "../grbl";
 
 interface AppMenuProps {
   onOpenCalibration: () => void;
+  onOpenBedTravelTest?: () => void;
   onOpenPrepareRun: () => void;
   onOpenMaterialTool: () => void;
   onOpenExternalJobs: () => void;
@@ -16,6 +17,7 @@ interface AppMenuProps {
 
 export function AppMenu({
   onOpenCalibration,
+  onOpenBedTravelTest,
   onOpenPrepareRun,
   onOpenMaterialTool,
   onOpenExternalJobs,
@@ -119,6 +121,24 @@ export function AppMenu({
           <p className="appmenu__hint">
             Guided wizard: zero, axis direction, steps/mm, soft travel, manual.
           </p>
+          {onOpenBedTravelTest ? (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                className="appmenu__item"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenBedTravelTest();
+                }}
+              >
+                Bed travel test…
+              </button>
+              <p className="appmenu__hint">
+                After calibration: full soft-limit corner walk with slow approach.
+              </p>
+            </>
+          ) : null}
           <button
             type="button"
             role="menuitem"

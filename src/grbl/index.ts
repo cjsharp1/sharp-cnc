@@ -108,6 +108,28 @@ export {
   jogDeltaFromAxes,
 } from "./jog";
 
+export type {
+  BedTravelCornerId,
+  BedTravelGate,
+  BedTravelPlan,
+  BedTravelSegment,
+  BedTravelSegmentPhase,
+  PlanBedTravelOptions,
+} from "./bedTravelTest";
+export {
+  BED_TRAVEL_APPROACH_FEED_MM_MIN,
+  BED_TRAVEL_APPROACH_MM,
+  BED_TRAVEL_CRUISE_FEED_MM_MIN,
+  BED_TRAVEL_PROXIMITY_MM,
+  BED_TRAVEL_SAFE_Z_LIFT_MM,
+  BED_TRAVEL_Z_MARGIN_MM,
+  canStartBedTravelTest,
+  describeBedTravelProgress,
+  distanceToSoftEdgeMm,
+  planBedTravelTest,
+} from "./bedTravelTest";
+export { playProximityBeep } from "./proximityBeep";
+
 export type { GoToWorkZeroOptions, GoToWorkZeroPlan, ZeroAxisSelection } from "./workZero";
 export {
   DEFAULT_WCS_P,
