@@ -10,7 +10,7 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - Soft reset (`0x18`) on connect + manual Reset
 - Live MPos / WPos with smoothed machine-view toolhead + short motion trail while jogging / running
 - Pre-run **Simulate** (Job tab + visualizer overlay): play / pause / stop animates the tool along the loaded path without serial motion
-- Jog X/Y/Z (and XY+ diagonal) via GRBL `$J=` — step or hold modes, step size + feed
+- Jog X/Y/Z with an 8-way XY pad (cardinals + all diagonals) via GRBL `$J=` — step or hold modes, step size + feed
 - Soft-limit awareness from known travel (default X/Y **1000 mm**; Z unset until calibrated)
 - Work zeros via `G10 L20` (per-axis or XYZ); go-to-zero with confirm (safe Z-up then XY)
 - Load `.nc` / `.gcode` (picker + drag-drop); stream with Start / Pause (`!`) / Resume (`~`) / Stop (soft reset)
