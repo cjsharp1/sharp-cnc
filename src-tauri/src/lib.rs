@@ -1,4 +1,5 @@
 mod debug_bridge;
+mod jobs_folder;
 mod serial;
 
 use debug_bridge::DebugBridgeState;
@@ -25,6 +26,10 @@ pub fn run() {
             debug_bridge::debug_bridge_stop,
             debug_bridge::debug_bridge_set_snapshot,
             debug_bridge::debug_bridge_status,
+            jobs_folder::pick_jobs_folder,
+            jobs_folder::list_job_files,
+            jobs_folder::read_job_file,
+            jobs_folder::jobs_folder_exists,
         ])
         .run(tauri::generate_context!())
         .expect("error while running SharpCNC");

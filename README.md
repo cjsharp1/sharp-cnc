@@ -24,8 +24,9 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - **Soft travel:** enter or use current MPos for max X/Y/Z → write `$130`–`$132`, enable `$20`; bed size persisted for the visualizer
 - **SVG drop-in:** load `.svg` → path preview on the machine view → engrave/outline G-code (feed, depth, plunge; bit Ø from tool settings) → hand off to the job runner (one job at a time; not full CAM)
 - **Material & tool:** stock width/length/thickness + bed offset (or SW/SE/NW/NE corner); bit type + diameter (V-bit tip angle); shown on the visualizer; persisted; Job tab + Menu
+- **External jobs:** Menu → External jobs… (Job tab strip) — pick a **watched local folder** (`.nc` / `.gcode` / `.svg`), auto-refresh, open into the existing Job / SVG loaders; path persisted. **Google Drive** UI + OAuth scaffolding when `VITE_GOOGLE_DRIVE_CLIENT_ID` is set — see [docs/google-drive-setup.md](docs/google-drive-setup.md). Until then, point the watched folder at Drive for Desktop / USB / network.
 
-Browser / cloud shells without Tauri use a **mock GRBL** port (including `$Alarm` / `$X`, `$$` / `$n=`). Web Serial parity is still stubbed.
+Browser / cloud shells without Tauri use a **mock GRBL** port (including `$Alarm` / `$X`, `$$` / `$n=`). Web Serial parity is still stubbed. Folder pick requires the desktop app.
 
 ## Prerequisites
 

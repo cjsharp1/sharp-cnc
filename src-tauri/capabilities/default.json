@@ -7,6 +7,7 @@
     "core:default",
     "opener:default",
     "allow-serial",
-    "allow-debug-bridge"
+    "allow-debug-bridge",
+    "allow-jobs-folder"
   ]
 }
