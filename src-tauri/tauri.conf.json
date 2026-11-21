@@ -25,13 +25,21 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["nsis", "msi"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser",
+        "displayLanguageSelector": false
+      }
+    },
+    "shortDescription": "Personal GRBL controller for one CNC",
+    "longDescription": "SharpCNC is a personal GRBL controller for one custom CNC — USB serial to a Demon Shield / Arduino, with jog, probe, jobs, and a live machine view."
   }
 }

@@ -2,7 +2,21 @@
 
 SharpCNC’s primary shell is a **Windows desktop** app (Tauri). That is the path that talks to real USB serial on your Demon Shield / Arduino.
 
-## What you need
+## Option A — Download the installer (preferred)
+
+1. Open the [docs download section](../index.html#download) or the [GitHub Releases](https://github.com/cjsharp1/sharp-cnc/releases) page.
+2. Download the latest **NSIS** setup: `SharpCNC_*_x64-setup.exe`.
+3. Run the installer (current-user install; no admin required for the default bundle).
+4. Launch **SharpCNC** from the Start menu / desktop shortcut.
+5. Continue with [Connect](02-connect.md).
+
+If Windows SmartScreen warns on an **unsigned** personal build, choose **More info → Run anyway** only on a PC you trust. Signed release builds are optional and configured separately in CI.
+
+MSI packages are also published when available — use them for managed / IT installs. Day-to-day shop use should prefer the NSIS `.exe`.
+
+## Option B — Build from source (dev PC)
+
+### What you need
 
 - A Windows PC next to the machine (USB cable reach)
 - [Node.js](https://nodejs.org/) **20+**
@@ -10,9 +24,7 @@ SharpCNC’s primary shell is a **Windows desktop** app (Tauri). That is the pat
 - [Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) — on Windows that mainly means **WebView2** (usually already installed)
 - This repo cloned locally
 
-Optional later: a second PC can use a browser shell with mock serial for UI practice; real jogging still needs the desktop app.
-
-## Install dependencies
+### Install dependencies
 
 From the repo root:
 
@@ -20,23 +32,37 @@ From the repo root:
 npm install
 ```
 
-## Run the desktop app (real USB)
+### Run the desktop app (real USB)
 
 ```bash
 npm run tauri dev
 ```
 
-That starts the Vite frontend and opens the SharpCNC window with native serial. Use this whenever you are connected to the CNC.
+That starts the Vite frontend and opens the SharpCNC window with native serial. Use this whenever you are iterating next to the CNC.
 
-### Build a release binary
+### Build a release installer locally
 
-When you want a packaged app instead of the dev loop:
+On a Windows machine with the same prerequisites:
 
-```bash
-npm run tauri build
+```powershell
+npm ci
+npm run build:windows
 ```
 
-Tauri writes installers / binaries under `src-tauri/target/release/` (and bundle output under `src-tauri/target/release/bundle/` depending on target). Prefer `tauri dev` while iterating; use a release build when the machine PC should not run a full toolchain every day.
+Or:
+
+```powershell
+.\scripts\build-windows-installer.ps1
+```
+
+Tauri writes:
+
+- NSIS: `src-tauri/target/release/bundle/nsis/`
+- MSI: `src-tauri/target/release/bundle/msi/`
+
+Full notes (CI tags, SmartScreen, signing): [scripts/build-windows-installer.md](../../scripts/build-windows-installer.md).
+
+GitHub Actions can also produce the same artifacts: **Actions → Windows installer → Run workflow**, or push a `v*` tag for a Release upload.
 
 ## Frontend-only (mock GRBL)
 
@@ -52,7 +78,7 @@ You get a mock port (including fake alarms / settings). There is **no USB**. Fol
 
 1. Power the CNC / controller board safely.
 2. Plug the USB cable into the PC.
-3. Start SharpCNC with `npm run tauri dev` (or your release `.exe`).
+3. Start SharpCNC (installer shortcut, or `npm run tauri dev`).
 4. Continue with [Connect](02-connect.md).
 
 > **Safety:** Do not leave the spindle armed or the axes free to crash while you install software. Power the machine only when you are ready to connect and watch it.
