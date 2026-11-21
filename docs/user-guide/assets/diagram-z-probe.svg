@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 340" role="img" aria-labelledby="t d">
+  <title id="t">Z probe touch plate setup</title>
+  <desc id="d">Clip on bit, conductive plate on stock top, probe circuit to GRBL PROBE pin</desc>
+  <defs>
+    <style>
+      .bg { fill: #f4f6f8; }
+      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 13px; }
+      .title { font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 11px; fill: #4a5568; }
+      .steel { fill: #5c6570; }
+      .bit { fill: #2c3e50; }
+      .plate { fill: #c45c26; }
+      .stock { fill: #d4a574; stroke: #8a5a2b; stroke-width: 1.5; }
+      .bed { fill: #cfd6dd; stroke: #7a8694; stroke-width: 1.5; }
+      .wire { stroke: #1f6a4a; stroke-width: 2.5; fill: none; }
+      .clip { fill: #1f6a4a; }
+      .box { fill: #ffffff; stroke: #2c3e50; stroke-width: 1.5; }
+    </style>
+  </defs>
+  <rect class="bg" width="720" height="340" rx="8"/>
+  <text class="lab title" x="24" y="36">Z probe — clip, plate, stock</text>
+
+  <!-- Bed / stock side view -->
+  <rect class="bed" x="60" y="250" width="280" height="28" rx="2"/>
+  <text class="tiny" x="60" y="298">Machine bed / table</text>
+  <rect class="stock" x="100" y="200" width="200" height="50" rx="2"/>
+  <text class="tiny" x="160" y="230">Stock</text>
+
+  <!-- Plate on stock -->
+  <rect class="plate" x="155" y="188" width="90" height="12" rx="1"/>
+  <text class="lab" x="250" y="198" font-weight="700">Plate</text>
+  <text class="tiny" x="250" y="214">thickness t</text>
+
+  <!-- Bit / spindle -->
+  <rect class="steel" x="188" y="70" width="24" height="40" rx="2"/>
+  <polygon class="bit" points="200,110 188,188 212,188"/>
+  <text class="tiny" x="220" y="100">Bit tip</text>
+  <text class="tiny" x="220" y="116">touches plate</text>
+
+  <!-- Clip -->
+  <rect class="clip" x="210" y="140" width="18" height="10" rx="2"/>
+  <path class="wire" d="M228 145 C280 145, 300 160, 340 180"/>
+  <text class="lab" x="230" y="136" font-weight="700">Clip</text>
+
+  <!-- Callouts -->
+  <rect class="box" x="400" y="70" width="280" height="220" rx="10"/>
+  <text class="lab" x="420" y="100" font-weight="700">Wiring (typical GRBL)</text>
+  <text class="tiny" x="420" y="128">1. Clip → bit (conductive path)</text>
+  <text class="tiny" x="420" y="148">2. Plate → probe lead / ground</text>
+  <text class="tiny" x="420" y="168">3. Circuit → GRBL PROBE (Uno A5)</text>
+  <text class="tiny" x="420" y="188">4. Contact closes pin → G38.2 stops</text>
+  <text class="lab" x="420" y="220" font-weight="700">Work Z0</text>
+  <text class="tiny" x="420" y="242">After contact on plate top:</text>
+  <text class="tiny" x="420" y="260">G10 L20 P1 Zt</text>
+  <text class="tiny" x="420" y="278">→ stock top becomes Z0</text>
+</svg>

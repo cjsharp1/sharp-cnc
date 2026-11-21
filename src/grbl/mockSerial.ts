@@ -55,7 +55,7 @@ export function createMockTransport(): SerialTransport {
   let wco: Position3 = { x: 10, y: 5, z: 0 };
   let state: MockState = "Idle";
   let heldFrom: MockState = "Idle";
-  let absolute = true;
+  let absolute = true; // G90 vs G91 for program / probe lines
   let wcoReportCounter = 0;
   let motionTimer: ReturnType<typeof setTimeout> | null = null;
   let statusTick = 0;
@@ -350,6 +350,56 @@ export function createMockTransport(): SerialTransport {
 
     if (/^G10\s+L20\b/i.test(trimmed)) {
       applyG10L20(trimmed);
+      return;
+    }
+
+    // Z probe (G38.2). Mock plate is a few mm below the current tip so
+    // relative seeks (G91 G38.2 Z-…) succeed unless the seek is too short.
+    if (/\bG38\.2\b/i.test(trimmed)) {
+      const values = parseAxisValues(trimmed);
+      const feedMatch = /F(\d+(?:\.\d+)?)/i.exec(trimmed);
+      const feed = feedMatch ? Number(feedMatch[1]) : 80;
+      const seekAbsolute = absolute
+        ? values.z
+        : values.z !== undefined
+          ? machine.z + values.z
+          : undefined;
+
+      if (seekAbsolute === undefined) {
+        emitLine("error:Invalid gcode");
+        return;
+      }
+
+      // Mock plate ~2 mm below current Z (toward more-negative).
+      const contactZ = machine.z - 2;
+
+      // Seeking upward / wrong direction → treat as early contact style fail.
+      if (seekAbsolute >= machine.z - 1e-6) {
+        clearMotion();
+        busy = false;
+        state = "Alarm";
+        emitLine("ALARM:5");
+        return;
+      }
+
+      // Seek does not reach plate → Alarm 4 (no contact).
+      if (seekAbsolute > contactZ + 1e-6) {
+        busy = true;
+        animateTo({ ...machine, z: seekAbsolute }, feed, "Run", () => {
+          busy = false;
+          state = "Alarm";
+          emitLine("ALARM:4");
+        });
+        return;
+      }
+
+      busy = true;
+      animateTo({ ...machine, z: contactZ }, feed, "Run", () => {
+        emitLine(
+          `[PRB:${machine.x.toFixed(3)},${machine.y.toFixed(3)},${machine.z.toFixed(3)}:1]`,
+        );
+        finishCommand();
+      });
       return;
     }
 

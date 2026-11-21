@@ -31,6 +31,10 @@ interface JobLoadProps {
   onPause: () => void;
   onResume: () => void;
   onStop: () => void;
+  /** Open pre-start / Z-probe wizard. */
+  onPrepareRun?: () => void;
+  /** Session work-zero confirmed via Prepare wizard. */
+  prepareReady?: boolean;
 }
 
 function phaseLabel(phase: JobRunPhase): string {
@@ -69,6 +73,8 @@ export function JobLoad({
   onPause,
   onResume,
   onStop,
+  onPrepareRun,
+  prepareReady = false,
 }: JobLoadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -227,6 +233,17 @@ export function JobLoad({
             onClick={onClear}
           >
             Clear
+          </button>
+        )}
+        {onPrepareRun && job && !streaming && (
+          <button
+            type="button"
+            className={`job__btn job__btn--ghost${prepareReady ? " is-ready" : ""}`}
+            disabled={simulating}
+            onClick={onPrepareRun}
+            title="Stock, tool, XY zero, Z probe — required before Start"
+          >
+            {prepareReady ? "Prepared" : "Prepare…"}
           </button>
         )}
         <button

@@ -49,4 +49,4 @@ These are hobby starting points — always test on scrap. Runtime feed/spindle p
 5. Zero work coordinates to the same corner / top face you intend in CAM or SVG.  
 6. Glance at the visualizer — stock and path should overlap sensibly.
 
-Next: [Jobs, SVG & run](07-jobs-and-svg.md).
+Next: [Prepare to run & Z probe](07-prepare-and-z-probe.md).

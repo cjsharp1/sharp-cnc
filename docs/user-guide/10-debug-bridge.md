@@ -1,4 +1,4 @@
-# 9. Debug bridge (troubleshooting with an AI agent)
+# 10. Debug bridge (troubleshooting with an AI agent)
 
 When something odd happens on the real machine, SharpCNC can share **read-only** status and logs with a Cursor agent on the **same Windows PC**.
 
@@ -61,4 +61,4 @@ Suggested workflow: enable Debug mode + the bridge, reproduce the issue once, le
 
 > **Safety:** The bridge cannot stop the machine. Keep using **E-Stop** / Demon Shield buttons / UI Hold for real emergencies.
 
-Next: [Safety](10-safety.md).
+Next: [Safety](11-safety.md).

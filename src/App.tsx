@@ -12,6 +12,7 @@ import { JobLoad } from "./components/JobLoad";
 import { JogPanel, type JogAxisMap } from "./components/JogPanel";
 import { MachineView, type TrailPoint } from "./components/MachineView";
 import { MaterialToolPanel } from "./components/MaterialToolPanel";
+import { PrepareRunPanel } from "./components/PrepareRunPanel";
 import { SafetyControls } from "./components/SafetyControls";
 import { SimControls } from "./components/SimControls";
 import { SpindleFeedPanel } from "./components/SpindleFeedPanel";
@@ -31,8 +32,10 @@ import {
   bedSizeFromLimits,
   buildJobFromSvg,
   buildJogCommand,
+  buildProbeRetractCommand,
   buildSetWorkZeroCommand,
   canJogOrZero,
+  canProbe,
   canStartJob,
   canWriteSettings,
   checkJobSoftLimits,
@@ -55,6 +58,7 @@ import {
   loadJobFromText,
   loadJobsFolderConfig,
   loadFeedsSpeedsSelection,
+  loadProbeConfig,
   loadSoftTravel,
   loadStock,
   loadTool,
@@ -64,10 +68,12 @@ import {
   planGoToWorkZero,
   publishDebugSnapshot,
   resumeSim,
+  runZProbeCycle,
   saveDebugMode,
   saveDriveConfig,
   saveFeedsSpeedsSelection,
   saveJobsFolderConfig,
+  saveProbeConfig,
   saveSoftTravel,
   saveStock,
   saveTool,
@@ -99,6 +105,7 @@ import {
   type LoadedJob,
   type OverrideStep,
   type PathSimSnapshot,
+  type ProbeConfig,
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
@@ -189,6 +196,16 @@ export default function App() {
   const [calBusy, setCalBusy] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
   const [calOpen, setCalOpen] = useState(false);
+  const [prepareOpen, setPrepareOpen] = useState(false);
+  const [probeConfig, setProbeConfig] = useState<ProbeConfig>(() =>
+    loadProbeConfig(),
+  );
+  /** Session flags from Prepare wizard (reset on disconnect / new job). */
+  const [prepareXyZeroed, setPrepareXyZeroed] = useState(false);
+  const [prepareZProbed, setPrepareZProbed] = useState(false);
+  const [prepareReady, setPrepareReady] = useState(false);
+  const [prepareMessage, setPrepareMessage] = useState<string | null>(null);
+  const [prepareBusy, setPrepareBusy] = useState(false);
   const [matToolHighlight, setMatToolHighlight] = useState(false);
   const [extJobsHighlight, setExtJobsHighlight] = useState(false);
   /** Debug mode chrome (Export / Copy / bridge) — persisted; default off. */
@@ -238,7 +255,9 @@ export default function App() {
         ? "Job already running"
         : jobSoftCheck && !jobSoftCheck.ok
           ? (jobSoftCheck.reason ?? "Job outside soft limits")
-          : null;
+          : !prepareReady
+            ? "Prepare to run (Menu or Prepare…) — confirm work zero first"
+            : null;
 
   const simulating =
     sim.phase === "playing" || sim.phase === "paused" || sim.phase === "done";
@@ -484,6 +503,15 @@ export default function App() {
   }, [calOpen]);
 
   useEffect(() => {
+    if (!prepareOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setPrepareOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [prepareOpen]);
+
+  useEffect(() => {
     if (!matToolHighlight) return;
     const t = window.setTimeout(() => setMatToolHighlight(false), 2200);
     return () => window.clearTimeout(t);
@@ -667,6 +695,7 @@ export default function App() {
       setGrblSettings(null);
       setCalMessage(null);
       setCalBusy(false);
+      resetPrepareSession();
     }
   };
 
@@ -1095,12 +1124,145 @@ export default function App() {
           ? "Work XYZ zero set at current position (G10 L20)."
           : `Work ${axes} zero set at current position (G10 L20).`,
       );
+      if (axes === "XYZ") {
+        setPrepareXyZeroed(true);
+        setPrepareZProbed(true);
+        setPrepareReady(false);
+      } else if (axes === "Z") {
+        setPrepareZProbed(true);
+        setPrepareReady(false);
+      }
       activityLog.append("event", `Work zero ${axes}`);
       await client.requestStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
     }
+  };
+
+  const handlePrepareZeroXy = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen || streaming) return;
+    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setPrepareMessage(gate.reason ?? "Cannot set zero");
+      return;
+    }
+    try {
+      await client.sendLine("G10 L20 P1 X0 Y0");
+      setPrepareXyZeroed(true);
+      setPrepareReady(false);
+      setPrepareMessage("Work XY zero set at current position (G10 L20).");
+      setZeroMessage("Work XY zero set at current position (G10 L20).");
+      activityLog.append("event", "Work zero XY (prepare)");
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPrepareMessage(message);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleRunZProbe = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen || streaming) return;
+    const gate = canProbe(
+      statusRef.current.state,
+      connected,
+      streaming,
+      { probePinActive: !!statusRef.current.pins?.probe },
+    );
+    if (!gate.ok) {
+      setPrepareMessage(gate.reason ?? "Cannot probe");
+      return;
+    }
+    setPrepareBusy(true);
+    setPrepareMessage("Probing Z…");
+    try {
+      await stopContinuousJog();
+      const outcome = await runZProbeCycle(client, {
+        plateThicknessMm: probeConfig.plateThicknessMm,
+        seekMm: probeConfig.seekMm,
+        feedMmMin: probeConfig.feedMmMin,
+      });
+      setPrepareZProbed(true);
+      setPrepareReady(false);
+      const z = outcome.probe.machine.z.toFixed(3);
+      setPrepareMessage(
+        `Probe contact at machine Z=${z}. Work Z0 = stock top (plate ${probeConfig.plateThicknessMm} mm).`,
+      );
+      activityLog.append(
+        "event",
+        `Z probe OK [PRB:…:${outcome.probe.success ? 1 : 0}] → ${outcome.workZeroCommand ?? "no G10"}`,
+      );
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPrepareMessage(message);
+      setErrorMessage(message);
+      activityLog.append("event", `Z probe failed: ${message}`);
+      await client.requestStatus();
+    } finally {
+      setPrepareBusy(false);
+    }
+  };
+
+  const handlePrepareManualZZero = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen || streaming) return;
+    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setPrepareMessage(gate.reason ?? "Cannot set zero");
+      return;
+    }
+    try {
+      await client.sendLine(buildSetWorkZeroCommand("Z"));
+      setPrepareZProbed(true);
+      setPrepareReady(false);
+      setPrepareMessage(
+        "Manual work Z zero at current tip (paper feel / G10 L20).",
+      );
+      activityLog.append("event", "Work zero Z (manual prepare)");
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPrepareMessage(message);
+    }
+  };
+
+  const handlePrepareRetract = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen || streaming) return;
+    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setPrepareMessage(gate.reason ?? "Cannot retract");
+      return;
+    }
+    setPrepareBusy(true);
+    try {
+      await stopContinuousJog();
+      const cmd = buildProbeRetractCommand(
+        probeConfig.retractWorkZMm,
+        DEFAULT_JOG_FEED_MM_MIN,
+      );
+      await client.sendLine(cmd);
+      setPrepareMessage(
+        `Retracting to work Z=${probeConfig.retractWorkZMm} mm.`,
+      );
+      activityLog.append("event", `Probe retract ${cmd}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPrepareMessage(message);
+    } finally {
+      setPrepareBusy(false);
+    }
+  };
+
+  const resetPrepareSession = () => {
+    setPrepareXyZeroed(false);
+    setPrepareZProbed(false);
+    setPrepareReady(false);
+    setPrepareMessage(null);
   };
 
   const handleConfirmGoTo = async () => {
@@ -1193,6 +1355,8 @@ export default function App() {
       totalLines: loaded.lines.length,
       percent: 0,
     });
+    // New job → require Prepare again before Start.
+    setPrepareReady(false);
     activityLog.append(
       "event",
       `Loaded ${name} (${loaded.lines.length} lines)`,
@@ -1292,6 +1456,7 @@ export default function App() {
     setJob(null);
     resetSimForPath([]);
     setStreamProgress(null);
+    resetPrepareSession();
     activityLog.append("event", "Job cleared");
   };
 
@@ -1306,6 +1471,14 @@ export default function App() {
 
     if (statusRef.current.state === "Alarm") {
       setErrorMessage("Clear alarm (unlock) before starting.");
+      return;
+    }
+
+    if (!prepareReady) {
+      setErrorMessage(
+        "Prepare to run first — confirm stock, zeros, and Z probe.",
+      );
+      setPrepareOpen(true);
       return;
     }
 
@@ -1408,6 +1581,16 @@ export default function App() {
     if (connected && settingsGate.ok && !grblSettings) {
       void handleRefreshSettings();
     }
+  };
+
+  const openPrepareRun = () => {
+    setPrepareOpen(true);
+    setWorkspaceTab("job");
+  };
+
+  const handleProbeConfigChange = (next: ProbeConfig) => {
+    setProbeConfig(next);
+    saveProbeConfig(next);
   };
 
   const openMaterialTool = () => {
@@ -1528,6 +1711,7 @@ export default function App() {
         </div>
         <AppMenu
           onOpenCalibration={openCalibration}
+          onOpenPrepareRun={openPrepareRun}
           onOpenMaterialTool={openMaterialTool}
           onOpenExternalJobs={openExternalJobs}
           debugMode={debugMode}
@@ -1768,6 +1952,8 @@ export default function App() {
                     onStop={() => {
                       void handleStopJob();
                     }}
+                    onPrepareRun={openPrepareRun}
+                    prepareReady={prepareReady}
                   />
                 </div>
               )}
@@ -1860,6 +2046,105 @@ export default function App() {
                   void handleZero(axes);
                 }}
                 onClose={() => setCalOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {prepareOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Prepare to run"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close prepare wizard"
+            onClick={() => setPrepareOpen(false)}
+          />
+          <div className="cal-modal__sheet cal-modal__sheet--wide">
+            <header className="cal-modal__head">
+              <div>
+                <p className="cal-modal__eyebrow">Job · Pre-start</p>
+                <h2 className="cal-modal__title">Prepare to run</h2>
+              </div>
+              <button
+                type="button"
+                className="cal-modal__close"
+                onClick={() => setPrepareOpen(false)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="cal-modal__body">
+              <PrepareRunPanel
+                enabled={connected && !streaming && !prepareBusy}
+                blockedReason={
+                  !connected
+                    ? "Connect first."
+                    : streaming
+                      ? "Stop the job before preparing."
+                      : prepareBusy
+                        ? "Probe / motion in progress…"
+                        : null
+                }
+                status={status}
+                stock={stock}
+                tool={tool}
+                probe={probeConfig}
+                softTravel={softTravel}
+                bedMm={bedMm}
+                jogEnabled={jogEnabled}
+                probeEnabled={
+                  canProbe(status.state, connected, streaming, {
+                    probePinActive: !!status.pins?.probe,
+                  }).ok && !prepareBusy
+                }
+                probeBlockedReason={
+                  canProbe(status.state, connected, streaming, {
+                    probePinActive: !!status.pins?.probe,
+                  }).reason ?? null
+                }
+                busy={prepareBusy}
+                message={prepareMessage}
+                zProbed={prepareZProbed}
+                xyZeroed={prepareXyZeroed}
+                jogMode={jogMode}
+                stepMm={stepMm}
+                feedMmMin={feedMmMin}
+                softLimitHint={softLimitHint}
+                onStockChange={handleStockChange}
+                onToolChange={handleToolChange}
+                onPlaceCorner={handlePlaceStockCorner}
+                onProbeChange={handleProbeConfigChange}
+                onJogModeChange={setJogMode}
+                onStepChange={setStepMm}
+                onFeedChange={setFeedMmMin}
+                onJog={handleJog}
+                onJogEnd={handleJogEnd}
+                onZeroXy={() => {
+                  void handlePrepareZeroXy();
+                }}
+                onRunProbe={() => {
+                  void handleRunZProbe();
+                }}
+                onManualZZero={() => {
+                  void handlePrepareManualZZero();
+                }}
+                onRetract={() => {
+                  void handlePrepareRetract();
+                }}
+                onConfirmReady={() => {
+                  setPrepareReady(true);
+                  setPrepareMessage(
+                    "Ready — Start is unlocked for this session.",
+                  );
+                  activityLog.append("event", "Prepare ready — Start unlocked");
+                }}
+                onClose={() => setPrepareOpen(false)}
               />
             </div>
           </div>

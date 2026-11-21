@@ -279,6 +279,26 @@ export {
   parseAlarmLine,
 } from "./safety";
 
+export type {
+  ProbeConfig,
+  ProbeResult,
+  RunZProbeOptions,
+  RunZProbeOutcome,
+} from "./probe";
+export {
+  DEFAULT_PROBE_CONFIG,
+  PROBE_CONFIG_KEY,
+  buildManualZZeroCommand,
+  buildProbeRetractCommand,
+  buildProbeWorkZZeroCommand,
+  buildZProbeSeekCommand,
+  canProbe,
+  loadProbeConfig,
+  parseProbeResult,
+  runZProbeCycle,
+  saveProbeConfig,
+} from "./probe";
+
 export type { JobsFolderConfig } from "./jobsFolderConfig";
 export {
   DEFAULT_JOBS_FOLDER,
