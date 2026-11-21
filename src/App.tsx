@@ -5,6 +5,7 @@ import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { ConsolePanel } from "./components/ConsolePanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
+import { CrashRecoveryPanel } from "./components/CrashRecoveryPanel";
 import {
   FirstRunWizard,
   type FirstRunStepId,
@@ -63,6 +64,7 @@ import {
   checkJobSoftLimits,
   checkSoftLimits,
   clampScrubIndex,
+  clearJobRecoveryCheckpoint,
   continuousJogDelta,
   createActivityLog,
   createDemonShieldExternalControlAdapter,
@@ -80,6 +82,7 @@ import {
   importSvg,
   isDesktopShell,
   isGrblResetBanner,
+  isIncompleteRecovery,
   jogDeltaFromAxes,
   listAvailablePorts,
   loadDebugMode,
@@ -87,6 +90,7 @@ import {
   loadFeedsSpeedsSelection,
   loadFirstRunState,
   loadJobFromText,
+  loadJobRecoveryCheckpoint,
   loadJobsFolderConfig,
   loadMacros,
   loadOverridePercents,
@@ -112,6 +116,7 @@ import {
   saveDebugMode,
   saveDriveConfig,
   saveFeedsSpeedsSelection,
+  saveJobRecoveryCheckpoint,
   saveJobsFolderConfig,
   saveMacros,
   saveOverridePercents,
@@ -145,6 +150,7 @@ import {
   type GrblClient,
   type GrblSetting,
   type GrblStatus,
+  type JobRecoveryCheckpoint,
   type JobsFolderConfig,
   type JogMode,
   type LoadedJob,
@@ -187,6 +193,8 @@ export default function App() {
     createDemonShieldExternalControlAdapter(),
   );
   const startJobRef = useRef<() => Promise<void>>(async () => undefined);
+  const jobRef = useRef<LoadedJob | null>(null);
+  const dryRunRef = useRef(false);
 
   const [phase, setPhase] = useState<ConnectionPhase>("disconnected");
   const [status, setStatus] = useState<GrblStatus>(OFFLINE_STATUS);
@@ -251,6 +259,13 @@ export default function App() {
   const [consoleResult, setConsoleResult] = useState<string | null>(null);
   const [scrubIndex, setScrubIndex] = useState(0);
   const [dryRun, setDryRun] = useState(false);
+  const [recovery, setRecovery] = useState<JobRecoveryCheckpoint | null>(() => {
+    const cp = loadJobRecoveryCheckpoint();
+    return isIncompleteRecovery(cp) ? cp : null;
+  });
+  const [recoveryVisible, setRecoveryVisible] = useState(
+    () => isIncompleteRecovery(loadJobRecoveryCheckpoint()),
+  );
   const [xyProbeBusy, setXyProbeBusy] = useState(false);
   const [xyProbeMessage, setXyProbeMessage] = useState<string | null>(null);
   const [xySeekMm, setXySeekMm] = useState(20);
@@ -413,6 +428,14 @@ export default function App() {
   useEffect(() => {
     streamPhaseRef.current = streamProgress?.phase ?? "idle";
   }, [streamProgress]);
+
+  useEffect(() => {
+    jobRef.current = job;
+  }, [job]);
+
+  useEffect(() => {
+    dryRunRef.current = dryRun;
+  }, [dryRun]);
 
   // Smooth live WPos + optional motion trail; drive pre-run sim on rAF.
   useEffect(() => {
@@ -614,6 +637,39 @@ export default function App() {
       onProgress: (p) => {
         streamPhaseRef.current = p.phase;
         setStreamProgress({ ...p });
+        const currentJob = jobRef.current;
+        if (!currentJob) return;
+        if (
+          p.phase === "running" ||
+          p.phase === "paused" ||
+          p.phase === "tool-change" ||
+          p.phase === "stopping" ||
+          p.phase === "error"
+        ) {
+          const nextLine =
+            typeof p.absoluteLine === "number"
+              ? p.absoluteLine
+              : p.ackedLines;
+          const checkpoint = {
+            jobName: currentJob.name,
+            totalLines: currentJob.lines.length,
+            nextLine: Math.min(nextLine, currentJob.lines.length),
+            absoluteLine:
+              typeof p.absoluteLine === "number" ? p.absoluteLine : null,
+            work: { ...statusRef.current.work },
+            machine: { ...statusRef.current.machine },
+            phase: p.phase,
+            savedAt: Date.now(),
+            dryRun: dryRunRef.current,
+          };
+          saveJobRecoveryCheckpoint(checkpoint);
+          setRecovery(checkpoint);
+          setRecoveryVisible(true);
+        } else if (p.phase === "completed") {
+          clearJobRecoveryCheckpoint();
+          setRecovery(null);
+          setRecoveryVisible(false);
+        }
       },
     });
 
@@ -2032,6 +2088,57 @@ export default function App() {
     }
   };
 
+  const dismissRecovery = (clear = true) => {
+    if (clear) clearJobRecoveryCheckpoint();
+    setRecovery(null);
+    setRecoveryVisible(false);
+  };
+
+  const handleRecoveryResume = () => {
+    if (!recovery || !job) return;
+    if (job.name !== recovery.jobName) {
+      setErrorMessage(
+        `Load job “${recovery.jobName}” before resuming from checkpoint.`,
+      );
+      return;
+    }
+    const line = clampScrubIndex(
+      recovery.absoluteLine ?? recovery.nextLine,
+      job.lines.length,
+    );
+    setScrubIndex(line);
+    setDryRun(recovery.dryRun);
+    setWorkspaceTab("job");
+    setRecoveryVisible(true);
+    activityLog.append(
+      "event",
+      `Recovery: scrub set to line ${line + 1} of ${job.lines.length}`,
+    );
+    setErrorMessage(
+      `Checkpoint ready at line ${line + 1}. Confirm clear path, then Start.`,
+    );
+  };
+
+  const handleSafeAbortRecovery = async () => {
+    try {
+      externalControlsRef.current.noteSoftwareAction("abort");
+      await streamerRef.current?.stop();
+    } catch {
+      /* ignore — may already be idle */
+    }
+    const client = clientRef.current;
+    if (client?.transport.isOpen) {
+      try {
+        await client.sendLine(buildSpindleOffCommand());
+      } catch {
+        /* ignore */
+      }
+    }
+    dismissRecovery(true);
+    setPrepareReady(false);
+    activityLog.append("event", "Recovery: safe abort — checkpoint cleared");
+  };
+
   const portLabel =
     phase === "connected"
       ? selectedPath || "Connected"
@@ -2315,6 +2422,21 @@ export default function App() {
             void handleRapidOverride(step);
           }}
         />
+        {recoveryVisible && recovery ? (
+          <div className="recovery-banner" role="status">
+            <span>
+              Interrupted job <strong>{recovery.jobName}</strong> — open Job for
+              recovery (where am I / unlock / resume / abort).
+            </span>
+            <button
+              type="button"
+              className="recovery-banner__btn"
+              onClick={() => setWorkspaceTab("job")}
+            >
+              Open Job
+            </button>
+          </div>
+        ) : null}
       </section>
 
       <div className="shell__stage">
@@ -2543,6 +2665,26 @@ export default function App() {
                     Jogging stays on <strong>Move</strong>; touch-offs on{" "}
                     <strong>Probe</strong>.
                   </p>
+                  {recoveryVisible && recovery ? (
+                    <CrashRecoveryPanel
+                      checkpoint={recovery}
+                      connected={connected}
+                      machineState={status.state}
+                      alarmMessage={alarmMessage}
+                      workPos={status.work}
+                      machinePos={status.machine}
+                      jobLoaded={!!job}
+                      jobMatches={!!job && job.name === recovery.jobName}
+                      onUnlock={() => {
+                        void handleUnlock();
+                      }}
+                      onResumeFromCheckpoint={handleRecoveryResume}
+                      onSafeAbort={() => {
+                        void handleSafeAbortRecovery();
+                      }}
+                      onDismiss={() => dismissRecovery(true)}
+                    />
+                  ) : null}
                   <div
                     className={`mattool-anchor${matToolHighlight ? " is-flash" : ""}`}
                     id="material-tool-settings"
