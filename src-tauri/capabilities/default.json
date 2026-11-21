@@ -6,6 +6,7 @@
   "permissions": [
     "core:default",
     "opener:default",
-    "allow-serial"
+    "allow-serial",
+    "allow-debug-bridge"
   ]
 }

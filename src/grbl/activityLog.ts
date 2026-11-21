@@ -2,34 +2,58 @@
 
 export type ActivityKind = "tx" | "rx" | "event" | "alarm";
 
+/** High-level bucket for filtering / export / agent debug. */
+export type ActivityCategory =
+  | "serial"
+  | "connect"
+  | "jog"
+  | "job"
+  | "alarm"
+  | "settings"
+  | "event";
+
 export type ActivityFilter =
   | "all"
   | "events"
   | "serial"
   | "alarms"
-  | "raw";
+  | "raw"
+  | ActivityCategory;
 
 export interface ActivityEntry {
   id: number;
   /** Epoch ms. */
   at: number;
   kind: ActivityKind;
+  category: ActivityCategory;
   text: string;
   /** True for noisy status polls (`?`) and `<…>` reports. */
   chatter: boolean;
 }
 
+export interface ActivityAppendOptions {
+  chatter?: boolean;
+  category?: ActivityCategory;
+}
+
 export interface ActivityLogOptions {
-  /** Max retained entries (ring). Default 800. */
+  /** Max retained entries (ring). Default 1500. */
   capacity?: number;
 }
 
 export interface ActivityLog {
-  append(kind: ActivityKind, text: string, opts?: { chatter?: boolean }): ActivityEntry;
+  append(
+    kind: ActivityKind,
+    text: string,
+    opts?: ActivityAppendOptions,
+  ): ActivityEntry;
   clear(): void;
   getEntries(): readonly ActivityEntry[];
+  /** Last `n` entries (oldest → newest within the slice). */
+  getLast(n: number): readonly ActivityEntry[];
   onChange(handler: (entries: readonly ActivityEntry[]) => void): () => void;
   exportText(filter?: ActivityFilter): string;
+  exportJson(filter?: ActivityFilter): string;
 }
 
 let nextId = 1;
@@ -39,6 +63,39 @@ export function isStatusChatter(kind: ActivityKind, text: string): boolean {
   if (kind === "tx" && (t === "?" || t.startsWith("? "))) return true;
   if (kind === "rx" && t.startsWith("<") && t.endsWith(">")) return true;
   return false;
+}
+
+export function inferActivityCategory(
+  kind: ActivityKind,
+  text: string,
+  explicit?: ActivityCategory,
+): ActivityCategory {
+  if (explicit) return explicit;
+  if (kind === "alarm") return "alarm";
+  if (kind === "tx" || kind === "rx") return "serial";
+  const t = text.trim();
+  if (/^Serial\b/i.test(t) || /\bconnect/i.test(t) || /^Disconnected\b/i.test(t)) {
+    return "connect";
+  }
+  if (/\bjog\b/i.test(t) || /\bwork zero\b/i.test(t) || /\bgo-to-zero\b/i.test(t)) {
+    return "jog";
+  }
+  if (
+    /\bjob\b/i.test(t) ||
+    /\bSVG\b/i.test(t) ||
+    /\bG-code\b/i.test(t) ||
+    /^Loaded\b/i.test(t)
+  ) {
+    return "job";
+  }
+  if (
+    /\$\$|settings|steps\/mm|soft travel|Wrote \$|calibration/i.test(t) ||
+    /^Read \$\$/i.test(t)
+  ) {
+    return "settings";
+  }
+  if (/\balarm\b/i.test(t)) return "alarm";
+  return "event";
 }
 
 export function formatTxPayload(data: string | Uint8Array): string {
@@ -79,7 +136,14 @@ export function entryMatchesFilter(
         (entry.kind === "tx" || entry.kind === "rx") && !entry.chatter
       );
     case "alarms":
-      return entry.kind === "alarm";
+      return entry.kind === "alarm" || entry.category === "alarm";
+    case "connect":
+    case "jog":
+    case "job":
+    case "settings":
+    case "event":
+    case "alarm":
+      return entry.category === filter;
     default:
       return true;
   }
@@ -103,13 +167,13 @@ export function formatActivityLine(entry: ActivityEntry): string {
         : entry.kind === "alarm"
           ? "ALARM"
           : "EVT";
-  return `${formatTimestamp(entry.at)}  ${tag.padEnd(5)}  ${entry.text}`;
+  return `${formatTimestamp(entry.at)}  ${tag.padEnd(5)}  [${entry.category}]  ${entry.text}`;
 }
 
 export function createActivityLog(
   options: ActivityLogOptions = {},
 ): ActivityLog {
-  const capacity = options.capacity ?? 800;
+  const capacity = options.capacity ?? 1500;
   const entries: ActivityEntry[] = [];
   const handlers = new Set<(entries: readonly ActivityEntry[]) => void>();
 
@@ -121,10 +185,12 @@ export function createActivityLog(
   return {
     append(kind, text, opts) {
       const chatter = opts?.chatter ?? isStatusChatter(kind, text);
+      const category = inferActivityCategory(kind, text, opts?.category);
       const entry: ActivityEntry = {
         id: nextId++,
         at: Date.now(),
         kind,
+        category,
         text,
         chatter,
       };
@@ -142,6 +208,10 @@ export function createActivityLog(
     getEntries() {
       return entries;
     },
+    getLast(n) {
+      if (n <= 0) return [];
+      return entries.slice(Math.max(0, entries.length - n));
+    },
     onChange(handler) {
       handlers.add(handler);
       handler(entries.slice());
@@ -154,6 +224,20 @@ export function createActivityLog(
         .filter((e) => entryMatchesFilter(e, filter))
         .map(formatActivityLine)
         .join("\n");
+    },
+    exportJson(filter: ActivityFilter = "raw") {
+      const selected = entries.filter((e) => entryMatchesFilter(e, filter));
+      return `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          exportedAt: new Date().toISOString(),
+          filter,
+          count: selected.length,
+          entries: selected,
+        },
+        null,
+        2,
+      )}\n`;
     },
   };
 }

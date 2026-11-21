@@ -30,6 +30,7 @@ import {
   checkJobSoftLimits,
   checkSoftLimits,
   continuousJogDelta,
+  buildDebugSnapshot,
   createActivityLog,
   createGcodeStreamer,
   createSessionClient,
@@ -43,11 +44,15 @@ import {
   OFFLINE_STATUS,
   parseAlarmLine,
   planGoToWorkZero,
+  publishDebugSnapshot,
   saveSoftTravel,
   softTravelFromSettings,
+  startDebugBridge,
+  stopDebugBridge,
   writeGrblSetting,
   writeGrblSettings,
   type Axis,
+  type DebugBridgeStatus,
   type DesktopPortInfo,
   type GcodeStreamer,
   type GrblClient,
@@ -105,6 +110,11 @@ export default function App() {
   const [calBusy, setCalBusy] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
   const [calOpen, setCalOpen] = useState(false);
+  const [bridgeEnabled, setBridgeEnabled] = useState(false);
+  const [bridgeStatus, setBridgeStatus] = useState<DebugBridgeStatus | null>(
+    null,
+  );
+  const [bridgeError, setBridgeError] = useState<string | null>(null);
 
   const usingMock = !isDesktopShell();
   const connected = phase === "connected";
@@ -201,6 +211,99 @@ export default function App() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [calOpen]);
+
+  // Keep latest UI fields for the debug bridge without restarting the server.
+  const bridgeContextRef = useRef({
+    phase,
+    selectedPath,
+    connected,
+    alarmMessage,
+    jobName: job?.name ?? null,
+    streamProgress,
+    softTravel,
+  });
+  bridgeContextRef.current = {
+    phase,
+    selectedPath,
+    connected,
+    alarmMessage,
+    jobName: job?.name ?? null,
+    streamProgress,
+    softTravel,
+  };
+
+  useEffect(() => {
+    if (!bridgeEnabled) {
+      setBridgeError(null);
+      void stopDebugBridge()
+        .then((status) => setBridgeStatus(status))
+        .catch(() => setBridgeStatus(null));
+      return;
+    }
+
+    let cancelled = false;
+    let timer: ReturnType<typeof setInterval> | null = null;
+    let unsubLog: (() => void) | null = null;
+
+    const pushSnapshot = () => {
+      const ctx = bridgeContextRef.current;
+      const snapshot = buildDebugSnapshot({
+        connection: {
+          phase: ctx.phase,
+          port: ctx.selectedPath || null,
+          shell: isDesktopShell() ? "tauri" : "browser",
+          connected: ctx.connected,
+        },
+        machine: {
+          state: statusRef.current.state,
+          mpos: { ...statusRef.current.machine },
+          wpos: { ...statusRef.current.work },
+          wco: statusRef.current.wco
+            ? { ...statusRef.current.wco }
+            : undefined,
+          feedRate: statusRef.current.feedRate,
+          spindleSpeed: statusRef.current.spindleSpeed,
+          alarm: ctx.alarmMessage,
+        },
+        job: {
+          name: ctx.jobName,
+          phase: ctx.streamProgress?.phase ?? null,
+          progress: ctx.streamProgress ? { ...ctx.streamProgress } : null,
+        },
+        softTravel: ctx.softTravel,
+        log: activityLog,
+        logLimit: 250,
+      });
+      void publishDebugSnapshot(snapshot).catch(() => undefined);
+    };
+
+    void (async () => {
+      try {
+        const status = await startDebugBridge();
+        if (cancelled) {
+          await stopDebugBridge().catch(() => undefined);
+          return;
+        }
+        setBridgeStatus(status);
+        setBridgeError(null);
+        pushSnapshot();
+        timer = setInterval(pushSnapshot, 400);
+        unsubLog = activityLog.onChange(() => pushSnapshot());
+      } catch (err) {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : String(err);
+        setBridgeError(message);
+        setBridgeEnabled(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+      if (timer) clearInterval(timer);
+      unsubLog?.();
+      void stopDebugBridge().catch(() => undefined);
+    };
+  }, [bridgeEnabled, activityLog]);
 
   const refreshPorts = async () => {
     try {
@@ -1118,7 +1221,13 @@ export default function App() {
                   id="workspace-panel-log"
                   aria-labelledby="workspace-tab-log"
                 >
-                  <ActivityLogPanel log={activityLog} />
+                  <ActivityLogPanel
+                    log={activityLog}
+                    bridgeEnabled={bridgeEnabled}
+                    bridgeStatus={bridgeStatus}
+                    bridgeError={bridgeError}
+                    onBridgeEnabledChange={setBridgeEnabled}
+                  />
                 </div>
               )}
             </div>

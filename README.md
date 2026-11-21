@@ -4,7 +4,7 @@ Personal GRBL controller for one custom CNC. Windows desktop first (Tauri + nati
 
 ## Status
 
-Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code load / run**, **activity log / safety**, **guided calibration / soft travel**, plus **SVG → simple G-code**:
+Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code load / run**, **activity log / safety**, **guided calibration / soft travel**, **SVG → simple G-code**, plus **AI debug bridge**:
 
 - List / refresh serial ports; connect at **115200** baud (Demon Shield / Arduino)
 - Soft reset (`0x18`) on connect + manual Reset
@@ -14,7 +14,8 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - Work zeros via `G10 L20` (per-axis or XYZ); go-to-zero with confirm (safe Z-up then XY)
 - Load `.nc` / `.gcode` (picker + drag-drop); stream with Start / Pause (`!`) / Resume (`~`) / Stop (soft reset)
 - Progress (line / %) and toolpath overlay on the machine view
-- Live activity log (TX/RX + events); clear / filter / export
+- Live activity log (TX/RX + events); categories; clear / filter / export text+JSON / copy last N
+- Optional **debug bridge** (desktop): localhost `127.0.0.1:17832` read-only status + logs for a same-machine Cursor agent — see project docs `debug-bridge.md`
 - Safety: prominent E-Stop (feed hold + soft reset), Hold / Resume / Reset / Unlock (`$X`)
 - Alarm banner + refuse jog / job start while locked; job soft-limit gate before start
 - **Calibration:** guided steps/mm wizard (known move → measured → write `$100`/`$101`/`$102` with before/after)
@@ -76,4 +77,5 @@ npm run smoke
 6. SVG → simple cut/engrave → G-code ← **this**  
 7. Calibration wizard + soft travel setup  
 8. Activity log + safety controls  
-9. Debug bridge / external Demon Shield buttons  
+9. Debug bridge (structured export + localhost agent status) ← **this**  
+10. External Demon Shield buttons  

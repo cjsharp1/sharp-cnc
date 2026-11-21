@@ -136,6 +136,8 @@ export type { GcodeStreamer, StreamPhase, StreamProgress } from "./streamer";
 export { GRBL_RX_BUFFER, createGcodeStreamer } from "./streamer";
 
 export type {
+  ActivityAppendOptions,
+  ActivityCategory,
   ActivityEntry,
   ActivityFilter,
   ActivityKind,
@@ -146,10 +148,30 @@ export {
   entryMatchesFilter,
   formatActivityLine,
   formatTxPayload,
+  inferActivityCategory,
   isStatusChatter,
 } from "./activityLog";
 
 export { instrumentTransport } from "./instrumentTransport";
+
+export type {
+  BuildDebugSnapshotInput,
+  DebugBridgeConnection,
+  DebugBridgeJob,
+  DebugBridgeMachine,
+  DebugBridgeSnapshot,
+  DebugBridgeStatus,
+} from "./debugBridge";
+export {
+  DEBUG_BRIDGE_DEFAULT_PORT,
+  DEBUG_BRIDGE_SCHEMA_VERSION,
+  buildDebugSnapshot,
+  debugBridgeBaseUrl,
+  publishDebugSnapshot,
+  queryDebugBridgeStatus,
+  startDebugBridge,
+  stopDebugBridge,
+} from "./debugBridge";
 
 export type { ParsedAlarm } from "./safety";
 export {

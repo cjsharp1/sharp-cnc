@@ -28,14 +28,17 @@ export function instrumentTransport(
 
   transport.onEvent((event) => {
     if (event.type === "open") {
-      log.append("event", "Serial open");
+      log.append("event", "Serial open", { category: "connect" });
     } else if (event.type === "close") {
       log.append(
         "event",
         event.reason ? `Serial close (${event.reason})` : "Serial close",
+        { category: "connect" },
       );
     } else if (event.type === "error") {
-      log.append("event", `Serial error: ${event.message}`);
+      log.append("event", `Serial error: ${event.message}`, {
+        category: "connect",
+      });
     }
   });
 
