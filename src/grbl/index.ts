@@ -8,6 +8,7 @@ export { DEFAULT_BAUD } from "./transport";
 
 export type {
   Axis,
+  GrblActivePins,
   GrblMachineState,
   GrblStatus,
   Position3,
@@ -16,6 +17,19 @@ export { OFFLINE_STATUS, ZERO_POSITION } from "./types";
 
 export { parseStatusReport } from "./parseStatus";
 export { createGrblClient } from "./client";
+
+export type {
+  ExternalControlAction,
+  ExternalControlAdapter,
+  ExternalControlEvent,
+  ExternalControlObserveInput,
+  ExternalControlSource,
+} from "./externalControls";
+export {
+  createDemonShieldExternalControlAdapter,
+  isGrblResetBanner,
+  parseActivePins,
+} from "./externalControls";
 
 export type { SoftTravelLimits } from "./machineConfig";
 export {

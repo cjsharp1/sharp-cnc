@@ -22,6 +22,7 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - Live activity log (TX/RX + events); categories; clear / filter / export text+JSON / copy last N
 - Optional **debug bridge** (desktop): localhost `127.0.0.1:17832` read-only status + logs for a same-machine Cursor agent — see project docs `debug-bridge.md`
 - Safety: prominent E-Stop (feed hold + soft reset), Hold / Resume / Reset / Unlock (`$X`)
+- **External Demon Shield buttons:** Abort / Feed Hold / Resume (A0–A2) detected via GRBL state + `Pn:` and mirrored in job UI / activity log — see [docs/demon-shield-controls.md](docs/demon-shield-controls.md)
 - Alarm banner + refuse jog / job start while locked; job soft-limit gate before start
 - **Calibration:** Menu → Calibration… opens a stepped wizard (zero context → steps/mm → soft travel → manual `$$` / `$x=value`); not always-on chrome
 - **Steps/mm:** known move → measured → write `$100`/`$101`/`$102` with before/after
@@ -84,5 +85,5 @@ npm run smoke
 6. SVG → simple cut/engrave → G-code ← **this**  
 7. Calibration wizard + soft travel setup  
 8. Activity log + safety controls  
-9. Debug bridge (structured export + localhost agent status) ← **this**  
-10. External Demon Shield buttons  
+9. Debug bridge (structured export + localhost agent status)  
+10. External Demon Shield buttons ← **this**  

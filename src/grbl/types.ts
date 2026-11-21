@@ -21,6 +21,19 @@ export type GrblMachineState =
   | "Offline"
   | "Unknown";
 
+/**
+ * Active pins from a GRBL `Pn:` status field.
+ * Control letters used by Demon Shield: S=cycle start, H=feed hold, R=reset.
+ */
+export interface GrblActivePins {
+  cycleStart: boolean;
+  feedHold: boolean;
+  reset: boolean;
+  door: boolean;
+  /** Raw letters after `Pn:` (may also include XYZ limits / P probe). */
+  raw: string;
+}
+
 /** Parsed subset of a GRBL real-time status report (`?` response). */
 export interface GrblStatus {
   state: GrblMachineState;
@@ -37,6 +50,11 @@ export interface GrblStatus {
   feedRate?: number;
   /** Spindle speed when reported (RPM). */
   spindleSpeed?: number;
+  /**
+   * Active input pins from `Pn:` (limits, probe, control). Present when GRBL
+   * reports any triggered pin; cleared when the field is omitted.
+   */
+  pins?: GrblActivePins;
   raw?: string;
 }
 

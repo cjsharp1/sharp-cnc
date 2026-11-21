@@ -38,6 +38,7 @@ function parseStatusReport(line, prev) {
   let machine = null;
   let work = null;
   let wco = null;
+  let pinsRaw = null;
   for (let i = 1; i < fields.length; i++) {
     const field = fields[i];
     const colon = field.indexOf(":");
@@ -47,6 +48,7 @@ function parseStatusReport(line, prev) {
     if (key === "MPos") machine = parseVec3(value);
     else if (key === "WPos") work = parseVec3(value);
     else if (key === "WCO") wco = parseVec3(value);
+    else if (key === "Pn") pinsRaw = value;
   }
 
   const remembered = wco ?? prev?.wco ?? null;
@@ -81,6 +83,16 @@ function parseStatusReport(line, prev) {
     machine: machine ?? prev?.machine ?? { x: 0, y: 0, z: 0 },
     work: work ?? prev?.work ?? { x: 0, y: 0, z: 0 },
     wco: wco ?? remembered ?? undefined,
+    pins:
+      pinsRaw !== null
+        ? {
+            cycleStart: /S/i.test(pinsRaw),
+            feedHold: /H/i.test(pinsRaw),
+            reset: /R/i.test(pinsRaw),
+            door: /D/i.test(pinsRaw),
+            raw: pinsRaw.toUpperCase(),
+          }
+        : undefined,
   };
 }
 
@@ -114,4 +126,13 @@ assert(hold.state === "Hold", "Hold");
 assert(nearly(hold.machine.x, 4), "MPos from WPos+WCO");
 
 assert(parseStatusReport("ok") === null, "reject non-status");
+
+const withPins = parseStatusReport(
+  "<Hold:0|MPos:0.000,0.000,0.000|FS:0,0|Pn:HS>",
+);
+assert(withPins.pins?.feedHold === true, "Pn feed hold");
+assert(withPins.pins?.cycleStart === true, "Pn cycle start");
+const noPins = parseStatusReport("<Idle|MPos:0,0,0|FS:0,0>", withPins);
+assert(noPins.pins === undefined, "Pn cleared when omitted");
+
 console.log("ok — GRBL status parse smoke passed");
