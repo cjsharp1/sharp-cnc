@@ -22,8 +22,8 @@ SharpCNC is **not** full CAM. For simple 2D engraving / outline:
 
 1. **Load SVG** (or drop `.svg`). Paths preview on the bed.  
 2. Set **Mode**: Engrave (follow path) or Outline (closed contour).  
-3. Set **Feed**, **Plunge**, **Depth**, **Safe Z**. Bit Ø comes from Material & tool.  
-4. **Generate → Job** hands the G-code to the job runner (one job at a time).
+3. Set **Feed**, **Plunge**, **Depth**, **Safe Z**, and **Spindle RPM**. Bit Ø comes from Material & tool; use **Apply to SVG** there to pull material presets.  
+4. **Generate → Job** hands the G-code to the job runner (one job at a time). Generated jobs include `M3 S…` before cuts and `M5` before program end (omit spindle words if RPM is 0).
 
 Always simulate after generate. Depth is into the material — double-check sign/convention and stock thickness before Start.
 

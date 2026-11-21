@@ -20,6 +20,11 @@ export interface SvgToolpathParams {
   safeZMm: number;
   /** Bit diameter mm (header + comments; follow-path uses centerline). */
   toolDiameterMm: number;
+  /**
+   * PWM spindle speed (RPM). Emitted as `M3 S…` before cuts and `M5` at end.
+   * Set ≤ 0 to omit spindle words (motion-only / dry path).
+   */
+  spindleRpm: number;
 }
 
 export const DEFAULT_SVG_TOOLPATH: SvgToolpathParams = {
@@ -30,6 +35,7 @@ export const DEFAULT_SVG_TOOLPATH: SvgToolpathParams = {
   safeZMm: 5,
   /** 1/8" default endmill. */
   toolDiameterMm: 3.175,
+  spindleRpm: 12_000,
 };
 
 /** Format a mm number for G-code words (trim trailing zeros). */
@@ -69,6 +75,11 @@ export function generateSvgGcode(
   const cutZ = -depth;
   const tool = Math.max(0.01, params.toolDiameterMm);
   const mode = params.mode;
+  const spindleRpm =
+    typeof params.spindleRpm === "number" && Number.isFinite(params.spindleRpm)
+      ? Math.round(params.spindleRpm)
+      : 0;
+  const useSpindle = spindleRpm > 0;
 
   const lines: string[] = [];
   lines.push(`; SharpCNC SVG → G-code (${mode})`);
@@ -76,12 +87,18 @@ export function generateSvgGcode(
   lines.push(
     `; Tool Ø ${formatMm(tool)} mm · depth ${formatMm(depth)} · feed ${formatMm(feed)} · plunge ${formatMm(plunge)}`,
   );
+  if (useSpindle) {
+    lines.push(`; Spindle S${spindleRpm} (PWM M3/M5)`);
+  }
   lines.push(`; Safe Z ${formatMm(safeZ)} · follow-path (not full CAM)`);
   lines.push("G21"); // mm
   lines.push("G90"); // absolute
   lines.push("G94"); // feed per minute
   lines.push("G17"); // XY plane
   lines.push(`G0 Z${formatMm(safeZ)}`);
+  if (useSpindle) {
+    lines.push(`M3 S${spindleRpm}`);
+  }
 
   let pathIndex = 0;
   for (const poly of polys) {
@@ -109,6 +126,9 @@ export function generateSvgGcode(
   }
 
   lines.push(`G0 Z${formatMm(safeZ)}`);
+  if (useSpindle) {
+    lines.push("M5");
+  }
   lines.push("M2");
   return `${lines.join("\n")}\n`;
 }

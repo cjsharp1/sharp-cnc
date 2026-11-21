@@ -43,6 +43,16 @@ export interface GrblClient {
   cycleStart(): Promise<void>;
   /** Request a status report (`?`). */
   requestStatus(): Promise<void>;
+  /**
+   * GRBL 1.1 realtime feed override byte (`0x90`–`0x94`).
+   * No newline — works during a running job.
+   */
+  feedOverride(byte: number): Promise<void>;
+  /**
+   * GRBL 1.1 realtime spindle override byte (`0x99`–`0x9D`).
+   * No newline — works during a running job.
+   */
+  spindleOverride(byte: number): Promise<void>;
   sendLine(line: string): Promise<void>;
   onStatus(handler: (status: GrblStatus) => void): () => void;
 }
