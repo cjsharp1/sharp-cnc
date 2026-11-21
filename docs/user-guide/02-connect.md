@@ -4,6 +4,10 @@ SharpCNC talks to GRBL over **USB serial only** (Demon Shield on Arduino). Defau
 
 ![USB connection path](assets/diagram-connect.svg)
 
+## First-run setup
+
+On a fresh install, SharpCNC opens a **First-run setup** wizard: Connect → Home → Calibrate → Soft travel → Stock. Finish or **Skip for now**; reopen anytime from **Menu → First-run setup…**.
+
 ## Steps
 
 1. Open SharpCNC (desktop).

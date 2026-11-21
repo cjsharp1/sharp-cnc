@@ -395,6 +395,14 @@ export {
   saveDebugMode,
 } from "./debugModeConfig";
 
+export type { FirstRunState } from "./firstRunConfig";
+export {
+  DEFAULT_FIRST_RUN,
+  loadFirstRunState,
+  resetFirstRunState,
+  saveFirstRunCompleted,
+} from "./firstRunConfig";
+
 export type { UiTheme } from "./themeConfig";
 export {
   DEFAULT_UI_THEME,

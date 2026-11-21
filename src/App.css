@@ -2965,6 +2965,182 @@ button {
   width: min(48rem, 100%);
 }
 
+.firstrun {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  padding: 1rem 1.1rem 1.15rem;
+  min-height: 0;
+  overflow: auto;
+}
+
+.firstrun__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: flex-start;
+}
+
+.firstrun__eyebrow {
+  margin: 0 0 0.2rem;
+  font-size: var(--text-xs);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.firstrun__title {
+  margin: 0 0 0.35rem;
+  font-family: var(--font-brand);
+  font-size: var(--text-2xl);
+  letter-spacing: 0.02em;
+  /* Keep SharpCNC casing in eyebrow; title is sentence case */
+}
+
+.firstrun__lead {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  max-width: 36rem;
+}
+
+.firstrun__skip {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-sm);
+  padding: 0.35rem 0.6rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.firstrun__skip:hover {
+  border-color: var(--brass-border-hot);
+  color: var(--brass-hot);
+}
+
+.firstrun__steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.firstrun__step {
+  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.3rem 0.5rem;
+  cursor: pointer;
+}
+
+.firstrun__step.is-done {
+  border-color: rgba(212, 168, 75, 0.35);
+  color: var(--steel);
+}
+
+.firstrun__step.is-active {
+  border-color: var(--brass-border-strong);
+  color: var(--brass-hot);
+  background: var(--brass-fill);
+}
+
+.firstrun__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.firstrun__panel h3 {
+  margin: 0 0 0.4rem;
+  font-size: var(--text-lg);
+}
+
+.firstrun__panel p {
+  margin: 0 0 0.75rem;
+  color: var(--muted);
+  font-size: var(--text-sm);
+}
+
+.firstrun__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.55rem;
+  margin-bottom: 0.75rem;
+}
+
+.firstrun__grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.firstrun__grid input {
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  padding: 0.4rem 0.5rem;
+  border: 1px solid var(--border-strong);
+  background: var(--inset-bg);
+  color: var(--ink);
+}
+
+.firstrun__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-bottom: 0.5rem;
+}
+
+.firstrun__btn {
+  border: 1px solid var(--brass-border);
+  background: var(--brass-grad);
+  color: var(--brass-hot);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 0.4rem 0.7rem;
+  cursor: pointer;
+}
+
+.firstrun__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.firstrun__btn--ghost {
+  border-color: var(--border-strong);
+  background: transparent;
+  color: var(--steel);
+}
+
+.firstrun__status {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--brass-hot);
+  font-family: var(--font-mono);
+}
+
+.firstrun__warn {
+  margin: 0 0 0.4rem;
+  font-size: var(--text-sm);
+  color: var(--warn);
+}
+
+.firstrun__foot {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
 .prep__corners {
   display: flex;
   flex-wrap: wrap;
