@@ -216,6 +216,27 @@ export function createMockTransport(): SerialTransport {
       !/^G92\b/i.test(cmd));
 
   const handleQueuedLine = (trimmed: string) => {
+    // Unlock is allowed while locked; everything else is refused.
+    if (/^\$X$/i.test(trimmed)) {
+      if (state === "Alarm") {
+        state = "Idle";
+        emitLine("[MSG:Caution: Unlocked]");
+      }
+      emitLine("ok");
+      return;
+    }
+
+    // Mock-only: force Alarm so unlock / refuse-motion UX can be exercised.
+    if (/^\$Alarm$/i.test(trimmed)) {
+      clearMotion();
+      queue.length = 0;
+      busy = false;
+      state = "Alarm";
+      emitLine("ALARM:1");
+      emitLine("ok");
+      return;
+    }
+
     if (state === "Alarm") {
       emitLine("error:Alarm lock");
       return;
@@ -259,14 +280,21 @@ export function createMockTransport(): SerialTransport {
   };
 
   const softReset = () => {
+    const wasAlarm = state === "Alarm";
     clearMotion();
     queue.length = 0;
     busy = false;
     machine = { x: 0, y: 0, z: 0 };
     absolute = true;
-    state = "Idle";
+    // Soft reset from Alarm stays locked until `$X` (matches GRBL alarm lock UX).
+    state = wasAlarm ? "Alarm" : "Idle";
     emitLine("Grbl 1.1h ['$' for help]");
-    emitLine("[MSG:Reset to continue]");
+    if (wasAlarm) {
+      emitLine("ALARM:3");
+      emitLine("[MSG:Reset to continue]");
+    } else {
+      emitLine("[MSG:Reset to continue]");
+    }
   };
 
   const respondTo = (data: string | Uint8Array) => {

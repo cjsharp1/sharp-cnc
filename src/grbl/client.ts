@@ -65,6 +65,16 @@ export function createGrblClient(
   const attach = () => {
     detach();
     unsubLine = transport.onLine((line) => {
+      const trimmed = line.trim();
+      // GRBL emits `ALARM:n` as a standalone line (not a status report).
+      if (/^ALARM:\s*\d+/i.test(trimmed)) {
+        emitStatus({
+          ...latest,
+          state: "Alarm",
+          raw: trimmed,
+        });
+        return;
+      }
       const parsed = parseStatusReport(line, latest);
       if (parsed) emitStatus(parsed);
     });

@@ -46,7 +46,11 @@ export function CoordinateReadout({ status }: CoordinateReadoutProps) {
     <section className="coords" aria-label="Coordinates">
       <header className="coords__head">
         <h2 className="coords__title">Position</h2>
-        <span className="coords__state">{status.state}</span>
+        <span
+          className={`coords__state${status.state === "Alarm" ? " is-alarm" : ""}`}
+        >
+          {status.state}
+        </span>
       </header>
       <div className="coords__legend" aria-hidden>
         <span />

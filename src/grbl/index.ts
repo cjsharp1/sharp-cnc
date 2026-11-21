@@ -75,3 +75,27 @@ export {
 
 export type { GcodeStreamer, StreamPhase, StreamProgress } from "./streamer";
 export { GRBL_RX_BUFFER, createGcodeStreamer } from "./streamer";
+
+export type {
+  ActivityEntry,
+  ActivityFilter,
+  ActivityKind,
+  ActivityLog,
+} from "./activityLog";
+export {
+  createActivityLog,
+  entryMatchesFilter,
+  formatActivityLine,
+  formatTxPayload,
+  isStatusChatter,
+} from "./activityLog";
+
+export { instrumentTransport } from "./instrumentTransport";
+
+export type { ParsedAlarm } from "./safety";
+export {
+  UNLOCK_COMMAND,
+  canJogOrZero,
+  checkJobSoftLimits,
+  parseAlarmLine,
+} from "./safety";
