@@ -71,7 +71,9 @@ Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54
 
 ## XY probe & tool length
 
-**XY probe** runs `G38.2` along +X/−X or +Y/−Y, or an outside/inside **corner** sequence with bit-radius compensation. **Tool length (Z)** re-zeros work Z on the touch plate after a bit change (same plate thickness as Prepare).
+Open the **Probe** tab (separate from Move to keep the rail clearer).
+
+**XY probe** runs `G38.2` along +X/−X or +Y/−Y, or an outside/inside **corner** sequence with bit-radius compensation. **Tool length (Z)** re-zeros work Z on the touch plate after a bit change (same plate thickness as Prepare). Job Z0 for a cut still prefers **Job → Prepare…**.
 
 ## Console & macros
 
