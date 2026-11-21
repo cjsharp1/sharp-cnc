@@ -17,6 +17,34 @@ export { OFFLINE_STATUS, ZERO_POSITION } from "./types";
 export { parseStatusReport } from "./parseStatus";
 export { createGrblClient } from "./client";
 
+export type { SoftTravelLimits } from "./machineConfig";
+export {
+  DEFAULT_SOFT_TRAVEL,
+  bedSizeFromLimits,
+  maxForAxis,
+  minForAxis,
+} from "./machineConfig";
+
+export type { JogDelta, JogMode, SoftLimitCheck } from "./jog";
+export {
+  DEFAULT_JOG_FEED_MM_MIN,
+  JOG_CANCEL_BYTE,
+  JOG_FEED_OPTIONS_MM_MIN,
+  JOG_STEP_OPTIONS_MM,
+  MAX_JOG_FEED_MM_MIN,
+  buildJogCommand,
+  checkSoftLimits,
+  continuousJogDelta,
+  jogDeltaFromAxes,
+} from "./jog";
+
+export type { GoToWorkZeroOptions, GoToWorkZeroPlan, ZeroAxisSelection } from "./workZero";
+export {
+  DEFAULT_WCS_P,
+  buildSetWorkZeroCommand,
+  planGoToWorkZero,
+} from "./workZero";
+
 export type { DesktopPortInfo } from "./desktopSerial";
 export {
   createDesktopGrblClient,

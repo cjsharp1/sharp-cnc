@@ -4,15 +4,17 @@ Personal GRBL controller for one custom CNC. Windows desktop first (Tauri + nati
 
 ## Status
 
-Desktop **USB serial connect + live MPos/WPos** is wired:
+Desktop **USB serial connect + live MPos/WPos** plus **jog / work zeros**:
 
-- List / refresh serial ports
-- Connect / disconnect at **115200** baud (Demon Shield / Arduino)
+- List / refresh serial ports; connect at **115200** baud (Demon Shield / Arduino)
 - Soft reset (`0x18`) on connect + manual Reset
-- Parse GRBL `<…|MPos:…|WPos:…|WCO:…>` status reports
-- Live work + machine coordinates and machine-view tool marker
+- Live MPos / WPos and machine-view tool marker
+- Jog X/Y/Z (and XY+ diagonal) via GRBL `$J=` — step or hold modes, step size + feed
+- Soft-limit awareness from known travel (default X/Y **1000 mm**; Z unset until calibrated)
+- Work zeros via `G10 L20` (per-axis or XYZ); go-to-zero with confirm (safe Z-up then XY)
+- Jog cancel (`0x85`) on hold-release / Stop
 
-Browser / cloud shells without Tauri use a **mock GRBL** port so the UX can be exercised without hardware. Web Serial parity is still stubbed.
+Browser / cloud shells without Tauri use a **mock GRBL** port that simulates jog + zero so the UX can be exercised without hardware. Web Serial parity is still stubbed.
 
 ## Prerequisites
 
@@ -50,11 +52,18 @@ Not wired yet. The plan is to reuse this React UI with a Web Serial transport un
 | `src/grbl/` | Shared GRBL client, status parser, desktop / mock / Web Serial transports |
 | `src-tauri/` | Tauri 2 / Rust desktop shell + `serialport` USB backend |
 
+## Smoke checks (no hardware)
+
+```bash
+npm run smoke
+```
+
 ## Build order (high level)
 
 1. Scaffold — Tauri + React + GRBL stubs  
-2. Desktop serial connect + status / position streaming ← **this**  
-3. Jog / zero + machine view  
+2. Desktop serial connect + status / position streaming  
+3. Jog / zero + machine view ← **this**  
 4. G-code load and streaming sender  
 5. Web Serial parity  
 6. SVG → simple cut/engrave → G-code  
+

@@ -35,6 +35,8 @@ export interface GrblClient {
   disconnect(): Promise<void>;
   /** Soft reset (`Ctrl-X`). */
   softReset(): Promise<void>;
+  /** Cancel jogging (`0x85`). */
+  cancelJog(): Promise<void>;
   /** Request a status report (`?`). */
   requestStatus(): Promise<void>;
   sendLine(line: string): Promise<void>;
