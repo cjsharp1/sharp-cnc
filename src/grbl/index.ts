@@ -177,6 +177,53 @@ export {
   generateSvgGcode,
 } from "./svgToolpath";
 
+export type {
+  CutStyle,
+  FeedsSpeedsSelection,
+  FeedsSpeedsSuggestion,
+  MaterialKind,
+  MaterialPreset,
+} from "./materialPresets";
+export {
+  CUT_STYLE_LABELS,
+  DEFAULT_FEEDS_SELECTION,
+  MATERIAL_LABELS,
+  MATERIAL_PRESETS,
+  REF_BIT_DIAMETER_MM,
+  getMaterialPreset,
+  loadFeedsSpeedsSelection,
+  saveFeedsSpeedsSelection,
+  selectionFromSuggestion,
+  suggestFeedsSpeeds,
+} from "./materialPresets";
+
+export type { OverrideStep } from "./spindleFeed";
+export {
+  DEFAULT_SPINDLE_RPM,
+  FEED_OVERRIDE_COARSE_MINUS,
+  FEED_OVERRIDE_COARSE_PLUS,
+  FEED_OVERRIDE_FINE_MINUS,
+  FEED_OVERRIDE_FINE_PLUS,
+  FEED_OVERRIDE_MAX,
+  FEED_OVERRIDE_MIN,
+  FEED_OVERRIDE_RESET,
+  MAX_SPINDLE_RPM,
+  MIN_SPINDLE_RPM,
+  SPINDLE_OVERRIDE_COARSE_MINUS,
+  SPINDLE_OVERRIDE_COARSE_PLUS,
+  SPINDLE_OVERRIDE_FINE_MINUS,
+  SPINDLE_OVERRIDE_FINE_PLUS,
+  SPINDLE_OVERRIDE_MAX,
+  SPINDLE_OVERRIDE_MIN,
+  SPINDLE_OVERRIDE_RESET,
+  applyOverrideStep,
+  buildSpindleOffCommand,
+  buildSpindleOnCommand,
+  buildSpindleSpeedCommand,
+  feedOverrideByte,
+  spindleOverrideByte,
+} from "./spindleFeed";
+
 export type { GcodeStreamer, StreamPhase, StreamProgress } from "./streamer";
 export { GRBL_RX_BUFFER, createGcodeStreamer } from "./streamer";
 

@@ -125,6 +125,12 @@ export function createGrblClient(
     async requestStatus() {
       await transport.write("?");
     },
+    async feedOverride(byte: number) {
+      await transport.write(new Uint8Array([byte & 0xff]));
+    },
+    async spindleOverride(byte: number) {
+      await transport.write(new Uint8Array([byte & 0xff]));
+    },
     async sendLine(line: string) {
       await transport.write(line.endsWith("\n") ? line : `${line}\n`);
     },

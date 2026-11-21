@@ -55,4 +55,13 @@ Typical touch-off:
 
 > **Safety:** Never leave a spinning bit while leaning in to measure. Prefer power-off or spindle-off touch-offs when learning.
 
+## Spindle & feed overrides (Move tab)
+
+Below jog / zero:
+
+- **Spindle RPM** — **On (M3)** sends `M3 S…`; **Off (M5)** stops PWM spindle.  
+- **Feed override** / **Spindle override** — GRBL 1.1 realtime percent steps (−10 / −1 / 100% / +1 / +10). Work during a running job; soft limits unchanged.
+
+Live F/S from status show when GRBL reports them. Soft reset returns tracked overrides to 100%.
+
 Next: [Calibration wizard](05-calibration.md).

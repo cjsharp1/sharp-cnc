@@ -1,6 +1,24 @@
 import { createGrblClient } from "./client";
 import { JOG_CANCEL_BYTE } from "./jog";
 import { DEFAULT_GRBL_SETTINGS, parseSettingLine } from "./settings";
+import {
+  FEED_OVERRIDE_COARSE_MINUS,
+  FEED_OVERRIDE_COARSE_PLUS,
+  FEED_OVERRIDE_FINE_MINUS,
+  FEED_OVERRIDE_FINE_PLUS,
+  FEED_OVERRIDE_MAX,
+  FEED_OVERRIDE_MIN,
+  FEED_OVERRIDE_RESET,
+  SPINDLE_OVERRIDE_COARSE_MINUS,
+  SPINDLE_OVERRIDE_COARSE_PLUS,
+  SPINDLE_OVERRIDE_FINE_MINUS,
+  SPINDLE_OVERRIDE_FINE_PLUS,
+  SPINDLE_OVERRIDE_MAX,
+  SPINDLE_OVERRIDE_MIN,
+  SPINDLE_OVERRIDE_RESET,
+  applyOverrideStep,
+  type OverrideStep,
+} from "./spindleFeed";
 import type {
   GrblClient,
   SerialOpenOptions,
@@ -42,6 +60,12 @@ export function createMockTransport(): SerialTransport {
   let motionTimer: ReturnType<typeof setTimeout> | null = null;
   let statusTick = 0;
   let busy = false;
+  /** Programmed spindle RPM (S word / M3). */
+  let spindleProgrammed = 0;
+  let spindleOn = false;
+  /** Tracked override percents (UI / status estimate). */
+  let feedOverridePct = 100;
+  let spindleOverridePct = 100;
   /** Active control pins for `Pn:` (Demon Shield button simulation). */
   let activePins = "";
   let pinClearTimer: ReturnType<typeof setTimeout> | null = null;
@@ -80,13 +104,47 @@ export function createMockTransport(): SerialTransport {
     const withWco = wcoReportCounter % 7 === 0;
     const m = machine;
     const reportState = state === "Hold" ? "Hold:0" : state;
-    let body = `<${reportState}|MPos:${m.x.toFixed(3)},${m.y.toFixed(3)},${m.z.toFixed(3)}|FS:0,0`;
+    const feedReport =
+      state === "Run" || state === "Jog" ? Math.round(500 * (feedOverridePct / 100)) : 0;
+    const spindleReport = spindleOn
+      ? Math.round(spindleProgrammed * (spindleOverridePct / 100))
+      : 0;
+    let body = `<${reportState}|MPos:${m.x.toFixed(3)},${m.y.toFixed(3)},${m.z.toFixed(3)}|FS:${feedReport},${spindleReport}`;
     if (withWco) {
       body += `|WCO:${wco.x.toFixed(3)},${wco.y.toFixed(3)},${wco.z.toFixed(3)}`;
     }
     // Match GRBL: only include Pn: while pins are active.
     if (activePins) body += `|Pn:${activePins}`;
     emitLine(`${body}>`);
+  };
+
+  const overrideStepFromByte = (
+    byte: number,
+  ): { kind: "feed" | "spindle"; step: OverrideStep } | null => {
+    switch (byte) {
+      case FEED_OVERRIDE_RESET:
+        return { kind: "feed", step: "reset" };
+      case FEED_OVERRIDE_COARSE_PLUS:
+        return { kind: "feed", step: "coarse+" };
+      case FEED_OVERRIDE_COARSE_MINUS:
+        return { kind: "feed", step: "coarse-" };
+      case FEED_OVERRIDE_FINE_PLUS:
+        return { kind: "feed", step: "fine+" };
+      case FEED_OVERRIDE_FINE_MINUS:
+        return { kind: "feed", step: "fine-" };
+      case SPINDLE_OVERRIDE_RESET:
+        return { kind: "spindle", step: "reset" };
+      case SPINDLE_OVERRIDE_COARSE_PLUS:
+        return { kind: "spindle", step: "coarse+" };
+      case SPINDLE_OVERRIDE_COARSE_MINUS:
+        return { kind: "spindle", step: "coarse-" };
+      case SPINDLE_OVERRIDE_FINE_PLUS:
+        return { kind: "spindle", step: "fine+" };
+      case SPINDLE_OVERRIDE_FINE_MINUS:
+        return { kind: "spindle", step: "fine-" };
+      default:
+        return null;
+    }
   };
 
   const parseAxisValues = (cmd: string): Partial<Position3> => {
@@ -304,6 +362,27 @@ export function createMockTransport(): SerialTransport {
       return;
     }
 
+    // Spindle: M3/M5 and S word (PWM).
+    const spindleMatch = /\bS(-?\d+(?:\.\d+)?)/i.exec(trimmed);
+    if (spindleMatch) {
+      spindleProgrammed = Math.max(0, Math.round(Number(spindleMatch[1])));
+    }
+    if (/\bM3\b/i.test(trimmed) || /\bM4\b/i.test(trimmed)) {
+      spindleOn = true;
+      if (!spindleMatch && spindleProgrammed <= 0) spindleProgrammed = 10_000;
+      emitLine("ok");
+      return;
+    }
+    if (/\bM5\b/i.test(trimmed)) {
+      spindleOn = false;
+      emitLine("ok");
+      return;
+    }
+    if (/^S-?\d/i.test(trimmed)) {
+      emitLine("ok");
+      return;
+    }
+
     if (/\bG90\b/i.test(trimmed)) absolute = true;
     if (/\bG91\b/i.test(trimmed)) absolute = false;
 
@@ -329,6 +408,9 @@ export function createMockTransport(): SerialTransport {
     busy = false;
     machine = { x: 0, y: 0, z: 0 };
     absolute = true;
+    spindleOn = false;
+    feedOverridePct = 100;
+    spindleOverridePct = 100;
     // Soft reset from Alarm stays locked until `$X` (matches GRBL alarm lock UX).
     state = wasAlarm ? "Alarm" : "Idle";
     emitLine("Grbl 1.1h ['$' for help]");
@@ -354,6 +436,26 @@ export function createMockTransport(): SerialTransport {
       if (bytes.length === 1 && bytes[0] === SOFT_RESET_BYTE) {
         softReset();
         return;
+      }
+      if (bytes.length === 1) {
+        const ov = overrideStepFromByte(bytes[0]);
+        if (ov) {
+          if (ov.kind === "feed") {
+            feedOverridePct = applyOverrideStep(
+              feedOverridePct,
+              ov.step,
+              FEED_OVERRIDE_MIN,
+              FEED_OVERRIDE_MAX,
+            );
+          } else {
+            spindleOverridePct = applyOverrideStep(
+              spindleOverridePct,
+              ov.step,
+              SPINDLE_OVERRIDE_MIN,
+              SPINDLE_OVERRIDE_MAX,
+            );
+          }
+        }
       }
       return;
     }
@@ -435,6 +537,10 @@ export function createMockTransport(): SerialTransport {
       absolute = true;
       state = "Idle";
       statusTick = 0;
+      spindleProgrammed = 0;
+      spindleOn = false;
+      feedOverridePct = 100;
+      spindleOverridePct = 100;
       settings.clear();
       for (const [k, v] of Object.entries(DEFAULT_GRBL_SETTINGS)) {
         settings.set(Number(k), v);

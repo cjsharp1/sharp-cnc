@@ -1,7 +1,8 @@
-import { useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   DEFAULT_SVG_TOOLPATH,
   isSvgFileName,
+  type FeedsSpeedsSelection,
   type SvgCutMode,
   type SvgImportResult,
   type SvgToolpathParams,
@@ -13,6 +14,10 @@ interface SvgJobPanelProps {
   busy: boolean;
   /** Bit diameter from Material & tool settings (mm). */
   toolDiameterMm: number;
+  /** Applied feeds/speeds from material presets (Job settings). */
+  feeds: FeedsSpeedsSelection;
+  /** Bumps when user clicks Apply to SVG — sync fields from feeds. */
+  feedsApplyToken: number;
   onLoadSvg: (file: File) => void;
   onClear: () => void;
   onGenerate: (params: SvgToolpathParams) => void;
@@ -22,6 +27,8 @@ export function SvgJobPanel({
   draft,
   busy,
   toolDiameterMm,
+  feeds,
+  feedsApplyToken,
   onLoadSvg,
   onClear,
   onGenerate,
@@ -39,6 +46,30 @@ export function SvgJobPanel({
   );
   const [depthMm, setDepthMm] = useState(String(DEFAULT_SVG_TOOLPATH.depthMm));
   const [safeZMm, setSafeZMm] = useState(String(DEFAULT_SVG_TOOLPATH.safeZMm));
+  const [spindleRpm, setSpindleRpm] = useState(
+    String(DEFAULT_SVG_TOOLPATH.spindleRpm),
+  );
+
+  // Seed once from persisted feeds on mount.
+  const seededRef = useRef(false);
+  useEffect(() => {
+    if (seededRef.current) return;
+    seededRef.current = true;
+    setFeedMmMin(String(feeds.feedMmMin));
+    setPlungeMmMin(String(feeds.plungeMmMin));
+    setDepthMm(String(feeds.depthMm));
+    setSpindleRpm(String(feeds.spindleRpm));
+    setMode(feeds.cutStyle === "cut" ? "outline" : "engrave");
+  }, [feeds]);
+
+  useEffect(() => {
+    if (feedsApplyToken <= 0) return;
+    setFeedMmMin(String(feeds.feedMmMin));
+    setPlungeMmMin(String(feeds.plungeMmMin));
+    setDepthMm(String(feeds.depthMm));
+    setSpindleRpm(String(feeds.spindleRpm));
+    setMode(feeds.cutStyle === "cut" ? "outline" : "engrave");
+  }, [feedsApplyToken, feeds]);
 
   const acceptFile = (file: File | undefined) => {
     if (!file) return;
@@ -81,6 +112,7 @@ export function SvgJobPanel({
     const plunge = parsePositive(plungeMmMin, "Plunge");
     const depth = parsePositive(depthMm, "Depth");
     const safeZ = parseNonNeg(safeZMm, "Safe Z");
+    const spindle = parseNonNeg(spindleRpm, "Spindle RPM");
     const tool = Number.isFinite(toolDiameterMm) && toolDiameterMm > 0
       ? toolDiameterMm
       : null;
@@ -92,7 +124,8 @@ export function SvgJobPanel({
       feed === null ||
       plunge === null ||
       depth === null ||
-      safeZ === null
+      safeZ === null ||
+      spindle === null
     ) {
       return;
     }
@@ -104,6 +137,7 @@ export function SvgJobPanel({
       depthMm: depth,
       safeZMm: safeZ,
       toolDiameterMm: tool,
+      spindleRpm: spindle,
     });
   };
 
@@ -213,8 +247,25 @@ export function SvgJobPanel({
             </label>
           </div>
 
+          <div className="svgjob__row">
+            <label className="svgjob__field">
+              <span className="svgjob__field-label">Spindle RPM</span>
+              <input
+                className="svgjob__input"
+                type="number"
+                min={0}
+                step={100}
+                value={spindleRpm}
+                disabled={busy}
+                onChange={(e) => setSpindleRpm(e.target.value)}
+              />
+            </label>
+          </div>
+
           <p className="svgjob__tool-note">
-            Bit Ø {toolDiameterMm} mm from Material &amp; tool (Job settings).
+            Bit Ø {toolDiameterMm} mm from Material &amp; tool. Spindle emits{" "}
+            <code>M3 S…</code> / <code>M5</code> (0 = omit). Use{" "}
+            <strong>Apply to SVG</strong> above to pull material presets.
           </p>
         </div>
       )}

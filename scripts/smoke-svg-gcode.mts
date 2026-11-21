@@ -78,6 +78,8 @@ const engraveText = generateSvgGcode(imported.polylines, {
 assert(engraveText.includes("G21"), "G21");
 assert(engraveText.includes("G90"), "G90");
 assert(engraveText.includes("G1 Z-0.5"), "plunge to depth");
+assert(engraveText.includes(`M3 S${DEFAULT_SVG_TOOLPATH.spindleRpm}`), "spindle on");
+assert(engraveText.includes("M5"), "spindle off");
 assert(engraveText.includes("M2"), "program end");
 assert(/G0 X[\d.]+ Y[\d.]+/.test(engraveText), "rapid XY");
 

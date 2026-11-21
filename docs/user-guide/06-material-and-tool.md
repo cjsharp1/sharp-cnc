@@ -32,12 +32,21 @@ Place the physical sheet to match what you enter — the orange **Stock** rectan
 
 > **Safety:** Wrong diameter does not stop the machine from cutting — it only affects preview / SVG generation. Always verify depth and tool in the G-code for real cuts.
 
+## Feeds & speeds (material presets)
+
+Pick a **material** (softwood, hardwood, acrylic, MDF) and **cut style** (engrave vs cut / outline). SharpCNC suggests feed, plunge, spindle RPM, and a depth starting point scaled to the current bit Ø. Values persist; **Recalc from preset** refreshes from the table; **Apply to SVG** copies them into the SVG generate fields.
+
+![Presets to F/S](assets/diagram-feeds-speeds.svg)
+
+These are hobby starting points — always test on scrap. Runtime feed/spindle percent overrides live on the **Move** tab (not the essentials strip).
+
 ## Checklist before a job
 
 1. Measure the stock with a tape; enter width / length / thickness.  
 2. Clamp stock; pick the corner that matches how you will zero the job.  
 3. Install the bit; enter diameter (and tip angle if V-bit).  
-4. Zero work coordinates to the same corner / top face you intend in CAM or SVG.  
-5. Glance at the visualizer — stock and path should overlap sensibly.
+4. Pick material + cut style; apply suggested F/S to SVG if generating in-app.  
+5. Zero work coordinates to the same corner / top face you intend in CAM or SVG.  
+6. Glance at the visualizer — stock and path should overlap sensibly.
 
 Next: [Jobs, SVG & run](07-jobs-and-svg.md).

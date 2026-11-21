@@ -27,8 +27,9 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - **Calibration:** Menu → Calibration… opens a stepped wizard (zero context → steps/mm → soft travel → manual `$$` / `$x=value`); not always-on chrome
 - **Steps/mm:** known move → measured → write `$100`/`$101`/`$102` with before/after
 - **Soft travel:** enter or use current MPos for max X/Y/Z → write `$130`–`$132`, enable `$20`; bed size persisted for the visualizer
-- **SVG drop-in:** load `.svg` → path preview on the machine view → engrave/outline G-code (feed, depth, plunge; bit Ø from tool settings) → hand off to the job runner (one job at a time; not full CAM)
-- **Material & tool:** stock width/length/thickness + bed offset (or SW/SE/NW/NE corner); bit type + diameter (V-bit tip angle); shown on the visualizer; persisted; Job tab + Menu
+- **SVG drop-in:** load `.svg` → path preview on the machine view → engrave/outline G-code (feed, depth, plunge, spindle RPM; bit Ø from tool settings) → `M3 S…` / `M5` → hand off to the job runner (one job at a time; not full CAM)
+- **Material & tool:** stock width/length/thickness + bed offset (or SW/SE/NW/NE corner); bit type + diameter (V-bit tip angle); material presets (softwood/hardwood/acrylic/MDF) with suggested F/S; shown on the visualizer; persisted; Job tab + Menu
+- **Spindle & feed:** Move-tab PWM spindle On/Off (`M3`/`M5`/`S`) plus GRBL 1.1 realtime feed (`0x90`–`0x94`) and spindle (`0x99`–`0x9D`) overrides during a run
 - **External jobs:** Menu → External jobs… (Job tab strip) — pick a **watched local folder** (`.nc` / `.gcode` / `.svg`), auto-refresh, open into the existing Job / SVG loaders; path persisted. **Google Drive** UI + OAuth scaffolding when `VITE_GOOGLE_DRIVE_CLIENT_ID` is set — see [docs/google-drive-setup.md](docs/google-drive-setup.md). Until then, point the watched folder at Drive for Desktop / USB / network.
 
 Browser / cloud shells without Tauri use a **mock GRBL** port (including `$Alarm` / `$X`, `$$` / `$n=`). Web Serial parity is still stubbed. Folder pick requires the desktop app.

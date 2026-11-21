@@ -40,8 +40,8 @@ Labels on the view call out bed size, stock, path name, and whether you are in p
 
 | Tab | Contents |
 |-----|----------|
-| **Move** | Jog pad + work zero / go-to-zero |
-| **Job** | Material & tool, External jobs, SVG → G-code, Load / Start / Simulate |
+| **Move** | Jog pad, work zero / go-to-zero, spindle On/Off + feed/spindle overrides |
+| **Job** | Material & tool (incl. material presets), External jobs, SVG → G-code, Load / Start / Simulate |
 | **Log** | Live activity (TX/RX/events); with **Debug mode** on — export, Copy, Debug bridge |
 
 Job tab can show a small badge (`Ready`, `Run`, `Held`, `SVG`, …) so you know job state at a glance.

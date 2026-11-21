@@ -14,6 +14,7 @@ import { MachineView, type TrailPoint } from "./components/MachineView";
 import { MaterialToolPanel } from "./components/MaterialToolPanel";
 import { SafetyControls } from "./components/SafetyControls";
 import { SimControls } from "./components/SimControls";
+import { SpindleFeedPanel } from "./components/SpindleFeedPanel";
 import { SvgJobPanel } from "./components/SvgJobPanel";
 import {
   WorkspaceTabs,
@@ -53,6 +54,7 @@ import {
   loadDriveConfig,
   loadJobFromText,
   loadJobsFolderConfig,
+  loadFeedsSpeedsSelection,
   loadSoftTravel,
   loadStock,
   loadTool,
@@ -64,11 +66,17 @@ import {
   resumeSim,
   saveDebugMode,
   saveDriveConfig,
+  saveFeedsSpeedsSelection,
   saveJobsFolderConfig,
   saveSoftTravel,
   saveStock,
   saveTool,
   softTravelFromSettings,
+  applyOverrideStep,
+  buildSpindleOffCommand,
+  buildSpindleOnCommand,
+  feedOverrideByte,
+  spindleOverrideByte,
   startDebugBridge,
   startSim,
   stopDebugBridge,
@@ -81,6 +89,7 @@ import {
   type DesktopPortInfo,
   type DriveConfig,
   type ExternalControlAdapter,
+  type FeedsSpeedsSelection,
   type GcodeStreamer,
   type GrblClient,
   type GrblSetting,
@@ -88,6 +97,7 @@ import {
   type JobsFolderConfig,
   type JogMode,
   type LoadedJob,
+  type OverrideStep,
   type PathSimSnapshot,
   type SoftTravelLimits,
   type StockConfig,
@@ -156,6 +166,13 @@ export default function App() {
   const [stock, setStock] = useState<StockConfig>(() => loadStock());
   /** Tool / bit profile — persisted for visualizer + SVG defaults. */
   const [tool, setTool] = useState<ToolConfig>(() => loadTool());
+  /** Material presets + suggested F/S — persisted. */
+  const [feeds, setFeeds] = useState<FeedsSpeedsSelection>(() =>
+    loadFeedsSpeedsSelection(),
+  );
+  const [feedsApplyToken, setFeedsApplyToken] = useState(0);
+  const [feedOverridePercent, setFeedOverridePercent] = useState(100);
+  const [spindleOverridePercent, setSpindleOverridePercent] = useState(100);
   /** Watched local jobs folder — persisted path + auto-refresh. */
   const [jobsFolder, setJobsFolder] = useState<JobsFolderConfig>(() =>
     loadJobsFolderConfig(),
@@ -663,6 +680,8 @@ export default function App() {
     if (!client || !client.transport.isOpen) return;
     try {
       await client.softReset();
+      setFeedOverridePercent(100);
+      setSpindleOverridePercent(100);
       setErrorMessage(null);
       setSoftLimitHint(null);
       activityLog.append("event", "Soft reset");
@@ -1421,6 +1440,71 @@ export default function App() {
     saveTool(next);
   };
 
+  const handleFeedsChange = (next: FeedsSpeedsSelection) => {
+    setFeeds(next);
+    saveFeedsSpeedsSelection(next);
+  };
+
+  const handleApplyFeedsToSvg = () => {
+    setFeedsApplyToken((n) => n + 1);
+    activityLog.append(
+      "event",
+      `Applied feeds to SVG: F${feeds.feedMmMin} S${feeds.spindleRpm} (${feeds.material}/${feeds.cutStyle})`,
+    );
+  };
+
+  const handleSpindleOn = async (rpm: number) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      const cmd = buildSpindleOnCommand(rpm);
+      await client.sendLine(cmd);
+      activityLog.append("event", `Spindle ${cmd}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleSpindleOff = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      const cmd = buildSpindleOffCommand();
+      await client.sendLine(cmd);
+      activityLog.append("event", "Spindle M5");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleFeedOverride = async (step: OverrideStep) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.feedOverride(feedOverrideByte(step));
+      setFeedOverridePercent((p) => applyOverrideStep(p, step));
+      activityLog.append("event", `Feed override ${step}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleSpindleOverride = async (step: OverrideStep) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.spindleOverride(spindleOverrideByte(step));
+      setSpindleOverridePercent((p) => applyOverrideStep(p, step));
+      activityLog.append("event", `Spindle override ${step}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
   const handlePlaceStockCorner = (corner: StockCorner) => {
     const offsets = stockOffsetForCorner(
       stock,
@@ -1588,6 +1672,26 @@ export default function App() {
                     }}
                     onCancelGoTo={() => setPendingGoTo(null)}
                   />
+                  <SpindleFeedPanel
+                    connected={connected}
+                    feedRate={status.feedRate}
+                    spindleSpeed={status.spindleSpeed}
+                    feedOverridePercent={feedOverridePercent}
+                    spindleOverridePercent={spindleOverridePercent}
+                    busyAlarm={status.state === "Alarm"}
+                    onSpindleOn={(rpm) => {
+                      void handleSpindleOn(rpm);
+                    }}
+                    onSpindleOff={() => {
+                      void handleSpindleOff();
+                    }}
+                    onFeedOverride={(step) => {
+                      void handleFeedOverride(step);
+                    }}
+                    onSpindleOverride={(step) => {
+                      void handleSpindleOverride(step);
+                    }}
+                  />
                 </div>
               )}
 
@@ -1606,9 +1710,12 @@ export default function App() {
                       stock={stock}
                       tool={tool}
                       bedMm={bedMm}
+                      feeds={feeds}
                       onStockChange={handleStockChange}
                       onToolChange={handleToolChange}
                       onPlaceCorner={handlePlaceStockCorner}
+                      onFeedsChange={handleFeedsChange}
+                      onApplyToSvg={handleApplyFeedsToSvg}
                     />
                   </div>
                   <ExternalJobsPanel
@@ -1624,6 +1731,8 @@ export default function App() {
                     draft={svgDraft}
                     busy={streaming}
                     toolDiameterMm={tool.diameterMm}
+                    feeds={feeds}
+                    feedsApplyToken={feedsApplyToken}
                     onLoadSvg={handleLoadSvg}
                     onClear={handleClearSvg}
                     onGenerate={handleGenerateFromSvg}
