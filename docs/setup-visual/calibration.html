@@ -1,0 +1,152 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Calibration · SharpCNC</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <meta
+      name="description"
+      content="SharpCNC calibration visual guide: zeros, $3 direction, steps/mm, soft travel."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Sora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/site.css" />
+    <script src="../js/theme.js"></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="site-brand" href="../index.html">
+          <span class="site-brand__mark">SharpCNC</span>
+          <span class="site-brand__tag">Docs</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="../index.html">Home</a>
+          <a href="index.html">Visual setup</a>
+          <a href="first-run.html">First-run</a>
+          <button type="button" class="theme-toggle" id="theme-toggle">
+            Light
+          </button>
+        </nav>
+      </header>
+
+      <main class="visual-guide">
+        <header class="visual-guide__head">
+          <p class="visual-guide__eyebrow">Menu → Calibration…</p>
+          <h1>Calibration</h1>
+          <p class="visual-guide__one">
+            Clear bed. Keep Z high for XY. E-Stop ready.
+          </p>
+          <nav class="visual-guide__jump" aria-label="Steps">
+            <a href="#c1">1 Zero</a>
+            <a href="#c2">2 Direction</a>
+            <a href="#c3">3 Steps/mm</a>
+            <a href="#c4">4 Travel</a>
+          </nav>
+        </header>
+
+        <article class="step-card" id="c1">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">1</span>
+            <h2>Zero context</h2>
+            <p class="step-card__action">
+              Confirm Work / Machine → Zero if needed →
+              <strong>Zeros look good — Next</strong>
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-01-zero.svg"
+              alt="Work and Machine coordinate panels before calibration"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <a class="step-card__next" href="#c2">Next: Direction →</a>
+        </article>
+
+        <article class="step-card" id="c2">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">2</span>
+            <h2>Direction ($3)</h2>
+            <p class="step-card__action">
+              Invert wrong axes → <strong>Write $3</strong> → Test ±5 mm
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-02-direction.svg"
+              alt="$3 bitmask X=1 Y=2 Z=4 and expected +axis directions"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <p class="step-card__aside">
+            Expect: +X right · +Y back · +Z up (looking down on bed)
+          </p>
+          <a class="step-card__next" href="#c3">Next: Steps/mm →</a>
+        </article>
+
+        <article class="step-card" id="c3">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">3</span>
+            <h2>Steps/mm</h2>
+            <p class="step-card__action">
+              Move commanded mm → measure →
+              <strong>Write $100 / $101 / $102</strong>
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-03-steps.svg"
+              alt="Command, measure, compute, write steps per mm"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <p class="step-card__aside">
+            Repeat X → Y → Z. Formula: old × commanded ÷ measured.
+          </p>
+          <a class="step-card__next" href="#c4">Next: Soft travel →</a>
+        </article>
+
+        <article class="step-card" id="c4">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">4</span>
+            <h2>Soft travel</h2>
+            <p class="step-card__action">
+              Jog to far end (margin) → Use MPos →
+              <strong>Write travel + $20</strong>
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-04-travel.svg"
+              alt="Soft-limit envelope on bed and write travel button"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <p class="step-card__aside">
+            Manual $$ is wizard step 5 if you need a one-off setting.
+          </p>
+          <a class="step-card__next" href="first-run.html"
+            >Done · back to First-run →</a
+          >
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <a href="index.html">Visual setup</a>
+        ·
+        <a href="../guide.html#05">Text reference</a>
+      </footer>
+    </div>
+  </body>
+</html>

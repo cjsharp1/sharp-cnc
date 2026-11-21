@@ -9,6 +9,16 @@
 (function () {
   const CHAPTERS = [
     {
+      group: "Visual setup",
+      items: [
+        {
+          id: "visual-hub",
+          title: "Visual hub",
+          path: "setup-visual/README.md",
+        },
+      ],
+    },
+    {
       group: "User guide",
       items: [
         {
@@ -106,6 +116,14 @@
   ];
 
   const EXTERNAL = [
+    {
+      title: "First-run visual guide",
+      href: "setup-visual/first-run.html",
+    },
+    {
+      title: "Calibration visual guide",
+      href: "setup-visual/calibration.html",
+    },
     {
       title: "Demon Shield vendor page",
       href: "https://www.designsbyphil.com/demon-shield-1.html",

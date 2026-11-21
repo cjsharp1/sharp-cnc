@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Step 4 — Soft travel</title>
+  <desc id="d">Set max X Y Z travel for soft limits</desc>
+  <defs>
+    <style>
+      .bg { fill: #f1f3f5; }
+      .bed { fill: #d8e0e8; stroke: #3a4550; stroke-width: 3; }
+      .soft { fill: rgba(184, 134, 45, 0.12); stroke: #b8862d; stroke-width: 3; stroke-dasharray: 10 7; }
+      .num { fill: #b8862d; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; }
+      .big { font-size: 28px; font-weight: 700; }
+      .act { font-size: 22px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .btn { fill: #b8862d; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fill: #1a2332; font-size: 16px; }
+    </style>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">4</text>
+  <text class="lab big" x="100" y="50">Soft travel</text>
+  <text class="lab act" x="100" y="84">Measure bed → enter max mm → Save</text>
+
+  <rect class="bed" x="90" y="150" width="320" height="280" rx="10"/>
+  <rect class="soft" x="120" y="180" width="250" height="210" rx="6"/>
+  <text class="tiny" x="245" y="210" text-anchor="middle">Safe envelope</text>
+  <text class="lab" x="245" y="300" text-anchor="middle" font-weight="700">$130 / $101</text>
+  <text class="tiny" x="245" y="325" text-anchor="middle">X max · Y max</text>
+  <text class="tiny" x="245" y="400" text-anchor="middle">Far rails = software only</text>
+
+  <rect class="card" x="480" y="150" width="400" height="280" rx="14"/>
+  <text class="lab" x="680" y="195" text-anchor="middle" font-weight="700">Enter max travel</text>
+  <text class="mono" x="520" y="245">X max mm  →  $130</text>
+  <text class="mono" x="520" y="285">Y max mm  →  $131</text>
+  <text class="mono" x="520" y="325">Z max mm  →  $132</text>
+  <rect class="btn" x="540" y="360" width="280" height="44" rx="8"/>
+  <text class="w" x="680" y="389" text-anchor="middle" font-size="16">Save travel</text>
+</svg>

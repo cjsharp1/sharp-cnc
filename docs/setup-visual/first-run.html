@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>First-run setup · SharpCNC</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <meta
+      name="description"
+      content="SharpCNC first-run visual guide: connect, home, calibrate, travel, stock."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Sora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/site.css" />
+    <script src="../js/theme.js"></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="site-brand" href="../index.html">
+          <span class="site-brand__mark">SharpCNC</span>
+          <span class="site-brand__tag">Docs</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="../index.html">Home</a>
+          <a href="index.html">Visual setup</a>
+          <a href="calibration.html">Calibration</a>
+          <button type="button" class="theme-toggle" id="theme-toggle">
+            Light
+          </button>
+        </nav>
+      </header>
+
+      <main class="visual-guide">
+        <header class="visual-guide__head">
+          <p class="visual-guide__eyebrow">SharpCNC · First run</p>
+          <h1>First-run setup</h1>
+          <p class="visual-guide__one">
+            Same steps as the in-app wizard. One glance = next action.
+          </p>
+          <nav class="visual-guide__jump" aria-label="Steps">
+            <a href="#s1">1 Connect</a>
+            <a href="#s2">2 Home</a>
+            <a href="#s3">3 Calibrate</a>
+            <a href="#s4">4 Travel</a>
+            <a href="#s5">5 Stock</a>
+          </nav>
+        </header>
+
+        <article class="step-card" id="s1">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">1</span>
+            <h2>Connect</h2>
+            <p class="step-card__action">
+              Plug USB → Refresh → Connect → wait for <strong>Linked</strong>
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/fr-01-connect.svg"
+              alt="PC to Demon Shield USB path ending in Linked status"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <a class="step-card__next" href="#s2">Next: Home →</a>
+        </article>
+
+        <article class="step-card" id="s2">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">2</span>
+            <h2>Home</h2>
+            <p class="step-card__action">
+              Clear bed → <strong>Home ($H)</strong> → wait Idle / Homed
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/fr-02-home.svg"
+              alt="Bed with zero-side home switches and Home button"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <a class="step-card__next" href="#s3">Next: Calibrate →</a>
+        </article>
+
+        <article class="step-card" id="s3">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">3</span>
+            <h2>Calibrate</h2>
+            <p class="step-card__action">
+              Tap <strong>Open Calibration…</strong> → finish direction +
+              steps/mm
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/fr-03-calibrate.svg"
+              alt="Open Calibration from first-run for $3 and steps per mm"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <p class="step-card__aside">
+            Detail:
+            <a href="calibration.html">Calibration visual guide</a>
+          </p>
+          <a class="step-card__next" href="#s4">Next: Travel →</a>
+        </article>
+
+        <article class="step-card" id="s4">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">4</span>
+            <h2>Soft travel</h2>
+            <p class="step-card__action">
+              Enter max X / Y / Z mm → <strong>Save travel</strong>
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/fr-04-travel.svg"
+              alt="Soft travel envelope and max mm fields for $130–$132"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <a class="step-card__next" href="#s5">Next: Stock →</a>
+        </article>
+
+        <article class="step-card" id="s5">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">5</span>
+            <h2>Stock</h2>
+            <p class="step-card__action">
+              Enter width × length × thickness →
+              <strong>Finish setup</strong>
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/fr-05-stock.svg"
+              alt="Stock rectangle on bed with size fields"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <a class="step-card__next" href="calibration.html"
+            >Done · open Calibration guide →</a
+          >
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <a href="index.html">Visual setup</a>
+        ·
+        <a href="../guide.html#02">Text reference</a>
+      </footer>
+    </div>
+  </body>
+</html>

@@ -4,11 +4,11 @@ Friendly, practical docs for running **one** home CNC: Demon Shield + Arduino + 
 
 SharpCNC is a personal controller — connect, see where the tool is, jog and zero, calibrate, prepare (Z probe), load a job, simulate, then run. It is not a multi-machine CAM suite.
 
-**Browse on GitHub Pages** (same workshop fonts as the app): [docs home](../index.html) · [this guide in the viewer](../guide.html)
+**Browse on GitHub Pages** (same workshop fonts as the app): [docs home](../index.html) · [this guide in the viewer](../guide.html) · **[visual setup](../setup-visual/index.html)**
 
 ## How to use this guide
 
-Read chapters in order the first time you set up the machine. After that, jump to the chapter you need (calibration, prepare/probe, jobs, alarms, etc.).
+**First time on the machine:** use the [visual first-run](../setup-visual/first-run.html) and [calibration](../setup-visual/calibration.html) guides (big diagrams, one action per step). Come back to these chapters for short reference tables.
 
 Safety notes appear throughout. When something can crash the machine or hurt you, it is called out explicitly — take those seriously.
 
@@ -17,10 +17,11 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | # | Chapter | What you learn |
 |---|---------|----------------|
 | 1 | [Install & run](01-install-and-run.md) | Windows installer, `npm run tauri dev`, mock UI |
-| 2 | [Connect](02-connect.md) | COM ports, 115200 baud, Linked status |
+| 2 | [Connect](02-connect.md) | COM ports + [first-run visual](../setup-visual/first-run.html) |
+| — | [Calibration visual](../setup-visual/calibration.html) | Zeros · `$3` · steps/mm · soft travel |
 | 3 | [Understanding the UI](03-understanding-the-ui.md) | Essentials strip, visualizer, Move / Job / Log, Menu |
 | 4 | [Jogging & zeros](04-jogging-and-zeros.md) | Jog, home, G54–G59, XY probe, console, overrides |
-| 5 | [Calibration wizard](05-calibration.md) | Zero → axis direction → steps/mm → soft travel → manual |
+| 5 | [Calibration](05-calibration.md) | Short appendix · prefer [visual](../setup-visual/calibration.html) |
 | 6 | [Material & tool](06-material-and-tool.md) | Stock size, bed corners, bit diameter |
 | 7 | [Prepare to run & Z probe](07-prepare-and-z-probe.md) | Pre-start wizard, touch plate, G38.2 |
 | 8 | [Jobs, SVG & run](08-jobs-and-svg.md) | Load G-code / SVG, simulate, start / pause / stop |

@@ -29,6 +29,7 @@
         <nav class="site-nav" aria-label="Primary">
           <a href="#download">Download</a>
           <a href="#getting-started">Getting started</a>
+          <a href="setup-visual/index.html">Visual setup</a>
           <a href="guide.html">User guide</a>
           <a
             href="https://github.com/cjsharp1/sharp-cnc"
@@ -55,7 +56,8 @@
           </p>
           <div class="cta-row">
             <a class="btn" href="#download">Download for Windows</a>
-            <a class="btn btn--ghost" href="guide.html">Open the user guide</a>
+            <a class="btn btn--ghost" href="setup-visual/index.html">Visual setup</a>
+            <a class="btn btn--ghost" href="guide.html">User guide</a>
           </div>
         </section>
 
@@ -178,17 +180,38 @@
               </p>
             </li>
             <li>
-              <h3>First things to do</h3>
+              <h3>First-run + calibrate</h3>
               <p>
-                Run <strong>Menu → Calibration…</strong> once so soft travel
-                matches the bed. Set material &amp; tool, load a
-                <code>.nc</code> / <code>.gcode</code> (or SVG), use
-                <strong>Prepare to run…</strong> (XY + Z probe),
-                <strong>Simulate</strong>, then <strong>Start</strong> when
-                ready. Keep E-Stop within reach.
+                Follow the
+                <a href="setup-visual/first-run.html">visual first-run guide</a>
+                (Connect → Home → Calibrate → Travel → Stock), then
+                <a href="setup-visual/calibration.html">calibration</a> if
+                needed. After that: material &amp; tool, Prepare, Simulate,
+                Start. Keep E-Stop within reach.
               </p>
             </li>
           </ol>
+        </section>
+
+        <section class="section" aria-labelledby="visual-title">
+          <h2 class="section__title" id="visual-title">Visual setup</h2>
+          <p class="section__lead">
+            Ikea-style steps — big diagrams, one action line, obvious next.
+          </p>
+          <div class="guide-grid">
+            <a class="guide-link" href="setup-visual/first-run.html">
+              <strong>First-run setup</strong>
+              <span>Connect → Home → Calibrate → Travel → Stock</span>
+            </a>
+            <a class="guide-link" href="setup-visual/calibration.html">
+              <strong>Calibration</strong>
+              <span>Zeros · $3 · steps/mm · soft travel</span>
+            </a>
+            <a class="guide-link" href="setup-visual/index.html">
+              <strong>Visual hub</strong>
+              <span>Both guides in one place</span>
+            </a>
+          </div>
         </section>
 
         <section class="section" aria-labelledby="guide-title">

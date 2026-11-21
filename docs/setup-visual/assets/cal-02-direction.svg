@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Calibration 2 — Direction $3</title>
+  <desc id="d">Invert axes with $3 bitmask so +jog matches bed</desc>
+  <defs>
+    <style>
+      .bg { fill: #f1f3f5; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .bit { fill: #e8eef3; stroke: #3a4550; stroke-width: 2; }
+      .num { fill: #b8862d; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; }
+      .big { font-size: 28px; font-weight: 700; }
+      .act { font-size: 22px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; fill: #1a2332; font-size: 18px; }
+      .arrow { stroke: #b8862d; stroke-width: 4; fill: none; marker-end: url(#a); }
+      .btn { fill: #b8862d; }
+    </style>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#b8862d"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">2</text>
+  <text class="lab big" x="100" y="50">Direction ($3)</text>
+  <text class="lab act" x="100" y="84">Toggle invert → Write $3 → Test ±5 mm</text>
+
+  <rect class="card" x="80" y="140" width="420" height="300" rx="14"/>
+  <text class="lab" x="290" y="185" text-anchor="middle" font-weight="700">Bitmask</text>
+  <rect class="bit" x="110" y="220" width="100" height="80" rx="10"/>
+  <text class="lab" x="160" y="255" text-anchor="middle" font-weight="700">X</text>
+  <text class="mono" x="160" y="285" text-anchor="middle">= 1</text>
+  <rect class="bit" x="240" y="220" width="100" height="80" rx="10"/>
+  <text class="lab" x="290" y="255" text-anchor="middle" font-weight="700">Y</text>
+  <text class="mono" x="290" y="285" text-anchor="middle">= 2</text>
+  <rect class="bit" x="370" y="220" width="100" height="80" rx="10"/>
+  <text class="lab" x="420" y="255" text-anchor="middle" font-weight="700">Z</text>
+  <text class="mono" x="420" y="285" text-anchor="middle">= 4</text>
+  <text class="tiny" x="290" y="350" text-anchor="middle">Sum bits to invert · e.g. X+Z = 5</text>
+  <rect class="btn" x="160" y="380" width="260" height="40" rx="8"/>
+  <text class="w" x="290" y="407" text-anchor="middle" font-size="16">Write $3=…</text>
+
+  <rect class="card" x="540" y="140" width="340" height="300" rx="14"/>
+  <text class="lab" x="710" y="185" text-anchor="middle" font-weight="700">Expect</text>
+  <path class="arrow" d="M600 250 H780"/>
+  <text class="lab" x="710" y="240" text-anchor="middle" font-weight="700">+X right</text>
+  <path class="arrow" d="M710 280 V400"/>
+  <text class="lab" x="740" y="340" font-weight="700">+Y back</text>
+  <text class="tiny" x="710" y="420" text-anchor="middle">+Z up · wrong way → flip bit</text>
+</svg>
