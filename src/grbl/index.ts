@@ -218,6 +218,12 @@ export {
   stopDebugBridge,
 } from "./debugBridge";
 
+export {
+  DEFAULT_DEBUG_MODE,
+  loadDebugMode,
+  saveDebugMode,
+} from "./debugModeConfig";
+
 export type { ParsedAlarm } from "./safety";
 export {
   UNLOCK_COMMAND,

@@ -13,6 +13,8 @@ import {
 
 interface ActivityLogPanelProps {
   log: ActivityLog;
+  /** When false, hide Export / Copy / Debug bridge chrome. */
+  debugMode?: boolean;
   /** Desktop-only: bridge enable wiring from App. */
   bridgeEnabled?: boolean;
   bridgeStatus?: DebugBridgeStatus | null;
@@ -27,6 +29,9 @@ const FILTERS: { id: ActivityFilter; label: string }[] = [
   { id: "alarms", label: "Alarms" },
   { id: "raw", label: "Raw" },
 ];
+
+/** Everyday filters — Raw stays behind Debug mode. */
+const EVERYDAY_FILTERS = FILTERS.filter((f) => f.id !== "raw");
 
 const COPY_N_OPTIONS = [50, 100, 200] as const;
 
@@ -48,6 +53,7 @@ function stamp(): string {
 
 export function ActivityLogPanel({
   log,
+  debugMode = false,
   bridgeEnabled = false,
   bridgeStatus = null,
   bridgeError = null,
@@ -62,6 +68,12 @@ export function ActivityLogPanel({
   const desktop = isDesktopShell();
 
   useEffect(() => log.onChange(setEntries), [log]);
+
+  useEffect(() => {
+    if (!debugMode && filter === "raw") setFilter("all");
+  }, [debugMode, filter]);
+
+  const filterTabs = debugMode ? FILTERS : EVERYDAY_FILTERS;
 
   const visible = useMemo(
     () => entries.filter((e) => entryMatchesFilter(e, filter)),
@@ -130,59 +142,65 @@ export function ActivityLogPanel({
           >
             Clear
           </button>
-          <button
-            type="button"
-            className="alog__tool"
-            onClick={handleExportText}
-            disabled={entries.length === 0}
-            title="Export filtered log as text"
-          >
-            Export
-          </button>
-          <button
-            type="button"
-            className="alog__tool"
-            onClick={handleExportJson}
-            disabled={entries.length === 0}
-            title="Export filtered log as JSON"
-          >
-            JSON
-          </button>
+          {debugMode && (
+            <>
+              <button
+                type="button"
+                className="alog__tool"
+                onClick={handleExportText}
+                disabled={entries.length === 0}
+                title="Export filtered log as text"
+              >
+                Export
+              </button>
+              <button
+                type="button"
+                className="alog__tool"
+                onClick={handleExportJson}
+                disabled={entries.length === 0}
+                title="Export filtered log as JSON"
+              >
+                JSON
+              </button>
+            </>
+          )}
         </div>
       </header>
 
-      <div className="alog__copy-row">
-        <label className="alog__copy-label" htmlFor="alog-copy-n">
-          Copy last
-        </label>
-        <select
-          id="alog-copy-n"
-          className="alog__copy-select"
-          value={copyN}
-          onChange={(e) =>
-            setCopyN(Number(e.target.value) as (typeof COPY_N_OPTIONS)[number])
-          }
-        >
-          {COPY_N_OPTIONS.map((n) => (
-            <option key={n} value={n}>
-              {n}
-            </option>
-          ))}
-        </select>
-        <button
-          type="button"
-          className="alog__tool"
-          onClick={() => {
-            void handleCopyLast();
-          }}
-          disabled={entries.length === 0}
-        >
-          Copy
-        </button>
-        {copyHint && <span className="alog__copy-hint">{copyHint}</span>}
-      </div>
+      {debugMode && (
+        <div className="alog__copy-row">
+          <label className="alog__copy-label" htmlFor="alog-copy-n">
+            Copy last
+          </label>
+          <select
+            id="alog-copy-n"
+            className="alog__copy-select"
+            value={copyN}
+            onChange={(e) =>
+              setCopyN(Number(e.target.value) as (typeof COPY_N_OPTIONS)[number])
+            }
+          >
+            {COPY_N_OPTIONS.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            className="alog__tool"
+            onClick={() => {
+              void handleCopyLast();
+            }}
+            disabled={entries.length === 0}
+          >
+            Copy
+          </button>
+          {copyHint && <span className="alog__copy-hint">{copyHint}</span>}
+        </div>
+      )}
 
-      {onBridgeEnabledChange && (
+      {debugMode && onBridgeEnabledChange && (
         <div className="alog__bridge">
           <label className="alog__bridge-toggle">
             <input
@@ -210,7 +228,7 @@ export function ActivityLogPanel({
       )}
 
       <div className="alog__filters" role="tablist" aria-label="Log filter">
-        {FILTERS.map((f) => (
+        {filterTabs.map((f) => (
           <button
             key={f.id}
             type="button"
@@ -243,9 +261,11 @@ export function ActivityLogPanel({
                         ? "ALM"
                         : "EVT"}
                 </span>
-                <span className="alog__cat" title={entry.category}>
-                  {entry.category.slice(0, 3)}
-                </span>
+                {debugMode && (
+                  <span className="alog__cat" title={entry.category}>
+                    {entry.category.slice(0, 3)}
+                  </span>
+                )}
                 <span className="alog__text" title={formatActivityLine(entry)}>
                   {entry.text}
                 </span>

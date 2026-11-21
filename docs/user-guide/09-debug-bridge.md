@@ -4,7 +4,18 @@ When something odd happens on the real machine, SharpCNC can share **read-only**
 
 ![Debug bridge on Log tab](assets/debug-bridge.webp)
 
-## Always available (no bridge)
+## Debug mode (show / hide toolkit)
+
+Everyday UI keeps the **Log** tab lean. Turn on **Debug mode** only when you need the AI-assisted toolkit.
+
+1. Open **Menu**.  
+2. Check **Debug mode** (persisted across sessions; default **off**).  
+3. The menu trigger shows **Menu · Debug** while it is on.  
+4. Open the **Log** tab — Export, Copy, Debug bridge, Raw filter, and category tags appear.
+
+Turn **Debug mode** off again to hide that chrome (and stop the localhost bridge if it was running). Live / Clear / basic filters stay available either way.
+
+## With Debug mode on (no bridge required)
 
 On the **Log** tab:
 
@@ -17,14 +28,15 @@ Paste or attach those into chat if the bridge is off.
 ## Optional localhost bridge (desktop only)
 
 1. Run SharpCNC desktop (`npm run tauri dev` or release).  
-2. Open **Log**.  
-3. Check **Debug bridge**.  
-4. Confirm it listens on `http://127.0.0.1:17832`.
+2. Menu → enable **Debug mode**.  
+3. Open **Log**.  
+4. Check **Debug bridge**.  
+5. Confirm it listens on `http://127.0.0.1:17832`.
 
 ### Security
 
-- Off by default  
-- Binds **127.0.0.1 only** (not LAN / internet)  
+- Debug mode and the bridge are both **off by default**  
+- Bridge binds **127.0.0.1 only** (not LAN / internet)  
 - **Read-only** in this version — no jog, e-stop, or G-code via HTTP  
 - Do **not** port-forward or tunnel this port  
 
@@ -45,7 +57,7 @@ curl -s http://127.0.0.1:17832/v1/snapshot
 | `/v1/snapshot` | Status + recent logs |
 | `/v1/export.txt` | Plain-text log |
 
-Suggested workflow: enable the bridge, reproduce the issue once, let the agent poll status/logs, correlate alarms with position and job phase.
+Suggested workflow: enable Debug mode + the bridge, reproduce the issue once, let the agent poll status/logs, correlate alarms with position and job phase.
 
 > **Safety:** The bridge cannot stop the machine. Keep using **E-Stop** / Demon Shield buttons / UI Hold for real emergencies.
 

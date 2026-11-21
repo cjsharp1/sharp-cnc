@@ -49,6 +49,7 @@ import {
   isGrblResetBanner,
   jogDeltaFromAxes,
   listAvailablePorts,
+  loadDebugMode,
   loadDriveConfig,
   loadJobFromText,
   loadJobsFolderConfig,
@@ -61,6 +62,7 @@ import {
   planGoToWorkZero,
   publishDebugSnapshot,
   resumeSim,
+  saveDebugMode,
   saveDriveConfig,
   saveJobsFolderConfig,
   saveSoftTravel,
@@ -172,11 +174,21 @@ export default function App() {
   const [calOpen, setCalOpen] = useState(false);
   const [matToolHighlight, setMatToolHighlight] = useState(false);
   const [extJobsHighlight, setExtJobsHighlight] = useState(false);
+  /** Debug mode chrome (Export / Copy / bridge) — persisted; default off. */
+  const [debugMode, setDebugMode] = useState(() => loadDebugMode());
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<DebugBridgeStatus | null>(
     null,
   );
   const [bridgeError, setBridgeError] = useState<string | null>(null);
+
+  const handleDebugModeChange = (enabled: boolean) => {
+    setDebugMode(enabled);
+    saveDebugMode(enabled);
+    if (!enabled) {
+      setBridgeEnabled(false);
+    }
+  };
 
   const usingMock = !isDesktopShell();
   const connected = phase === "connected";
@@ -487,7 +499,7 @@ export default function App() {
   };
 
   useEffect(() => {
-    if (!bridgeEnabled) {
+    if (!debugMode || !bridgeEnabled) {
       setBridgeError(null);
       void stopDebugBridge()
         .then((status) => setBridgeStatus(status))
@@ -557,7 +569,7 @@ export default function App() {
       unsubLog?.();
       void stopDebugBridge().catch(() => undefined);
     };
-  }, [bridgeEnabled, activityLog]);
+  }, [debugMode, bridgeEnabled, activityLog]);
 
   const refreshPorts = async () => {
     try {
@@ -1434,6 +1446,8 @@ export default function App() {
           onOpenCalibration={openCalibration}
           onOpenMaterialTool={openMaterialTool}
           onOpenExternalJobs={openExternalJobs}
+          debugMode={debugMode}
+          onDebugModeChange={handleDebugModeChange}
         />
       </header>
 
@@ -1658,6 +1672,7 @@ export default function App() {
                 >
                   <ActivityLogPanel
                     log={activityLog}
+                    debugMode={debugMode}
                     bridgeEnabled={bridgeEnabled}
                     bridgeStatus={bridgeStatus}
                     bridgeError={bridgeError}
