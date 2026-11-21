@@ -1,9 +1,14 @@
+import { useState } from "react";
 import {
   CUT_STYLE_LABELS,
   MATERIAL_PRESETS,
   TOOL_BIT_LABELS,
+  deleteCustomFeedsPreset,
+  loadCustomFeedsPresets,
   stockOffsetForCorner,
   suggestFeedsSpeeds,
+  upsertCustomFeedsPreset,
+  type CustomFeedsPreset,
   type CutStyle,
   type FeedsSpeedsSelection,
   type MaterialKind,
@@ -54,6 +59,12 @@ export function MaterialToolPanel({
   onFeedsChange,
   onApplyToSvg,
 }: MaterialToolPanelProps) {
+  const [customPresets, setCustomPresets] = useState<CustomFeedsPreset[]>(() =>
+    loadCustomFeedsPresets(),
+  );
+  const [presetName, setPresetName] = useState("");
+  const [presetMessage, setPresetMessage] = useState<string | null>(null);
+
   const patchStock = (partial: Partial<StockConfig>) => {
     onStockChange({ ...stock, ...partial });
   };
@@ -418,6 +429,83 @@ export function MaterialToolPanel({
               Apply to SVG
             </button>
           )}
+        </div>
+
+        <div className="mattool__presets" aria-label="Saved material presets">
+          <p className="mattool__section">Saved presets</p>
+          <p className="mattool__hint mattool__hint--inline">
+            Last F/S values already persist. Save a named preset for a favorite
+            material setup.
+          </p>
+          <div className="mattool__row">
+            <label className="mattool__field">
+              <span className="mattool__field-label">Preset name</span>
+              <input
+                className="mattool__input"
+                type="text"
+                maxLength={48}
+                value={presetName}
+                placeholder="e.g. Softwood sign"
+                onChange={(e) => setPresetName(e.target.value)}
+              />
+            </label>
+            <div className="mattool__field mattool__field--actions">
+              <span className="mattool__field-label">&nbsp;</span>
+              <button
+                type="button"
+                className="mattool__btn"
+                disabled={!presetName.trim()}
+                onClick={() => {
+                  const next = upsertCustomFeedsPreset(presetName, feeds);
+                  setCustomPresets(next);
+                  setPresetMessage(`Saved “${presetName.trim()}”`);
+                  setPresetName("");
+                }}
+              >
+                Save preset
+              </button>
+            </div>
+          </div>
+          {customPresets.length > 0 ? (
+            <ul className="mattool__preset-list">
+              {customPresets.map((preset) => (
+                <li key={preset.id} className="mattool__preset-item">
+                  <button
+                    type="button"
+                    className="mattool__preset-load"
+                    onClick={() => {
+                      onFeedsChange({ ...preset.selection });
+                      setPresetMessage(`Loaded “${preset.name}”`);
+                    }}
+                  >
+                    <strong>{preset.name}</strong>
+                    <span>
+                      {preset.selection.material} · F{preset.selection.feedMmMin} ·
+                      S{preset.selection.spindleRpm}
+                    </span>
+                  </button>
+                  <button
+                    type="button"
+                    className="mattool__preset-delete"
+                    aria-label={`Delete preset ${preset.name}`}
+                    onClick={() => {
+                      setCustomPresets(deleteCustomFeedsPreset(preset.id));
+                      setPresetMessage(`Deleted “${preset.name}”`);
+                    }}
+                  >
+                    Delete
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mattool__hint mattool__hint--inline">No saved presets yet.</p>
+          )}
+          {presetMessage ? (
+            <p className="mattool__hint mattool__hint--inline" role="status">
+              {presetMessage}
+            </p>
+          ) : null}
         </div>
       </div>
     </section>

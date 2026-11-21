@@ -84,6 +84,7 @@ import {
   loadJobFromText,
   loadJobsFolderConfig,
   loadMacros,
+  loadOverridePercents,
   loadProbeConfig,
   loadSoftTravel,
   loadStock,
@@ -107,6 +108,7 @@ import {
   saveFeedsSpeedsSelection,
   saveJobsFolderConfig,
   saveMacros,
+  saveOverridePercents,
   saveProbeConfig,
   saveSoftTravel,
   saveStock,
@@ -223,9 +225,15 @@ export default function App() {
     loadFeedsSpeedsSelection(),
   );
   const [feedsApplyToken, setFeedsApplyToken] = useState(0);
-  const [feedOverridePercent, setFeedOverridePercent] = useState(100);
-  const [rapidOverridePercent, setRapidOverridePercent] = useState(100);
-  const [spindleOverridePercent, setSpindleOverridePercent] = useState(100);
+  const [feedOverridePercent, setFeedOverridePercent] = useState(
+    () => loadOverridePercents().feed,
+  );
+  const [rapidOverridePercent, setRapidOverridePercent] = useState(
+    () => loadOverridePercents().rapid,
+  );
+  const [spindleOverridePercent, setSpindleOverridePercent] = useState(
+    () => loadOverridePercents().spindle,
+  );
   const [homed, setHomed] = useState(false);
   const [homeBusy, setHomeBusy] = useState(false);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
@@ -1208,7 +1216,9 @@ export default function App() {
     if (!client || !client.transport.isOpen) return;
     try {
       await client.rapidOverride(rapidOverrideByte(step));
-      setRapidOverridePercent(applyRapidOverrideStep(step));
+      const next = applyRapidOverrideStep(step);
+      setRapidOverridePercent(next);
+      persistOverrides(feedOverridePercent, next, spindleOverridePercent);
       activityLog.append("event", `Rapid override ${step}%`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2117,12 +2127,24 @@ export default function App() {
     }
   };
 
+  const persistOverrides = (
+    feed: number,
+    rapid: number,
+    spindle: number,
+  ) => {
+    saveOverridePercents({ feed, rapid, spindle });
+  };
+
   const handleFeedOverride = async (step: OverrideStep) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
     try {
       await client.feedOverride(feedOverrideByte(step));
-      setFeedOverridePercent((p) => applyOverrideStep(p, step));
+      setFeedOverridePercent((p) => {
+        const next = applyOverrideStep(p, step);
+        persistOverrides(next, rapidOverridePercent, spindleOverridePercent);
+        return next;
+      });
       activityLog.append("event", `Feed override ${step}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2135,7 +2157,11 @@ export default function App() {
     if (!client || !client.transport.isOpen) return;
     try {
       await client.spindleOverride(spindleOverrideByte(step));
-      setSpindleOverridePercent((p) => applyOverrideStep(p, step));
+      setSpindleOverridePercent((p) => {
+        const next = applyOverrideStep(p, step);
+        persistOverrides(feedOverridePercent, rapidOverridePercent, next);
+        return next;
+      });
       activityLog.append("event", `Spindle override ${step}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);

@@ -1786,6 +1786,73 @@ button {
   border-color: rgba(212, 168, 75, 0.65);
 }
 
+.mattool__presets {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.mattool__preset-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.mattool__preset-item {
+  display: flex;
+  gap: 0.35rem;
+  align-items: stretch;
+}
+
+.mattool__preset-load {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.15rem;
+  text-align: left;
+  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.18);
+  color: var(--ink);
+  padding: 0.4rem 0.55rem;
+  cursor: pointer;
+}
+
+.mattool__preset-load strong {
+  font-size: var(--text-sm);
+}
+
+.mattool__preset-load span {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.mattool__preset-load:hover {
+  border-color: var(--brass-border-hot);
+  color: var(--brass-hot);
+}
+
+.mattool__preset-delete {
+  border: 1px solid var(--border-strong);
+  background: transparent;
+  color: var(--muted);
+  font-size: var(--text-xs);
+  padding: 0.35rem 0.5rem;
+  cursor: pointer;
+}
+
+.mattool__preset-delete:hover {
+  border-color: var(--danger, #c45c4a);
+  color: var(--danger, #c45c4a);
+}
+
 .spindle {
   display: flex;
   flex-direction: column;
