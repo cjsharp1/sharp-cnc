@@ -1,0 +1,9 @@
+[[permission]]
+identifier = "allow-jobs-folder"
+description = "Allows picking a local jobs folder, listing job files, and reading their text."
+commands.allow = [
+  "pick_jobs_folder",
+  "list_job_files",
+  "read_job_file",
+  "jobs_folder_exists"
+]

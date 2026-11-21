@@ -211,3 +211,38 @@ export {
   checkJobSoftLimits,
   parseAlarmLine,
 } from "./safety";
+
+export type { JobsFolderConfig } from "./jobsFolderConfig";
+export {
+  DEFAULT_JOBS_FOLDER,
+  JOBS_FOLDER_POLL_MS,
+  loadJobsFolderConfig,
+  saveJobsFolderConfig,
+  shortFolderLabel,
+} from "./jobsFolderConfig";
+
+export type { DriveConfig } from "./driveConfig";
+export {
+  DEFAULT_DRIVE_CONFIG,
+  clearDriveConfig,
+  getDriveClientId,
+  isDriveConfigured,
+  loadDriveConfig,
+  saveDriveConfig,
+} from "./driveConfig";
+
+export type { JobFileEntry } from "./desktopJobsFolder";
+export {
+  jobsFolderExists,
+  listJobFiles,
+  pickJobsFolder,
+  readJobFile,
+} from "./desktopJobsFolder";
+
+export type { DriveConnectResult, DriveFileEntry } from "./googleDrive";
+export {
+  beginDriveConnect,
+  driveStatusLabel,
+  listDriveJobFiles,
+  readDriveJobFile,
+} from "./googleDrive";

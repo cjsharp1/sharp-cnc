@@ -3,11 +3,13 @@ import { useEffect, useRef, useState } from "react";
 interface AppMenuProps {
   onOpenCalibration: () => void;
   onOpenMaterialTool: () => void;
+  onOpenExternalJobs: () => void;
 }
 
 export function AppMenu({
   onOpenCalibration,
   onOpenMaterialTool,
+  onOpenExternalJobs,
 }: AppMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -56,6 +58,20 @@ export function AppMenu({
           </button>
           <p className="appmenu__hint">
             Stock size, bed placement, and bit diameter.
+          </p>
+          <button
+            type="button"
+            role="menuitem"
+            className="appmenu__item"
+            onClick={() => {
+              setOpen(false);
+              onOpenExternalJobs();
+            }}
+          >
+            External jobs…
+          </button>
+          <p className="appmenu__hint">
+            Watched local folder and Google Drive job sources.
           </p>
           <button
             type="button"

@@ -4,6 +4,10 @@ import { AppMenu } from "./components/AppMenu";
 import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
+import {
+  ExternalJobsPanel,
+  type ExternalJobKind,
+} from "./components/ExternalJobsPanel";
 import { JobLoad } from "./components/JobLoad";
 import { JogPanel, type JogAxisMap } from "./components/JogPanel";
 import { MachineView, type TrailPoint } from "./components/MachineView";
@@ -43,7 +47,9 @@ import {
   isDesktopShell,
   jogDeltaFromAxes,
   listAvailablePorts,
+  loadDriveConfig,
   loadJobFromText,
+  loadJobsFolderConfig,
   loadSoftTravel,
   loadStock,
   loadTool,
@@ -53,6 +59,8 @@ import {
   planGoToWorkZero,
   publishDebugSnapshot,
   resumeSim,
+  saveDriveConfig,
+  saveJobsFolderConfig,
   saveSoftTravel,
   saveStock,
   saveTool,
@@ -67,10 +75,12 @@ import {
   type Axis,
   type DebugBridgeStatus,
   type DesktopPortInfo,
+  type DriveConfig,
   type GcodeStreamer,
   type GrblClient,
   type GrblSetting,
   type GrblStatus,
+  type JobsFolderConfig,
   type JogMode,
   type LoadedJob,
   type PathSimSnapshot,
@@ -135,6 +145,14 @@ export default function App() {
   const [stock, setStock] = useState<StockConfig>(() => loadStock());
   /** Tool / bit profile — persisted for visualizer + SVG defaults. */
   const [tool, setTool] = useState<ToolConfig>(() => loadTool());
+  /** Watched local jobs folder — persisted path + auto-refresh. */
+  const [jobsFolder, setJobsFolder] = useState<JobsFolderConfig>(() =>
+    loadJobsFolderConfig(),
+  );
+  /** Google Drive prefs (account/folder hints; OAuth when client ID set). */
+  const [driveConfig, setDriveConfig] = useState<DriveConfig>(() =>
+    loadDriveConfig(),
+  );
   const [grblSettings, setGrblSettings] = useState<Map<
     number,
     GrblSetting
@@ -144,6 +162,7 @@ export default function App() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
   const [calOpen, setCalOpen] = useState(false);
   const [matToolHighlight, setMatToolHighlight] = useState(false);
+  const [extJobsHighlight, setExtJobsHighlight] = useState(false);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<DebugBridgeStatus | null>(
     null,
@@ -385,6 +404,12 @@ export default function App() {
     const t = window.setTimeout(() => setMatToolHighlight(false), 2200);
     return () => window.clearTimeout(t);
   }, [matToolHighlight]);
+
+  useEffect(() => {
+    if (!extJobsHighlight) return;
+    const t = window.setTimeout(() => setExtJobsHighlight(false), 2200);
+    return () => window.clearTimeout(t);
+  }, [extJobsHighlight]);
 
   // Keep latest UI fields for the debug bridge without restarting the server.
   const bridgeContextRef = useRef({
@@ -1065,26 +1090,51 @@ export default function App() {
     activityLog.append("event", "Path preview stopped");
   };
 
+  const applyGcodeText = (name: string, text: string) => {
+    const loaded = loadJobFromText(name, text);
+    setJob(loaded);
+    setSvgDraft(null);
+    resetSimForPath(loaded.path);
+    setStreamProgress({
+      phase: "idle",
+      sentLines: 0,
+      ackedLines: 0,
+      totalLines: loaded.lines.length,
+      percent: 0,
+    });
+    activityLog.append(
+      "event",
+      `Loaded ${name} (${loaded.lines.length} lines)`,
+    );
+  };
+
+  const applySvgText = (name: string, text: string) => {
+    try {
+      const imported = importSvg(name, text);
+      setSvgDraft(imported);
+      activityLog.append(
+        "event",
+        `SVG ${name}: ${imported.polylines.length} path(s)` +
+          (imported.bounds
+            ? ` · ${imported.bounds.maxX.toFixed(1)}×${imported.bounds.maxY.toFixed(1)} mm`
+            : ""),
+      );
+      if (imported.polylines.length === 0) {
+        setErrorMessage("SVG had no drawable paths.");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(`SVG parse failed: ${message}`);
+      setSvgDraft(null);
+    }
+  };
+
   const handleLoadFile = (file: File) => {
     if (streaming || simulating) return;
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
-      const loaded = loadJobFromText(file.name, text);
-      setJob(loaded);
-      setSvgDraft(null);
-      resetSimForPath(loaded.path);
-      setStreamProgress({
-        phase: "idle",
-        sentLines: 0,
-        ackedLines: 0,
-        totalLines: loaded.lines.length,
-        percent: 0,
-      });
-      activityLog.append(
-        "event",
-        `Loaded ${file.name} (${loaded.lines.length} lines)`,
-      );
+      applyGcodeText(file.name, text);
     };
     reader.onerror = () => {
       setErrorMessage(`Failed to read ${file.name}`);
@@ -1097,29 +1147,25 @@ export default function App() {
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
-      try {
-        const imported = importSvg(file.name, text);
-        setSvgDraft(imported);
-        activityLog.append(
-          "event",
-          `SVG ${file.name}: ${imported.polylines.length} path(s)` +
-            (imported.bounds
-              ? ` · ${imported.bounds.maxX.toFixed(1)}×${imported.bounds.maxY.toFixed(1)} mm`
-              : ""),
-        );
-        if (imported.polylines.length === 0) {
-          setErrorMessage("SVG had no drawable paths.");
-        }
-      } catch (err) {
-        const message = err instanceof Error ? err.message : String(err);
-        setErrorMessage(`SVG parse failed: ${message}`);
-        setSvgDraft(null);
-      }
+      applySvgText(file.name, text);
     };
     reader.onerror = () => {
       setErrorMessage(`Failed to read ${file.name}`);
     };
     reader.readAsText(file);
+  };
+
+  const handleOpenExternal = (
+    name: string,
+    text: string,
+    kind: ExternalJobKind,
+  ) => {
+    if (streaming || simulating) return;
+    if (kind === "svg") {
+      applySvgText(name, text);
+    } else {
+      applyGcodeText(name, text);
+    }
   };
 
   const handleClearSvg = () => {
@@ -1273,6 +1319,21 @@ export default function App() {
     setMatToolHighlight(true);
   };
 
+  const openExternalJobs = () => {
+    setWorkspaceTab("job");
+    setExtJobsHighlight(true);
+  };
+
+  const handleJobsFolderChange = (next: JobsFolderConfig) => {
+    setJobsFolder(next);
+    saveJobsFolderConfig(next);
+  };
+
+  const handleDriveConfigChange = (next: DriveConfig) => {
+    setDriveConfig(next);
+    saveDriveConfig(next);
+  };
+
   const handleStockChange = (next: StockConfig) => {
     setStock(next);
     saveStock(next);
@@ -1307,6 +1368,7 @@ export default function App() {
         <AppMenu
           onOpenCalibration={openCalibration}
           onOpenMaterialTool={openMaterialTool}
+          onOpenExternalJobs={openExternalJobs}
         />
       </header>
 
@@ -1470,6 +1532,15 @@ export default function App() {
                       onPlaceCorner={handlePlaceStockCorner}
                     />
                   </div>
+                  <ExternalJobsPanel
+                    folder={jobsFolder}
+                    drive={driveConfig}
+                    busy={streaming || simulating}
+                    highlight={extJobsHighlight}
+                    onFolderChange={handleJobsFolderChange}
+                    onDriveChange={handleDriveConfigChange}
+                    onOpenExternal={handleOpenExternal}
+                  />
                   <SvgJobPanel
                     draft={svgDraft}
                     busy={streaming}

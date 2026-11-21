@@ -563,6 +563,7 @@ button {
 .job,
 .svgjob,
 .mattool,
+.extjobs,
 .safety,
 .alog,
 .cal {
@@ -575,7 +576,8 @@ button {
 .workspace__panel .zero,
 .workspace__panel .job,
 .workspace__panel .svgjob,
-.workspace__panel .mattool {
+.workspace__panel .mattool,
+.workspace__panel .extjobs {
   background: rgba(14, 16, 18, 0.45);
 }
 
@@ -637,6 +639,7 @@ button {
 .job__title,
 .svgjob__title,
 .mattool__title,
+.extjobs__title,
 .safety__title,
 .alog__title,
 .cal__title {
@@ -1255,9 +1258,201 @@ button {
   transition: box-shadow 320ms ease, border-color 320ms ease;
 }
 
-.mattool-anchor.is-flash .mattool {
+.mattool-anchor.is-flash .mattool,
+.extjobs.is-flash {
   border-color: rgba(212, 168, 75, 0.65);
   box-shadow: 0 0 0 1px rgba(212, 168, 75, 0.35);
+}
+
+.extjobs {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: box-shadow 320ms ease, border-color 320ms ease;
+}
+
+.extjobs__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.extjobs__hint,
+.extjobs__hint-inline {
+  margin: 0;
+  font-size: 0.72rem;
+  color: var(--steel-dim);
+  line-height: 1.35;
+}
+
+.extjobs__hint-inline code {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--steel);
+}
+
+.extjobs__block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.extjobs__block:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.extjobs__row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.extjobs__path-wrap {
+  min-width: 0;
+  flex: 1;
+}
+
+.extjobs__label {
+  margin: 0;
+  font-size: 0.68rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--steel-dim);
+}
+
+.extjobs__path {
+  margin: 0.15rem 0 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--ink);
+  word-break: break-all;
+}
+
+.extjobs__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  flex-shrink: 0;
+  justify-content: flex-end;
+}
+
+.extjobs__btn {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: rgba(30, 34, 38, 0.9);
+  color: var(--ink);
+  font: inherit;
+  font-size: 0.75rem;
+  padding: 0.28rem 0.55rem;
+  cursor: pointer;
+}
+
+.extjobs__btn:hover:not(:disabled) {
+  border-color: rgba(212, 168, 75, 0.45);
+}
+
+.extjobs__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.extjobs__btn--ghost {
+  background: transparent;
+}
+
+.extjobs__watch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  color: var(--steel);
+  cursor: pointer;
+  user-select: none;
+}
+
+.extjobs__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 9.5rem;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.extjobs__empty {
+  font-size: 0.75rem;
+  color: var(--steel-dim);
+  padding: 0.35rem 0;
+}
+
+.extjobs__file {
+  width: 100%;
+  text-align: left;
+  appearance: none;
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+  color: inherit;
+  font: inherit;
+  padding: 0.35rem 0.45rem;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.extjobs__file:hover:not(:disabled) {
+  border-color: rgba(212, 168, 75, 0.35);
+  background: rgba(212, 168, 75, 0.06);
+}
+
+.extjobs__file:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.extjobs__file-name {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.extjobs__file-meta {
+  font-size: 0.68rem;
+  color: var(--steel-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.extjobs__badge {
+  font-size: 0.68rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--steel);
+  border: 1px solid var(--line);
+  padding: 0.25rem 0.45rem;
+  align-self: center;
+}
+
+.extjobs__error,
+.extjobs__warn {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--danger);
+}
+
+.extjobs__ok {
+  margin: 0;
+  font-size: 0.75rem;
+  color: var(--brass);
 }
 
 .mattool {
