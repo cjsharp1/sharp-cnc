@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityLogPanel } from "./components/ActivityLogPanel";
+import { AppMenu } from "./components/AppMenu";
 import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
@@ -8,6 +9,10 @@ import { JogPanel, type JogAxisMap } from "./components/JogPanel";
 import { MachineView } from "./components/MachineView";
 import { SafetyControls } from "./components/SafetyControls";
 import { SvgJobPanel } from "./components/SvgJobPanel";
+import {
+  WorkspaceTabs,
+  type WorkspaceTabId,
+} from "./components/WorkspaceTabs";
 import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
@@ -98,6 +103,8 @@ export default function App() {
   > | null>(null);
   const [calMessage, setCalMessage] = useState<string | null>(null);
   const [calBusy, setCalBusy] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
+  const [calOpen, setCalOpen] = useState(false);
 
   const usingMock = !isDesktopShell();
   const connected = phase === "connected";
@@ -185,6 +192,15 @@ export default function App() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!calOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setCalOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [calOpen]);
 
   const refreshPorts = async () => {
     try {
@@ -919,14 +935,85 @@ export default function App() {
   const jogGate = canJogOrZero(status.state, connected, streaming);
   const jogEnabled = jogGate.ok;
 
+  const jobBadge = streaming
+    ? streamProgress?.phase === "paused"
+      ? "Held"
+      : "Run"
+    : job
+      ? "Ready"
+      : svgDraft
+        ? "SVG"
+        : null;
+
+  const openCalibration = () => {
+    setCalOpen(true);
+    if (connected && settingsGate.ok && !grblSettings) {
+      void handleRefreshSettings();
+    }
+  };
+
   return (
     <div className="shell">
       <div className="shell__atmosphere" aria-hidden />
 
       <header className="brand">
-        <p className="brand__mark">SharpCNC</p>
-        <p className="brand__tag">One machine. Clear position. Run the job.</p>
+        <div className="brand__text">
+          <p className="brand__mark">SharpCNC</p>
+          <p className="brand__tag">
+            One machine. Clear position. Run the job.
+          </p>
+        </div>
+        <AppMenu onOpenCalibration={openCalibration} />
       </header>
+
+      <section className="shell__essentials" aria-label="Machine essentials">
+        <ConnectPanel
+          phase={phase}
+          ports={ports}
+          selectedPath={selectedPath}
+          portLabel={portLabel}
+          errorMessage={errorMessage}
+          usingMock={usingMock}
+          onSelectPath={setSelectedPath}
+          onRefreshPorts={() => {
+            void refreshPorts();
+          }}
+          onConnect={() => {
+            void handleConnect();
+          }}
+          onDisconnect={() => {
+            void handleDisconnect();
+          }}
+          onSoftReset={() => {
+            void handleSoftReset();
+          }}
+        />
+        <CoordinateReadout status={status} />
+        <SafetyControls
+          connected={connected}
+          machineState={status.state}
+          alarmMessage={alarmMessage}
+          usingMock={usingMock}
+          onEstop={() => {
+            void handleEstop();
+          }}
+          onHold={() => {
+            void handleHold();
+          }}
+          onResume={() => {
+            void handleResume();
+          }}
+          onReset={() => {
+            void handleSoftReset();
+          }}
+          onUnlock={() => {
+            void handleUnlock();
+          }}
+          onSimulateAlarm={() => {
+            void handleSimulateAlarm();
+          }}
+        />
+      </section>
 
       <div className="shell__stage">
         <div className="shell__main">
@@ -935,150 +1022,174 @@ export default function App() {
             bedMm={bedMm}
             path={job?.path ?? svgDraft?.preview}
             pathProgress={job ? pathProgress : 0}
-            pathLabel={
-              job ? "job" : svgDraft ? "SVG preview" : null
-            }
+            pathLabel={job ? "job" : svgDraft ? "SVG preview" : null}
           />
-          <ActivityLogPanel log={activityLog} />
         </div>
 
         <aside className="shell__rail">
-          <ConnectPanel
-            phase={phase}
-            ports={ports}
-            selectedPath={selectedPath}
-            portLabel={portLabel}
-            errorMessage={errorMessage}
-            usingMock={usingMock}
-            onSelectPath={setSelectedPath}
-            onRefreshPorts={() => {
-              void refreshPorts();
-            }}
-            onConnect={() => {
-              void handleConnect();
-            }}
-            onDisconnect={() => {
-              void handleDisconnect();
-            }}
-            onSoftReset={() => {
-              void handleSoftReset();
-            }}
-          />
-          <SafetyControls
-            connected={connected}
-            machineState={status.state}
-            alarmMessage={alarmMessage}
-            usingMock={usingMock}
-            onEstop={() => {
-              void handleEstop();
-            }}
-            onHold={() => {
-              void handleHold();
-            }}
-            onResume={() => {
-              void handleResume();
-            }}
-            onReset={() => {
-              void handleSoftReset();
-            }}
-            onUnlock={() => {
-              void handleUnlock();
-            }}
-            onSimulateAlarm={() => {
-              void handleSimulateAlarm();
-            }}
-          />
-          <CoordinateReadout status={status} />
-          <JogPanel
-            enabled={jogEnabled}
-            mode={jogMode}
-            stepMm={stepMm}
-            feedMmMin={feedMmMin}
-            softLimitHint={
-              softLimitHint ??
-              (!jogGate.ok && connected ? jogGate.reason : null)
-            }
-            onModeChange={setJogMode}
-            onStepChange={setStepMm}
-            onFeedChange={setFeedMmMin}
-            onJog={handleJog}
-            onJogEnd={handleJogEnd}
-          />
-          <WorkZeroPanel
-            enabled={jogEnabled}
-            pendingGoTo={pendingGoTo}
-            message={zeroMessage}
-            onZero={(axes) => {
-              void handleZero(axes);
-            }}
-            onRequestGoTo={setPendingGoTo}
-            onConfirmGoTo={() => {
-              void handleConfirmGoTo();
-            }}
-            onCancelGoTo={() => setPendingGoTo(null)}
-          />
-          <CalibrationPanel
-            enabled={settingsGate.ok && !calBusy}
-            blockedReason={
-              !connected
-                ? "Connect first."
-                : !settingsGate.ok
-                  ? (settingsGate.reason ?? "Settings locked")
-                  : calBusy
-                    ? "Settings operation in progress…"
-                    : null
-            }
-            settings={grblSettings}
-            softTravel={softTravel}
-            machinePos={status.machine}
-            busy={calBusy}
-            message={calMessage}
-            onRefreshSettings={() => {
-              void handleRefreshSettings();
-            }}
-            onCalibrateMove={(axis, distanceMm) => {
-              void handleCalibrateMove(axis, distanceMm);
-            }}
-            onWriteSteps={(axis, before, after) => {
-              void handleWriteSteps(axis, before, after);
-            }}
-            onApplySoftTravel={(limits, enableSoft) => {
-              void handleApplySoftTravel(limits, enableSoft);
-            }}
-            onWriteManual={(id, value) => {
-              void handleWriteManual(id, value);
-            }}
-          />
-          <SvgJobPanel
-            draft={svgDraft}
-            busy={streaming}
-            onLoadSvg={handleLoadSvg}
-            onClear={handleClearSvg}
-            onGenerate={handleGenerateFromSvg}
-          />
-          <JobLoad
-            job={job}
-            progress={streamProgress}
-            connected={connected}
-            machineState={status.state}
-            startBlockedReason={startBlockedReason}
-            onLoadFile={handleLoadFile}
-            onClear={handleClearJob}
-            onStart={() => {
-              void handleStartJob();
-            }}
-            onPause={() => {
-              void handlePauseJob();
-            }}
-            onResume={() => {
-              void handleResumeJob();
-            }}
-            onStop={() => {
-              void handleStopJob();
-            }}
-          />
+          <section className="workspace" aria-label="Secondary controls">
+            <WorkspaceTabs
+              active={workspaceTab}
+              onChange={setWorkspaceTab}
+              jobBadge={jobBadge}
+            />
+
+            <div className="workspace__body">
+              {workspaceTab === "move" && (
+                <div
+                  className="workspace__panel"
+                  role="tabpanel"
+                  id="workspace-panel-move"
+                  aria-labelledby="workspace-tab-move"
+                >
+                  <JogPanel
+                    enabled={jogEnabled}
+                    mode={jogMode}
+                    stepMm={stepMm}
+                    feedMmMin={feedMmMin}
+                    softLimitHint={
+                      softLimitHint ??
+                      (!jogGate.ok && connected ? jogGate.reason : null)
+                    }
+                    onModeChange={setJogMode}
+                    onStepChange={setStepMm}
+                    onFeedChange={setFeedMmMin}
+                    onJog={handleJog}
+                    onJogEnd={handleJogEnd}
+                  />
+                  <WorkZeroPanel
+                    enabled={jogEnabled}
+                    pendingGoTo={pendingGoTo}
+                    message={zeroMessage}
+                    onZero={(axes) => {
+                      void handleZero(axes);
+                    }}
+                    onRequestGoTo={setPendingGoTo}
+                    onConfirmGoTo={() => {
+                      void handleConfirmGoTo();
+                    }}
+                    onCancelGoTo={() => setPendingGoTo(null)}
+                  />
+                </div>
+              )}
+
+              {workspaceTab === "job" && (
+                <div
+                  className="workspace__panel"
+                  role="tabpanel"
+                  id="workspace-panel-job"
+                  aria-labelledby="workspace-tab-job"
+                >
+                  <SvgJobPanel
+                    draft={svgDraft}
+                    busy={streaming}
+                    onLoadSvg={handleLoadSvg}
+                    onClear={handleClearSvg}
+                    onGenerate={handleGenerateFromSvg}
+                  />
+                  <JobLoad
+                    job={job}
+                    progress={streamProgress}
+                    connected={connected}
+                    machineState={status.state}
+                    startBlockedReason={startBlockedReason}
+                    onLoadFile={handleLoadFile}
+                    onClear={handleClearJob}
+                    onStart={() => {
+                      void handleStartJob();
+                    }}
+                    onPause={() => {
+                      void handlePauseJob();
+                    }}
+                    onResume={() => {
+                      void handleResumeJob();
+                    }}
+                    onStop={() => {
+                      void handleStopJob();
+                    }}
+                  />
+                </div>
+              )}
+
+              {workspaceTab === "log" && (
+                <div
+                  className="workspace__panel workspace__panel--log"
+                  role="tabpanel"
+                  id="workspace-panel-log"
+                  aria-labelledby="workspace-tab-log"
+                >
+                  <ActivityLogPanel log={activityLog} />
+                </div>
+              )}
+            </div>
+          </section>
         </aside>
       </div>
+
+      {calOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Calibration"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close calibration"
+            onClick={() => setCalOpen(false)}
+          />
+          <div className="cal-modal__sheet">
+            <header className="cal-modal__head">
+              <div>
+                <p className="cal-modal__eyebrow">Settings</p>
+                <h2 className="cal-modal__title">Calibration</h2>
+              </div>
+              <button
+                type="button"
+                className="cal-modal__close"
+                onClick={() => setCalOpen(false)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="cal-modal__body">
+              <CalibrationPanel
+                enabled={settingsGate.ok && !calBusy}
+                blockedReason={
+                  !connected
+                    ? "Connect first."
+                    : !settingsGate.ok
+                      ? (settingsGate.reason ?? "Settings locked")
+                      : calBusy
+                        ? "Settings operation in progress…"
+                        : null
+                }
+                settings={grblSettings}
+                softTravel={softTravel}
+                machinePos={status.machine}
+                busy={calBusy}
+                message={calMessage}
+                onRefreshSettings={() => {
+                  void handleRefreshSettings();
+                }}
+                onCalibrateMove={(axis, distanceMm) => {
+                  void handleCalibrateMove(axis, distanceMm);
+                }}
+                onWriteSteps={(axis, before, after) => {
+                  void handleWriteSteps(axis, before, after);
+                }}
+                onApplySoftTravel={(limits, enableSoft) => {
+                  void handleApplySoftTravel(limits, enableSoft);
+                }}
+                onWriteManual={(id, value) => {
+                  void handleWriteManual(id, value);
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
