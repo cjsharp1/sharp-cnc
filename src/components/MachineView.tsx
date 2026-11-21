@@ -8,6 +8,8 @@ interface MachineViewProps {
   path?: ToolpathSegment[];
   /** How many path segments have been “passed” (acked-based estimate). */
   pathProgress?: number;
+  /** Optional label override (e.g. SVG preview vs job path). */
+  pathLabel?: string | null;
 }
 
 function segmentToPoints(
@@ -42,6 +44,7 @@ export function MachineView({
   bedMm = { width: 300, depth: 200 },
   path = [],
   pathProgress = 0,
+  pathLabel = null,
 }: MachineViewProps) {
   const pad = 28;
   const viewW = 640;
@@ -118,7 +121,9 @@ export function MachineView({
             fontSize="12"
           >
             Bed {bedMm.width}×{bedMm.depth} mm · live WPos
-            {path.length > 0 ? ` · ${path.length} path segs` : ""}
+            {path.length > 0
+              ? ` · ${pathLabel ?? "path"} · ${path.length} segs`
+              : ""}
           </text>
 
           {/* Remaining path (dim) */}

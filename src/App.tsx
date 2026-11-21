@@ -7,6 +7,7 @@ import { JobLoad } from "./components/JobLoad";
 import { JogPanel, type JogAxisMap } from "./components/JogPanel";
 import { MachineView } from "./components/MachineView";
 import { SafetyControls } from "./components/SafetyControls";
+import { SvgJobPanel } from "./components/SvgJobPanel";
 import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
@@ -15,6 +16,7 @@ import {
   STEPS_SETTING_FOR_AXIS,
   UNLOCK_COMMAND,
   bedSizeFromLimits,
+  buildJobFromSvg,
   buildJogCommand,
   buildSetWorkZeroCommand,
   canJogOrZero,
@@ -27,6 +29,7 @@ import {
   createGcodeStreamer,
   createSessionClient,
   fetchGrblSettings,
+  importSvg,
   isDesktopShell,
   jogDeltaFromAxes,
   listAvailablePorts,
@@ -49,6 +52,8 @@ import {
   type LoadedJob,
   type SoftTravelLimits,
   type StreamProgress,
+  type SvgImportResult,
+  type SvgToolpathParams,
   type ZeroAxisSelection,
 } from "./grbl";
 import "./App.css";
@@ -81,6 +86,7 @@ export default function App() {
   const [streamProgress, setStreamProgress] = useState<StreamProgress | null>(
     null,
   );
+  const [svgDraft, setSvgDraft] = useState<SvgImportResult | null>(null);
 
   /** Soft travel / bed size — persisted for the visualizer. */
   const [softTravel, setSoftTravel] = useState<SoftTravelLimits>(() =>
@@ -743,6 +749,7 @@ export default function App() {
       const text = typeof reader.result === "string" ? reader.result : "";
       const loaded = loadJobFromText(file.name, text);
       setJob(loaded);
+      setSvgDraft(null);
       setStreamProgress({
         phase: "idle",
         sentLines: 0,
@@ -759,6 +766,63 @@ export default function App() {
       setErrorMessage(`Failed to read ${file.name}`);
     };
     reader.readAsText(file);
+  };
+
+  const handleLoadSvg = (file: File) => {
+    if (streaming) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      const text = typeof reader.result === "string" ? reader.result : "";
+      try {
+        const imported = importSvg(file.name, text);
+        setSvgDraft(imported);
+        activityLog.append(
+          "event",
+          `SVG ${file.name}: ${imported.polylines.length} path(s)` +
+            (imported.bounds
+              ? ` · ${imported.bounds.maxX.toFixed(1)}×${imported.bounds.maxY.toFixed(1)} mm`
+              : ""),
+        );
+        if (imported.polylines.length === 0) {
+          setErrorMessage("SVG had no drawable paths.");
+        }
+      } catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        setErrorMessage(`SVG parse failed: ${message}`);
+        setSvgDraft(null);
+      }
+    };
+    reader.onerror = () => {
+      setErrorMessage(`Failed to read ${file.name}`);
+    };
+    reader.readAsText(file);
+  };
+
+  const handleClearSvg = () => {
+    if (streaming) return;
+    setSvgDraft(null);
+    activityLog.append("event", "SVG cleared");
+  };
+
+  const handleGenerateFromSvg = (params: SvgToolpathParams) => {
+    if (!svgDraft || streaming) return;
+    if (svgDraft.polylines.length === 0) {
+      setErrorMessage("SVG has no paths to convert.");
+      return;
+    }
+    const loaded = buildJobFromSvg(svgDraft.name, svgDraft.polylines, params);
+    setJob(loaded);
+    setStreamProgress({
+      phase: "idle",
+      sentLines: 0,
+      ackedLines: 0,
+      totalLines: loaded.lines.length,
+      percent: 0,
+    });
+    activityLog.append(
+      "event",
+      `SVG→G-code ${loaded.name} (${loaded.lines.length} lines, ${params.mode})`,
+    );
   };
 
   const handleClearJob = () => {
@@ -869,8 +933,11 @@ export default function App() {
           <MachineView
             tool={status.work}
             bedMm={bedMm}
-            path={job?.path}
-            pathProgress={pathProgress}
+            path={job?.path ?? svgDraft?.preview}
+            pathProgress={job ? pathProgress : 0}
+            pathLabel={
+              job ? "job" : svgDraft ? "SVG preview" : null
+            }
           />
           <ActivityLogPanel log={activityLog} />
         </div>
@@ -981,6 +1048,13 @@ export default function App() {
             onWriteManual={(id, value) => {
               void handleWriteManual(id, value);
             }}
+          />
+          <SvgJobPanel
+            draft={svgDraft}
+            busy={streaming}
+            onLoadSvg={handleLoadSvg}
+            onClear={handleClearSvg}
+            onGenerate={handleGenerateFromSvg}
           />
           <JobLoad
             job={job}

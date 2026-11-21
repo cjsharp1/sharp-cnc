@@ -4,7 +4,7 @@ Personal GRBL controller for one custom CNC. Windows desktop first (Tauri + nati
 
 ## Status
 
-Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code load / run**, **activity log / safety**, plus **guided calibration and soft travel**:
+Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code load / run**, **activity log / safety**, **guided calibration / soft travel**, plus **SVG → simple G-code**:
 
 - List / refresh serial ports; connect at **115200** baud (Demon Shield / Arduino)
 - Soft reset (`0x18`) on connect + manual Reset
@@ -20,6 +20,7 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - **Calibration:** guided steps/mm wizard (known move → measured → write `$100`/`$101`/`$102` with before/after)
 - **Soft travel:** enter or use current MPos for max X/Y/Z → write `$130`–`$132`, enable `$20`; bed size persisted for the visualizer
 - **Manual settings:** read `$$`, edit `$x=value` (blocked while a job is running)
+- **SVG drop-in:** load `.svg` → path preview on the machine view → engrave/outline G-code (feed, depth, plunge, bit Ø) → hand off to the job runner (one job at a time; not full CAM)
 
 Browser / cloud shells without Tauri use a **mock GRBL** port (including `$Alarm` / `$X`, `$$` / `$n=`). Web Serial parity is still stubbed.
 
@@ -72,7 +73,7 @@ npm run smoke
 3. Jog / zero + machine view  
 4. G-code load and streaming sender  
 5. Web Serial parity  
-6. SVG → simple cut/engrave → G-code  
-7. Calibration wizard + soft travel setup ← **this**  
+6. SVG → simple cut/engrave → G-code ← **this**  
+7. Calibration wizard + soft travel setup  
 8. Activity log + safety controls  
 9. Debug bridge / external Demon Shield buttons  
