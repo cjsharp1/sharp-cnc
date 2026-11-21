@@ -61,3 +61,17 @@ export {
 export { createWebGrblClient, createWebSerialTransport } from "./webSerial";
 
 export { createSessionClient, listAvailablePorts, isDesktopShell } from "./session";
+
+export type { LoadedJob, PathMotion, ToolpathSegment } from "./gcode";
+export {
+  GCODE_EXTENSIONS,
+  canStartJob,
+  extractToolpath,
+  isGcodeFileName,
+  loadJobFromText,
+  parseGcodeLines,
+  stripGcodeComments,
+} from "./gcode";
+
+export type { GcodeStreamer, StreamPhase, StreamProgress } from "./streamer";
+export { GRBL_RX_BUFFER, createGcodeStreamer } from "./streamer";
