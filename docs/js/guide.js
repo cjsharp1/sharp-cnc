@@ -71,11 +71,21 @@
           title: "11. Safety",
           path: "user-guide/11-safety.md",
         },
+        {
+          id: "12",
+          title: "12. Hardware soak",
+          path: "user-guide/12-hardware-soak.md",
+        },
       ],
     },
     {
       group: "Hardware & extras",
       items: [
+        {
+          id: "demon-shield-soak",
+          title: "Demon Shield soak playbook",
+          path: "demon-shield-soak-playbook.md",
+        },
         {
           id: "demon-shield",
           title: "Demon Shield controls",

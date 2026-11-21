@@ -30,6 +30,8 @@ After soft-limit, hard-limit, probe-fail, or homing-fail alarms, the Safety pane
 
 Wrong numbers = false safety. Re-measure after mechanical changes.
 
+Before the first wood cut (and after wiring changes), run the [hardware soak playbook](12-hardware-soak.md) — home, `$3`, soft limits, Z probe, Abort/Hold/Resume, PWM.
+
 ## Habits that prevent crashes
 
 1. **Simulate** every new path.  
