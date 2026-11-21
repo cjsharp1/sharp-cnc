@@ -14,7 +14,8 @@ SharpCNC is a **personal** GRBL controller for one custom CNC. Outside contribut
 npm install
 npm run tauri dev    # real USB serial (desktop)
 npm run dev          # mock GRBL in the browser
-npm run smoke        # no-hardware checks
+npm run smoke:critical  # PR gate (CI)
+npm run smoke           # full no-hardware suite
 ```
 
 ## Pull requests
@@ -24,6 +25,7 @@ npm run smoke        # no-hardware checks
 - Update the user guide when behavior or UI labels change.
 - If you change theme tokens in `src/theme.css`, copy the same file to `docs/css/theme.css` so the Pages site stays in sync.
 - Do not commit secrets (Drive client secrets, machine-specific paths, etc.).
+- Before a tagged cut, follow [docs/RELEASE.md](docs/RELEASE.md) (version bump, smokes, soak, release notes).
 
 ## Docs site
 
