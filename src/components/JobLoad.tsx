@@ -1,6 +1,12 @@
 import { useRef, useState, type DragEvent } from "react";
-import type { LoadedJob, StreamPhase, StreamProgress } from "../grbl";
+import type {
+  LoadedJob,
+  SimPhase,
+  StreamPhase,
+  StreamProgress,
+} from "../grbl";
 import { isGcodeFileName } from "../grbl";
+import { SimControls } from "./SimControls";
 
 export type JobRunPhase = StreamPhase | "idle";
 
@@ -11,6 +17,14 @@ interface JobLoadProps {
   machineState: string;
   /** Why start is blocked, if any. */
   startBlockedReason: string | null;
+  /** Pre-run visualizer simulation (no serial). */
+  simPhase?: SimPhase;
+  simProgress?: number;
+  simDisabled?: boolean;
+  simDisabledReason?: string | null;
+  onSimPlay?: () => void;
+  onSimPause?: () => void;
+  onSimStop?: () => void;
   onLoadFile: (file: File) => void;
   onClear: () => void;
   onStart: () => void;
@@ -42,6 +56,13 @@ export function JobLoad({
   connected,
   machineState,
   startBlockedReason,
+  simPhase = "idle",
+  simProgress = 0,
+  simDisabled = false,
+  simDisabledReason = null,
+  onSimPlay,
+  onSimPause,
+  onSimStop,
   onLoadFile,
   onClear,
   onStart,
@@ -59,12 +80,23 @@ export function JobLoad({
     phase === "paused" ||
     phase === "stopping" ||
     phase === "error";
+  const simulating =
+    simPhase === "playing" || simPhase === "paused" || simPhase === "done";
   const canStart =
     connected &&
     !!job &&
     job.lines.length > 0 &&
     !streaming &&
+    !simulating &&
     !startBlockedReason;
+  const canSimulate =
+    !!job &&
+    job.path.length > 0 &&
+    !streaming &&
+    !simDisabled &&
+    !!onSimPlay &&
+    !!onSimPause &&
+    !!onSimStop;
   const showPause = phase === "running";
   const showResume = phase === "paused";
   const showStop =
@@ -162,16 +194,33 @@ export function JobLoad({
 
       {loadError && <p className="job__error">{loadError}</p>}
 
+      {job && job.path.length > 0 && onSimPlay && onSimPause && onSimStop && (
+        <SimControls
+          variant="panel"
+          phase={simPhase}
+          progress={simProgress}
+          disabled={!canSimulate && !simulating}
+          disabledReason={
+            streaming
+              ? "Stop the running job before simulating."
+              : simDisabledReason
+          }
+          onPlay={onSimPlay}
+          onPause={onSimPause}
+          onStop={onSimStop}
+        />
+      )}
+
       <div className="job__actions">
         <button
           type="button"
           className="job__btn job__btn--ghost"
-          disabled={streaming}
+          disabled={streaming || simulating}
           onClick={() => inputRef.current?.click()}
         >
           {job ? "Replace" : "Load"}
         </button>
-        {job && !streaming && (
+        {job && !streaming && !simulating && (
           <button
             type="button"
             className="job__btn job__btn--ghost"
@@ -184,7 +233,11 @@ export function JobLoad({
           type="button"
           className="job__btn"
           disabled={!canStart}
-          title={startBlockedReason ?? undefined}
+          title={
+            simulating
+              ? "Stop the preview before starting the job."
+              : (startBlockedReason ?? undefined)
+          }
           onClick={onStart}
         >
           Start

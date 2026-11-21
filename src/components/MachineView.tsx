@@ -1,4 +1,10 @@
+import type { ReactNode } from "react";
 import type { Position3, StockConfig, ToolpathSegment } from "../grbl";
+
+export interface TrailPoint {
+  x: number;
+  y: number;
+}
 
 interface MachineViewProps {
   tool: Position3;
@@ -14,33 +20,48 @@ interface MachineViewProps {
   stock?: StockConfig | null;
   /** Bit diameter for toolhead marker scale (mm). */
   toolDiameterMm?: number;
+  /** Recent motion trail in work mm (short fade). */
+  trail?: TrailPoint[];
+  /** Live machine is jogging or running a job. */
+  liveMoving?: boolean;
+  /** Pre-run simulation is driving the toolhead (not serial). */
+  simulating?: boolean;
+  /** Optional overlay (e.g. simulate controls). */
+  overlay?: ReactNode;
 }
 
 function segmentToPoints(
   segments: ToolpathSegment[],
   map: (x: number, y: number) => { x: number; y: number },
-): { rapid: string; feed: string; done: string } {
+): { rapid: string; feed: string } {
   const rapid: string[] = [];
   const feed: string[] = [];
-  const done: string[] = [];
 
-  for (let i = 0; i < segments.length; i++) {
-    const seg = segments[i];
+  for (const seg of segments) {
     const a = map(seg.from.x, seg.from.y);
     const b = map(seg.to.x, seg.to.y);
     const d = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
-    // Caller can pass pathProgress as segment index completed.
-    // Colored via separate layers in the SVG.
     if (seg.motion === "rapid") rapid.push(d);
     else feed.push(d);
-    void done;
   }
 
   return {
     rapid: rapid.join(" "),
     feed: feed.join(" "),
-    done: "",
   };
+}
+
+function trailToPath(
+  trail: TrailPoint[],
+  map: (x: number, y: number) => { x: number; y: number },
+): string {
+  if (trail.length < 2) return "";
+  const parts: string[] = [];
+  for (let i = 0; i < trail.length; i++) {
+    const p = map(trail[i]!.x, trail[i]!.y);
+    parts.push(`${i === 0 ? "M" : "L"} ${p.x} ${p.y}`);
+  }
+  return parts.join(" ");
 }
 
 export function MachineView({
@@ -51,6 +72,10 @@ export function MachineView({
   pathLabel = null,
   stock = null,
   toolDiameterMm = 3.175,
+  trail = [],
+  liveMoving = false,
+  simulating = false,
+  overlay = null,
 }: MachineViewProps) {
   const pad = 28;
   const viewW = 640;
@@ -71,6 +96,7 @@ export function MachineView({
   const remaining = path.slice(Math.max(0, pathProgress));
   const donePaths = segmentToPoints(completed, mapPoint);
   const todoPaths = segmentToPoints(remaining, mapPoint);
+  const trailD = trailToPath(trail, mapPoint);
 
   const stockRect =
     stock && stock.widthMm > 0 && stock.lengthMm > 0
@@ -101,8 +127,17 @@ export function MachineView({
     ? ` · stock ${stock.widthMm}×${stock.lengthMm}×${stock.thicknessMm} mm`
     : "";
 
+  const modeLabel = simulating
+    ? " · PREVIEW"
+    : liveMoving
+      ? " · live motion"
+      : " · live WPos";
+
   return (
-    <section className="machine" aria-label="Machine view">
+    <section
+      className={`machine${liveMoving ? " is-live-moving" : ""}${simulating ? " is-simulating" : ""}`}
+      aria-label="Machine view"
+    >
       <div className="machine__frame">
         <svg
           className="machine__svg"
@@ -144,6 +179,10 @@ export function MachineView({
                 strokeWidth="1.5"
               />
             </pattern>
+            <linearGradient id="trail-fade" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stopColor="rgba(212, 168, 75, 0)" />
+              <stop offset="100%" stopColor="rgba(212, 168, 75, 0.85)" />
+            </linearGradient>
           </defs>
 
           <rect
@@ -202,7 +241,8 @@ export function MachineView({
             fill="rgba(232, 234, 237, 0.45)"
             fontSize="12"
           >
-            Bed {bedMm.width}×{bedMm.depth} mm · live WPos
+            Bed {bedMm.width}×{bedMm.depth} mm
+            {modeLabel}
             {stockLabel}
             {path.length > 0
               ? ` · ${pathLabel ?? "path"} · ${path.length} segs`
@@ -248,25 +288,48 @@ export function MachineView({
             />
           )}
 
-          <g className="machine__tool">
+          {/* Short motion trail */}
+          {trailD && (
+            <path
+              className="machine__trail"
+              d={trailD}
+              fill="none"
+              stroke={
+                simulating
+                  ? "rgba(120, 180, 220, 0.75)"
+                  : "rgba(212, 168, 75, 0.7)"
+              }
+              strokeWidth="2.25"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          )}
+
+          <g
+            className={`machine__tool${liveMoving || simulating ? " is-moving" : ""}`}
+          >
             <circle
               cx={cx}
               cy={cy}
               r={bitR * 2.2}
               fill="none"
-              stroke="rgba(212, 168, 75, 0.35)"
+              stroke={
+                simulating
+                  ? "rgba(120, 180, 220, 0.45)"
+                  : "rgba(212, 168, 75, 0.35)"
+              }
               strokeWidth="1"
             >
               <animate
                 attributeName="r"
                 values={`${bitR * 1.6};${bitR * 2.6};${bitR * 1.6}`}
-                dur="2.8s"
+                dur={liveMoving || simulating ? "1.1s" : "2.8s"}
                 repeatCount="indefinite"
               />
               <animate
                 attributeName="opacity"
-                values="0.7;0.2;0.7"
-                dur="2.8s"
+                values="0.85;0.25;0.85"
+                dur={liveMoving || simulating ? "1.1s" : "2.8s"}
                 repeatCount="indefinite"
               />
             </circle>
@@ -274,13 +337,30 @@ export function MachineView({
               cx={cx}
               cy={cy}
               r={bitR}
-              fill="rgba(212, 168, 75, 0.35)"
-              stroke="#d4a84b"
+              fill={
+                simulating
+                  ? "rgba(120, 180, 220, 0.4)"
+                  : "rgba(212, 168, 75, 0.35)"
+              }
+              stroke={simulating ? "#78b4dc" : "#d4a84b"}
               strokeWidth="1.25"
             />
-            <circle cx={cx} cy={cy} r={Math.max(1.5, bitR * 0.28)} fill="#1a1c1e" />
+            <circle
+              cx={cx}
+              cy={cy}
+              r={Math.max(1.5, bitR * 0.28)}
+              fill="#1a1c1e"
+            />
           </g>
         </svg>
+
+        {simulating && (
+          <div className="machine__preview-badge" role="status">
+            Preview — not sending to CNC
+          </div>
+        )}
+
+        {overlay}
       </div>
     </section>
   );
