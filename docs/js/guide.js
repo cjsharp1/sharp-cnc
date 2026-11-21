@@ -1,6 +1,10 @@
 /**
  * Load Markdown chapters into the Pages guide viewer.
- * Paths are relative to the docs/ site root (GitHub Pages /docs).
+ *
+ * Chapter paths are relative to this page (guide.html), so fetches work whether
+ * GitHub Pages publishes the repo root (`…/docs/guide.html` → `…/docs/user-guide/…`)
+ * or the `/docs` folder (`…/guide.html` → `…/user-guide/…`).
+ * Root and docs/ `.nojekyll` keep Jekyll from omitting raw `.md` files.
  */
 (function () {
   const CHAPTERS = [
@@ -221,7 +225,10 @@
     if (status) status.textContent = chapter.path;
 
     try {
-      const res = await fetch(chapter.path);
+      // Resolve against the current document URL (not the site origin) so the
+      // same relative paths work for Pages source `/` and `/docs`.
+      const url = new URL(chapter.path, window.location.href);
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
       const md = await res.text();
       if (typeof marked === "undefined") {

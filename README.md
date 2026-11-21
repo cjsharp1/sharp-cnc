@@ -78,7 +78,9 @@ Controller: **Demon Shield** on Arduino + GRBL over USB.
 | [docs/user-guide/](docs/user-guide/) | Chapter source (install → safety) |
 | [docs/css/theme.css](docs/css/theme.css) | Theme tokens mirrored from `src/theme.css` |
 
-Enable Pages: **Settings → Pages → Deploy from a branch → `main` / `/docs`**.
+**Recommended Pages setup:** **Settings → Pages → Deploy from a branch → `main` / `/docs`**.
+
+That publishes the docs site at the repo Pages root (so `guide.html` is at `/guide.html`, not under a blank Vite shell). Keep [docs/.nojekyll](docs/.nojekyll) so Jekyll does not process the site and omit raw Markdown under `user-guide/` (the guide viewer fetches those `.md` files as static assets). A root [`.nojekyll`](.nojekyll) is also present for the case where Pages source is still the repo `/` root.
 
 Preview locally:
 
