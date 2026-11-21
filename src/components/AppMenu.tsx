@@ -69,7 +69,7 @@ export function AppMenu({
             Calibration…
           </button>
           <p className="appmenu__hint">
-            Steps/mm, soft travel, and manual GRBL settings.
+            Guided wizard: zero, steps/mm, soft travel, manual settings.
           </p>
         </div>
       )}

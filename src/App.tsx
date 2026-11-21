@@ -1550,7 +1550,7 @@ export default function App() {
           <div className="cal-modal__sheet">
             <header className="cal-modal__head">
               <div>
-                <p className="cal-modal__eyebrow">Settings</p>
+                <p className="cal-modal__eyebrow">Settings · Wizard</p>
                 <h2 className="cal-modal__title">Calibration</h2>
               </div>
               <button
@@ -1575,9 +1575,12 @@ export default function App() {
                 }
                 settings={grblSettings}
                 softTravel={softTravel}
+                status={status}
                 machinePos={status.machine}
                 busy={calBusy}
                 message={calMessage}
+                zeroEnabled={jogEnabled}
+                zeroMessage={zeroMessage}
                 onRefreshSettings={() => {
                   void handleRefreshSettings();
                 }}
@@ -1593,6 +1596,10 @@ export default function App() {
                 onWriteManual={(id, value) => {
                   void handleWriteManual(id, value);
                 }}
+                onZero={(axes) => {
+                  void handleZero(axes);
+                }}
+                onClose={() => setCalOpen(false)}
               />
             </div>
           </div>

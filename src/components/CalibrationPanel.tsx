@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CALIBRATION_DISTANCE_OPTIONS_MM,
   DEFAULT_CALIBRATION_DISTANCE_MM,
@@ -13,28 +13,42 @@ import {
   softLimitsEnabled,
   type Axis,
   type GrblSetting,
+  type GrblStatus,
   type SoftTravelLimits,
+  type ZeroAxisSelection,
 } from "../grbl";
 
-export type CalibrationTab = "steps" | "travel" | "manual";
+export type CalibrationStepId = "zero" | "steps" | "travel" | "manual";
+
+const WIZARD_STEPS: {
+  id: CalibrationStepId;
+  label: string;
+  short: string;
+}[] = [
+  { id: "zero", label: "Zero context", short: "1 · Zero" },
+  { id: "steps", label: "Steps/mm", short: "2 · Steps" },
+  { id: "travel", label: "Soft travel", short: "3 · Travel" },
+  { id: "manual", label: "Manual settings", short: "4 · Manual" },
+];
 
 interface CalibrationPanelProps {
   enabled: boolean;
   blockedReason?: string | null;
   settings: Map<number, GrblSetting> | null;
   softTravel: SoftTravelLimits;
+  status: GrblStatus;
   machinePos: { x: number; y: number; z: number };
   busy?: boolean;
   message?: string | null;
+  zeroEnabled: boolean;
+  zeroMessage?: string | null;
   onRefreshSettings: () => void;
   onCalibrateMove: (axis: Axis, distanceMm: number) => void;
-  onWriteSteps: (
-    axis: Axis,
-    before: number,
-    after: number,
-  ) => void;
+  onWriteSteps: (axis: Axis, before: number, after: number) => void;
   onApplySoftTravel: (limits: SoftTravelLimits, enableSoft: boolean) => void;
   onWriteManual: (id: number, value: number) => void;
+  onZero: (axes: ZeroAxisSelection) => void;
+  onClose?: () => void;
 }
 
 function settingValue(
@@ -45,21 +59,38 @@ function settingValue(
   return v !== undefined && Number.isFinite(v) ? v : null;
 }
 
+function formatMm(value: number): string {
+  return value.toFixed(3);
+}
+
+const ZERO_BUTTONS: { id: ZeroAxisSelection; label: string }[] = [
+  { id: "X", label: "Zero X" },
+  { id: "Y", label: "Zero Y" },
+  { id: "Z", label: "Zero Z" },
+  { id: "XYZ", label: "Zero XYZ" },
+];
+
 export function CalibrationPanel({
   enabled,
   blockedReason,
   settings,
   softTravel,
+  status,
   machinePos,
   busy = false,
   message,
+  zeroEnabled,
+  zeroMessage,
   onRefreshSettings,
   onCalibrateMove,
   onWriteSteps,
   onApplySoftTravel,
   onWriteManual,
+  onZero,
+  onClose,
 }: CalibrationPanelProps) {
-  const [tab, setTab] = useState<CalibrationTab>("steps");
+  const [stepIndex, setStepIndex] = useState(0);
+  const step = WIZARD_STEPS[stepIndex]!;
 
   // Steps/mm wizard
   const [axis, setAxis] = useState<Axis>("X");
@@ -106,11 +137,12 @@ export function CalibrationPanel({
 
   const softOn = settings ? softLimitsEnabled(settings) : false;
 
-  const syncTravelFromProps = () => {
+  useEffect(() => {
+    if (step.id !== "travel") return;
     setMaxX(softTravel.maxX !== null ? String(softTravel.maxX) : "");
     setMaxY(softTravel.maxY !== null ? String(softTravel.maxY) : "");
     setMaxZ(softTravel.maxZ !== null ? String(softTravel.maxZ) : "");
-  };
+  }, [step.id, softTravel.maxX, softTravel.maxY, softTravel.maxZ]);
 
   const parseTravel = (raw: string): number | null => {
     const t = raw.trim();
@@ -126,35 +158,39 @@ export function CalibrationPanel({
   }, [settings]);
 
   const canAct = enabled && !busy;
+  const isFirst = stepIndex === 0;
+  const isLast = stepIndex === WIZARD_STEPS.length - 1;
+
+  const goNext = () => {
+    if (!isLast) setStepIndex((i) => Math.min(i + 1, WIZARD_STEPS.length - 1));
+  };
+
+  const goBack = () => {
+    if (!isFirst) setStepIndex((i) => Math.max(i - 1, 0));
+  };
 
   return (
-    <section className="cal" aria-label="Calibration and soft travel">
-      <header className="cal__head">
-        <h2 className="cal__title">Calibration</h2>
-        <div className="cal__tabs" role="tablist">
-          {(
-            [
-              ["steps", "Steps/mm"],
-              ["travel", "Soft travel"],
-              ["manual", "Manual"],
-            ] as const
-          ).map(([id, label]) => (
+    <section className="cal" aria-label="Calibration wizard">
+      <nav className="cal__steps" aria-label="Calibration steps">
+        {WIZARD_STEPS.map((s, i) => {
+          const state =
+            i === stepIndex ? "current" : i < stepIndex ? "done" : "upcoming";
+          return (
             <button
-              key={id}
+              key={s.id}
               type="button"
-              role="tab"
-              aria-selected={tab === id}
-              className={`cal__tab${tab === id ? " is-active" : ""}`}
-              onClick={() => {
-                setTab(id);
-                if (id === "travel") syncTravelFromProps();
-              }}
+              className={`cal__step cal__step--${state}`}
+              aria-current={i === stepIndex ? "step" : undefined}
+              onClick={() => setStepIndex(i)}
             >
-              {label}
+              <span className="cal__step-num" aria-hidden>
+                {i + 1}
+              </span>
+              <span className="cal__step-label">{s.label}</span>
             </button>
-          ))}
-        </div>
-      </header>
+          );
+        })}
+      </nav>
 
       {!enabled && blockedReason ? (
         <p className="cal__warn" role="status">
@@ -179,11 +215,81 @@ export function CalibrationPanel({
         </span>
       </div>
 
-      {tab === "steps" && (
-        <div className="cal__body" role="tabpanel">
+      {step.id === "zero" && (
+        <div className="cal__body" role="group" aria-labelledby="cal-step-zero">
+          <h3 id="cal-step-zero" className="cal__step-title">
+            Confirm zero context
+          </h3>
           <p className="cal__hint">
-            Command a known move, measure the real distance, then write the new
-            steps/mm ($100–$102).
+            Before measuring steps/mm, confirm work zero (and machine home if
+            you use it). Homing/limit switches are only on the zero side — set
+            work origin at a known reference, then continue.
+          </p>
+
+          <div className="cal__pos" aria-label="Current position">
+            <div className="cal__pos-legend" aria-hidden>
+              <span />
+              <span>Work</span>
+              <span>Machine</span>
+            </div>
+            {(["X", "Y", "Z"] as const).map((ax) => {
+              const key = ax.toLowerCase() as "x" | "y" | "z";
+              return (
+                <div key={ax} className="cal__pos-row">
+                  <span className="cal__pos-axis">{ax}</span>
+                  <span className="cal__pos-val">{formatMm(status.work[key])}</span>
+                  <span className="cal__pos-val cal__pos-val--muted">
+                    {formatMm(status.machine[key])}
+                  </span>
+                </div>
+              );
+            })}
+            <p className="cal__pos-state">
+              State <strong>{status.state}</strong>
+            </p>
+          </div>
+
+          <div className="cal__actions" role="group" aria-label="Set work zero">
+            {ZERO_BUTTONS.map((btn) => (
+              <button
+                key={btn.id}
+                type="button"
+                className="cal__btn"
+                disabled={!zeroEnabled || busy}
+                onClick={() => onZero(btn.id)}
+                title={`Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as work zero (G10 L20)`}
+              >
+                {btn.label}
+              </button>
+            ))}
+          </div>
+
+          {zeroMessage ? (
+            <p className="cal__message" role="status">
+              {zeroMessage}
+            </p>
+          ) : (
+            <p className="cal__hint">
+              Zeroing sets the current tool location as work origin — it does
+              not move the machine. Use Move tab jog if you need to reposition
+              first.
+            </p>
+          )}
+        </div>
+      )}
+
+      {step.id === "steps" && (
+        <div
+          className="cal__body"
+          role="group"
+          aria-labelledby="cal-step-steps"
+        >
+          <h3 id="cal-step-steps" className="cal__step-title">
+            Steps per mm
+          </h3>
+          <p className="cal__hint">
+            Command a known move, measure the real distance with a ruler, then
+            write the new steps/mm ($100–$102).
           </p>
 
           <div className="cal__row">
@@ -292,10 +398,17 @@ export function CalibrationPanel({
         </div>
       )}
 
-      {tab === "travel" && (
-        <div className="cal__body" role="tabpanel">
+      {step.id === "travel" && (
+        <div
+          className="cal__body"
+          role="group"
+          aria-labelledby="cal-step-travel"
+        >
+          <h3 id="cal-step-travel" className="cal__step-title">
+            Soft travel / bed extents
+          </h3>
           <p className="cal__hint">
-            Limit switches are on the zero side only. Set max travel, write
+            Jog to the far end of each axis (or enter known bed size), write
             $130–$132, and enable soft limits ($20). Bed size updates the
             visualizer.
           </p>
@@ -378,11 +491,18 @@ export function CalibrationPanel({
         </div>
       )}
 
-      {tab === "manual" && (
-        <div className="cal__body" role="tabpanel">
+      {step.id === "manual" && (
+        <div
+          className="cal__body"
+          role="group"
+          aria-labelledby="cal-step-manual"
+        >
+          <h3 id="cal-step-manual" className="cal__step-title">
+            Manual settings
+          </h3>
           <p className="cal__hint">
-            View/edit any GRBL setting (`$$` / `$x=value`). Prefer the guided
-            tabs for steps/mm and soft travel.
+            Advanced fallback: view/edit any GRBL setting (`$$` / `$x=value`).
+            Prefer the guided steps for steps/mm and soft travel.
           </p>
 
           <div className="cal__row">
@@ -486,6 +606,34 @@ export function CalibrationPanel({
           {message}
         </p>
       ) : null}
+
+      <footer className="cal__nav">
+        <button
+          type="button"
+          className="cal__btn cal__btn--ghost"
+          disabled={isFirst}
+          onClick={goBack}
+        >
+          Back
+        </button>
+        <span className="cal__nav-meta" aria-live="polite">
+          {WIZARD_STEPS[stepIndex]?.short}
+        </span>
+        {isLast ? (
+          <button
+            type="button"
+            className="cal__btn"
+            onClick={onClose}
+            disabled={!onClose}
+          >
+            Done
+          </button>
+        ) : (
+          <button type="button" className="cal__btn" onClick={goNext}>
+            {step.id === "zero" ? "Zeros look good — Next" : "Next"}
+          </button>
+        )}
+      </footer>
     </section>
   );
 }
