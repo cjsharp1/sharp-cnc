@@ -1,5 +1,6 @@
 import { createGrblClient } from "./client";
 import { JOG_CANCEL_BYTE } from "./jog";
+import { DEFAULT_GRBL_SETTINGS, parseSettingLine } from "./settings";
 import type {
   GrblClient,
   SerialOpenOptions,
@@ -42,6 +43,10 @@ export function createMockTransport(): SerialTransport {
   let statusTick = 0;
   let busy = false;
   const queue: string[] = [];
+  /** Mutable GRBL EEPROM settings for `$$` / `$n=` calibration smoke tests. */
+  const settings = new Map<number, number>(
+    Object.entries(DEFAULT_GRBL_SETTINGS).map(([k, v]) => [Number(k), v]),
+  );
 
   const emit = (event: TransportEvent) => {
     for (const handler of eventHandlers) handler(event);
@@ -215,6 +220,18 @@ export function createMockTransport(): SerialTransport {
       !/^G10\b/i.test(cmd) &&
       !/^G92\b/i.test(cmd));
 
+  const dumpSettings = () => {
+    const ids = [...settings.keys()].sort((a, b) => a - b);
+    for (const id of ids) {
+      const value = settings.get(id)!;
+      const formatted = Number.isInteger(value)
+        ? value.toFixed(3)
+        : value.toFixed(3);
+      emitLine(`$${id}=${formatted}`);
+    }
+    emitLine("ok");
+  };
+
   const handleQueuedLine = (trimmed: string) => {
     // Unlock is allowed while locked; everything else is refused.
     if (/^\$X$/i.test(trimmed)) {
@@ -239,6 +256,19 @@ export function createMockTransport(): SerialTransport {
 
     if (state === "Alarm") {
       emitLine("error:Alarm lock");
+      return;
+    }
+
+    // Settings dump / write (before jog so `$J=` still wins).
+    if (/^\$\$$/.test(trimmed)) {
+      dumpSettings();
+      return;
+    }
+
+    const settingWrite = parseSettingLine(trimmed);
+    if (settingWrite) {
+      settings.set(settingWrite.id, settingWrite.value);
+      emitLine("ok");
       return;
     }
 
@@ -366,6 +396,10 @@ export function createMockTransport(): SerialTransport {
       absolute = true;
       state = "Idle";
       statusTick = 0;
+      settings.clear();
+      for (const [k, v] of Object.entries(DEFAULT_GRBL_SETTINGS)) {
+        settings.set(Number(k), v);
+      }
       emit({ type: "open" });
       emitLine("Grbl 1.1h ['$' for help]");
     },

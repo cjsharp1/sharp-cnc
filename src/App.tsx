@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ActivityLogPanel } from "./components/ActivityLogPanel";
+import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
 import { JobLoad } from "./components/JobLoad";
@@ -9,30 +10,40 @@ import { SafetyControls } from "./components/SafetyControls";
 import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
-  DEFAULT_SOFT_TRAVEL,
   JOG_STEP_OPTIONS_MM,
+  SETTING_SOFT_LIMITS,
+  STEPS_SETTING_FOR_AXIS,
   UNLOCK_COMMAND,
   bedSizeFromLimits,
   buildJogCommand,
   buildSetWorkZeroCommand,
   canJogOrZero,
   canStartJob,
+  canWriteSettings,
   checkJobSoftLimits,
   checkSoftLimits,
   continuousJogDelta,
   createActivityLog,
   createGcodeStreamer,
   createSessionClient,
+  fetchGrblSettings,
   isDesktopShell,
   jogDeltaFromAxes,
   listAvailablePorts,
   loadJobFromText,
+  loadSoftTravel,
   OFFLINE_STATUS,
   parseAlarmLine,
   planGoToWorkZero,
+  saveSoftTravel,
+  softTravelFromSettings,
+  writeGrblSetting,
+  writeGrblSettings,
+  type Axis,
   type DesktopPortInfo,
   type GcodeStreamer,
   type GrblClient,
+  type GrblSetting,
   type GrblStatus,
   type JogMode,
   type LoadedJob,
@@ -71,8 +82,16 @@ export default function App() {
     null,
   );
 
-  /** Soft travel known to the app — defaults until calibration UI lands. */
-  const [softTravel] = useState<SoftTravelLimits>(DEFAULT_SOFT_TRAVEL);
+  /** Soft travel / bed size — persisted for the visualizer. */
+  const [softTravel, setSoftTravel] = useState<SoftTravelLimits>(() =>
+    loadSoftTravel(),
+  );
+  const [grblSettings, setGrblSettings] = useState<Map<
+    number,
+    GrblSetting
+  > | null>(null);
+  const [calMessage, setCalMessage] = useState<string | null>(null);
+  const [calBusy, setCalBusy] = useState(false);
 
   const usingMock = !isDesktopShell();
   const connected = phase === "connected";
@@ -236,6 +255,9 @@ export default function App() {
       setAlarmMessage(null);
       setPendingGoTo(null);
       setStreamProgress(null);
+      setGrblSettings(null);
+      setCalMessage(null);
+      setCalBusy(false);
     }
   };
 
@@ -355,6 +377,221 @@ export default function App() {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
+    }
+  };
+
+  const settingsGate = canWriteSettings(status.state, connected, streaming);
+
+  const updateSoftTravel = (next: SoftTravelLimits) => {
+    setSoftTravel(next);
+    saveSoftTravel(next);
+  };
+
+  const handleRefreshSettings = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot read settings");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      const map = await fetchGrblSettings(client, {
+        timeoutMs: usingMock ? 1500 : 5000,
+      });
+      setGrblSettings(map);
+      const fromGrbl = softTravelFromSettings(map, softTravel);
+      updateSoftTravel(fromGrbl);
+      activityLog.append("event", `Read $$ (${map.size} settings)`);
+      setCalMessage(`Loaded ${map.size} settings from $$`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleCalibrateMove = async (axis: Axis, distanceMm: number) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot move for calibration");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await stopContinuousJog();
+      const delta =
+        axis === "X"
+          ? { x: distanceMm }
+          : axis === "Y"
+            ? { y: distanceMm }
+            : { z: distanceMm };
+      const check = checkSoftLimits(
+        statusRef.current.machine,
+        delta,
+        softTravel,
+      );
+      if (!check.ok) {
+        setCalMessage(check.reason ?? "Soft limit blocks calibration move");
+        return;
+      }
+      const cmd = buildJogCommand(delta, feedMmMin);
+      await client.sendLine(cmd);
+      activityLog.append(
+        "event",
+        `Calibration move ${axis}${distanceMm > 0 ? "+" : ""}${distanceMm}`,
+      );
+      setCalMessage(
+        `Moving ${axis} by ${distanceMm} mm — measure the real distance when Idle.`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleWriteSteps = async (
+    axis: Axis,
+    before: number,
+    after: number,
+  ) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    const id = STEPS_SETTING_FOR_AXIS[axis];
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await writeGrblSetting(client, id, after, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value: after });
+        return next;
+      });
+      activityLog.append(
+        "event",
+        `Wrote $${id}=${after} (was ${before}) steps/mm ${axis}`,
+      );
+      setCalMessage(
+        `${axis} steps/mm: ${before.toFixed(3)} → ${after.toFixed(3)} ($${id})`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleApplySoftTravel = async (
+    limits: SoftTravelLimits,
+    enableSoft: boolean,
+  ) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    if (limits.maxX === null && limits.maxY === null && limits.maxZ === null) {
+      setCalMessage("Enter at least one max travel value.");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      const entries: Array<{ id: number; value: number }> = [];
+      if (limits.maxX !== null) entries.push({ id: 130, value: limits.maxX });
+      if (limits.maxY !== null) entries.push({ id: 131, value: limits.maxY });
+      if (limits.maxZ !== null) entries.push({ id: 132, value: limits.maxZ });
+      if (enableSoft) entries.push({ id: SETTING_SOFT_LIMITS, value: 1 });
+
+      await writeGrblSettings(client, entries, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+
+      const merged: SoftTravelLimits = {
+        maxX: limits.maxX ?? softTravel.maxX,
+        maxY: limits.maxY ?? softTravel.maxY,
+        maxZ: limits.maxZ ?? softTravel.maxZ,
+        min: softTravel.min,
+      };
+      updateSoftTravel(merged);
+
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        for (const e of entries) next.set(e.id, { id: e.id, value: e.value });
+        return next;
+      });
+
+      activityLog.append(
+        "event",
+        `Soft travel X${merged.maxX ?? "—"} Y${merged.maxY ?? "—"} Z${merged.maxZ ?? "—"} · $20=${enableSoft ? 1 : "unchanged"}`,
+      );
+      setCalMessage(
+        `Wrote max travel${enableSoft ? " and enabled soft limits ($20=1)" : ""}. Bed updated.`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleWriteManual = async (id: number, value: number) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await writeGrblSetting(client, id, value, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value });
+        return next;
+      });
+      if (id === 130 || id === 131 || id === 132) {
+        const patched = { ...softTravel, min: { ...softTravel.min } };
+        if (id === 130) patched.maxX = value;
+        if (id === 131) patched.maxY = value;
+        if (id === 132) patched.maxZ = value;
+        updateSoftTravel(patched);
+      }
+      activityLog.append("event", `Wrote $${id}=${value}`);
+      setCalMessage(`Wrote $${id}=${value}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
     }
   };
 
@@ -712,6 +949,38 @@ export default function App() {
               void handleConfirmGoTo();
             }}
             onCancelGoTo={() => setPendingGoTo(null)}
+          />
+          <CalibrationPanel
+            enabled={settingsGate.ok && !calBusy}
+            blockedReason={
+              !connected
+                ? "Connect first."
+                : !settingsGate.ok
+                  ? (settingsGate.reason ?? "Settings locked")
+                  : calBusy
+                    ? "Settings operation in progress…"
+                    : null
+            }
+            settings={grblSettings}
+            softTravel={softTravel}
+            machinePos={status.machine}
+            busy={calBusy}
+            message={calMessage}
+            onRefreshSettings={() => {
+              void handleRefreshSettings();
+            }}
+            onCalibrateMove={(axis, distanceMm) => {
+              void handleCalibrateMove(axis, distanceMm);
+            }}
+            onWriteSteps={(axis, before, after) => {
+              void handleWriteSteps(axis, before, after);
+            }}
+            onApplySoftTravel={(limits, enableSoft) => {
+              void handleApplySoftTravel(limits, enableSoft);
+            }}
+            onWriteManual={(id, value) => {
+              void handleWriteManual(id, value);
+            }}
           />
           <JobLoad
             job={job}
