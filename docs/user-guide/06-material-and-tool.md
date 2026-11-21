@@ -34,11 +34,13 @@ Place the physical sheet to match what you enter — the orange **Stock** rectan
 
 ## Feeds & speeds (material presets)
 
-Pick a **material** (softwood, hardwood, acrylic, MDF) and **cut style** (engrave vs cut / outline). SharpCNC suggests feed, plunge, spindle RPM, and a depth starting point scaled to the current bit Ø. Values persist; **Recalc from preset** refreshes from the table; **Apply to SVG** copies them into the SVG generate fields.
+Pick a **material** (softwood, hardwood, acrylic, MDF) and **cut style** (engrave vs cut / outline). SharpCNC suggests feed, plunge, spindle RPM, and a depth starting point scaled to the current bit Ø. Values persist across launches; **Recalc from preset** refreshes from the table; **Apply to SVG** copies them into the SVG generate fields.
+
+**Saved presets:** name the current F/S setup and **Save preset** for favorites (load / delete from the same panel).
 
 ![Presets to F/S](assets/diagram-feeds-speeds.svg)
 
-These are hobby starting points — always test on scrap. Runtime feed/spindle percent overrides live on the **Move** tab (not the essentials strip).
+These are hobby starting points — always test on scrap. Runtime feed / rapid / spindle **override percents** persist across relaunch and live on the essentials strip while a job runs (and on the **Move** spindle panel).
 
 ## Checklist before a job
 

@@ -297,6 +297,20 @@ export {
   suggestFeedsSpeeds,
 } from "./materialPresets";
 
+export type { OverridePercents } from "./overrideConfig";
+export {
+  DEFAULT_OVERRIDE_PERCENTS,
+  loadOverridePercents,
+  saveOverridePercents,
+} from "./overrideConfig";
+
+export type { CustomFeedsPreset } from "./customPresets";
+export {
+  deleteCustomFeedsPreset,
+  loadCustomFeedsPresets,
+  upsertCustomFeedsPreset,
+} from "./customPresets";
+
 export type { OverrideStep, RapidOverrideStep } from "./spindleFeed";
 export {
   DEFAULT_SPINDLE_RPM,
