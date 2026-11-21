@@ -1,5 +1,6 @@
 import type { GrblClient, SerialOpenOptions, SerialTransport } from "./transport";
 import { DEFAULT_BAUD } from "./transport";
+import { JOG_CANCEL_BYTE } from "./jog";
 import { parseStatusReport } from "./parseStatus";
 import type { GrblStatus } from "./types";
 import { OFFLINE_STATUS } from "./types";
@@ -100,6 +101,9 @@ export function createGrblClient(
     },
     async softReset() {
       await transport.write(new Uint8Array([SOFT_RESET_BYTE]));
+    },
+    async cancelJog() {
+      await transport.write(new Uint8Array([JOG_CANCEL_BYTE]));
     },
     async requestStatus() {
       await transport.write("?");
