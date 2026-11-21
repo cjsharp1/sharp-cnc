@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC is a personal GRBL controller for one custom CNC. Download the repo, run the desktop app, and follow the getting-started guide."
+      content="SharpCNC is a personal GRBL controller for one custom CNC. Download the Windows installer, connect over USB, and follow the getting-started guide."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -27,6 +27,7 @@
           <span class="site-brand__tag">Docs</span>
         </a>
         <nav class="site-nav" aria-label="Primary">
+          <a href="#download">Download</a>
           <a href="#getting-started">Getting started</a>
           <a href="guide.html">User guide</a>
           <a
@@ -53,8 +54,69 @@
             brass look as the app.
           </p>
           <div class="cta-row">
-            <a class="btn" href="#getting-started">Get started</a>
+            <a class="btn" href="#download">Download for Windows</a>
             <a class="btn btn--ghost" href="guide.html">Open the user guide</a>
+          </div>
+        </section>
+
+        <section class="section" id="download" aria-labelledby="dl-title">
+          <h2 class="section__title" id="dl-title">Download</h2>
+          <p class="section__lead">
+            Install SharpCNC on the Windows PC next to the machine. No Node or
+            Rust needed on the shop floor when you use a release installer.
+          </p>
+          <div class="download-grid">
+            <article class="download-card">
+              <h3>Windows installer (NSIS)</h3>
+              <p>
+                Preferred path. Grab the latest
+                <code>SharpCNC_*_x64-setup.exe</code> from GitHub Releases, run
+                it, then open SharpCNC from the Start menu.
+              </p>
+              <p class="download-card__actions">
+                <a
+                  class="btn"
+                  href="https://github.com/cjsharp1/sharp-cnc/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Latest release</a
+                >
+                <a
+                  class="btn btn--ghost"
+                  href="https://github.com/cjsharp1/sharp-cnc/releases"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >All releases</a
+                >
+              </p>
+              <p class="download-card__note">
+                Unsigned personal builds may show a SmartScreen warning — use
+                <strong>More info → Run anyway</strong> only on a PC you trust.
+              </p>
+            </article>
+            <article class="download-card">
+              <h3>Build it yourself</h3>
+              <p>
+                On a Windows dev PC:
+                <code>npm ci</code> then
+                <code>npm run build:windows</code> (or
+                <code>.\scripts\build-windows-installer.ps1</code>). CI can also
+                build via <strong>Actions → Windows installer</strong> or a
+                <code>v*</code> tag.
+              </p>
+              <p class="download-card__actions">
+                <a class="btn btn--ghost" href="guide.html#01"
+                  >Install &amp; run chapter</a
+                >
+                <a
+                  class="btn btn--ghost"
+                  href="https://github.com/cjsharp1/sharp-cnc/blob/main/scripts/build-windows-installer.md"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Build instructions</a
+                >
+              </p>
+            </article>
           </div>
         </section>
 
@@ -66,35 +128,44 @@
           </p>
           <ol class="steps">
             <li>
-              <h3>Download the project</h3>
+              <h3>Get SharpCNC on Windows</h3>
               <p>
-                Clone or download the repo from
+                Prefer the
+                <a href="#download">Windows installer</a> from
+                <a
+                  href="https://github.com/cjsharp1/sharp-cnc/releases/latest"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >GitHub Releases</a
+                >.
+                To develop from source, clone
                 <a
                   href="https://github.com/cjsharp1/sharp-cnc"
                   target="_blank"
                   rel="noopener noreferrer"
                   >github.com/cjsharp1/sharp-cnc</a
-                >. You need
+                >
+                and install
                 <a href="https://nodejs.org/" target="_blank" rel="noopener noreferrer"
                   >Node.js 20+</a
                 >
-                and
+                plus
                 <a
                   href="https://www.rust-lang.org/tools/install"
                   target="_blank"
                   rel="noopener noreferrer"
                   >Rust</a
-                >
-                for the desktop shell.
+                >.
               </p>
             </li>
             <li>
-              <h3>Install and open the desktop app</h3>
+              <h3>Open the desktop app</h3>
               <p>
-                In the repo root run <code>npm install</code>, then
-                <code>npm run tauri dev</code>. That opens the SharpCNC window
-                with real USB serial. For UI practice without hardware, use
-                <code>npm run dev</code> (mock GRBL only).
+                After installing, launch <strong>SharpCNC</strong> from the Start
+                menu. From source, run <code>npm install</code>, then
+                <code>npm run tauri dev</code> for real USB serial. For UI
+                practice without hardware, use <code>npm run dev</code> (mock
+                GRBL only).
               </p>
             </li>
             <li>

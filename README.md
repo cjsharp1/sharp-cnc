@@ -7,16 +7,23 @@ Personal GRBL controller for one custom CNC. **Windows desktop first** (Tauri + 
 
 ## Getting started
 
-### 1. Download
+### 1. Download (Windows installer)
 
-Clone or download this repository:
+Prefer a packaged install on the machine PC:
+
+- [Latest GitHub Release](https://github.com/cjsharp1/sharp-cnc/releases/latest) — NSIS `SharpCNC_*_x64-setup.exe`
+- Docs landing download section: [cjsharp1.github.io/sharp-cnc/#download](https://cjsharp1.github.io/sharp-cnc/#download)
+
+Build locally on Windows (`npm run build:windows`) or via **Actions → Windows installer** / a `v*` tag. Details: [scripts/build-windows-installer.md](scripts/build-windows-installer.md).
+
+Or clone for development:
 
 ```bash
 git clone https://github.com/cjsharp1/sharp-cnc.git
 cd sharp-cnc
 ```
 
-### 2. Prerequisites
+### 2. Prerequisites (source / `tauri dev`)
 
 - [Node.js](https://nodejs.org/) **20+**
 - [Rust](https://www.rust-lang.org/tools/install) (stable)
@@ -25,14 +32,14 @@ cd sharp-cnc
   - **Linux:** `webkit2gtk` / related GTK deps  
   - **macOS:** Xcode CLT
 
-### 3. Install and open the app
+### 3. Install and open the app (dev)
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-That starts the Vite frontend and opens the SharpCNC **desktop** window with real USB serial. This is what you use next to the machine.
+That starts the Vite frontend and opens the SharpCNC **desktop** window with real USB serial. This is what you use next to the machine while iterating.
 
 Frontend-only (mock serial, no USB):
 
@@ -73,7 +80,8 @@ Controller: **Demon Shield** on Arduino + GRBL over USB.
 
 | Path | Role |
 |------|------|
-| [docs/index.html](docs/index.html) | GitHub Pages landing + getting started |
+| [docs/index.html](docs/index.html) | GitHub Pages landing + download + getting started |
+| [scripts/build-windows-installer.md](scripts/build-windows-installer.md) | Local / CI Windows NSIS+MSI build notes |
 | [docs/guide.html](docs/guide.html) | Themed Markdown viewer for the user guide |
 | [docs/user-guide/](docs/user-guide/) | Chapter source (install → safety) |
 | [docs/css/theme.css](docs/css/theme.css) | Theme tokens mirrored from `src/theme.css` |
