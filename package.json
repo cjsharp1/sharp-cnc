@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
+    "pages:preview": "npx --yes serve docs -p 4177",
     "tauri": "tauri",
     "smoke": "node scripts/smoke-parse-status.mjs && node scripts/smoke-jog-zero.mjs && node scripts/smoke-mock-jog.mjs && node scripts/smoke-gcode-stream.mjs && npx --yes tsx scripts/smoke-mock-stream.mts && npx --yes tsx scripts/smoke-activity-safety.mts && npx --yes tsx scripts/smoke-calibration.mts && npx --yes tsx scripts/smoke-svg-gcode.mts && npx --yes tsx scripts/smoke-debug-bridge.mts && npx --yes tsx scripts/smoke-stock-tool.mts && npx --yes tsx scripts/smoke-path-sim.mts && npx --yes tsx scripts/smoke-external-jobs.mts && npx --yes tsx scripts/smoke-external-controls.mts && npx --yes tsx scripts/smoke-spindle-feeds.mts && npx --yes tsx scripts/smoke-probe.mts && npx --yes tsx scripts/smoke-machine-view.mts && npx --yes tsx scripts/smoke-theme.mts"
   },

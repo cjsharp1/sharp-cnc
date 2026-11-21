@@ -1,75 +1,100 @@
 # SharpCNC
 
-Personal GRBL controller for one custom CNC. Windows desktop first (Tauri + native serial); the same React UI will also run in Chrome/Edge with Web Serial later.
+Personal GRBL controller for one custom CNC. **Windows desktop first** (Tauri + native USB serial); the same React UI also runs in the browser with mock GRBL for practice.
 
-## User guide
+**Docs site (GitHub Pages):** after Pages is enabled from the `docs/` folder → [cjsharp1.github.io/sharp-cnc](https://cjsharp1.github.io/sharp-cnc/)  
+**User guide (in repo):** [docs/user-guide/](docs/user-guide/)
 
-**[docs/user-guide/](docs/user-guide/)** — install, connect, UI map, jogging, calibration, material/tool, **prepare / Z probe**, jobs & SVG, external folder / Drive, debug bridge, and safety notes (with diagrams and screenshots).
+## Getting started
 
-## Status
+### 1. Download
 
-Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code load / run**, **activity log / safety**, **guided calibration / soft travel**, **SVG → simple G-code**, plus **AI debug bridge**:
+Clone or download this repository:
 
-- List / refresh serial ports; connect at **115200** baud (Demon Shield / Arduino)
-- Soft reset (`0x18`) on connect + manual Reset
-- Live MPos / WPos with smoothed machine-view toolhead + short motion trail while jogging / running
-- Pre-run **Simulate** (Job tab + visualizer overlay): play / pause / stop animates the tool along the loaded path without serial motion
-- Jog X/Y/Z with an 8-way XY pad (cardinals + all diagonals) via GRBL `$J=` — step or hold modes, step size + feed
-- Soft-limit awareness from known travel (default X/Y **1000 mm**; Z unset until calibrated)
-- Work zeros via `G10 L20` (per-axis or XYZ); go-to-zero with confirm (safe Z-up then XY)
-- Load `.nc` / `.gcode` (picker + drag-drop); stream with Start / Pause (`!`) / Resume (`~`) / Stop (soft reset)
-- Progress (line / %) and toolpath overlay on the machine view
-- Live activity log (TX/RX + events); clear / filter always; **Menu → Debug mode** (persisted, default off) reveals export text+JSON / copy last N / category tags / Raw filter
-- Optional **debug bridge** (desktop, behind Debug mode): localhost `127.0.0.1:17832` read-only status + logs for a same-machine Cursor agent — see [docs/user-guide/10-debug-bridge.md](docs/user-guide/10-debug-bridge.md)
-- **Prepare to run** wizard (Menu / Job): stock + tool confirm, XY zero, **Z probe** (`G38.2` + plate thickness → work Z0), safe Z; required before Start each session / after load
-- Safety: prominent E-Stop (feed hold + soft reset), Hold / Resume / Reset / Unlock (`$X`)
-- **External Demon Shield buttons:** Abort / Feed Hold / Resume (A0–A2) detected via GRBL state + `Pn:` and mirrored in job UI / activity log — see [docs/demon-shield-controls.md](docs/demon-shield-controls.md)
-- Alarm banner + refuse jog / job start while locked; job soft-limit gate before start
-- **Calibration:** Menu → Calibration… opens a stepped wizard (zero context → steps/mm → soft travel → manual `$$` / `$x=value`); not always-on chrome
-- **Steps/mm:** known move → measured → write `$100`/`$101`/`$102` with before/after
-- **Soft travel:** enter or use current MPos for max X/Y/Z → write `$130`–`$132`, enable `$20`; bed size persisted for the visualizer
-- **SVG drop-in:** load `.svg` → path preview on the machine view → engrave/outline G-code (feed, depth, plunge, spindle RPM; bit Ø from tool settings) → `M3 S…` / `M5` → hand off to the job runner (one job at a time; not full CAM)
-- **Material & tool:** stock width/length/thickness + bed offset (or SW/SE/NW/NE corner); bit type + diameter (V-bit tip angle); material presets (softwood/hardwood/acrylic/MDF) with suggested F/S; shown on the visualizer; persisted; Job tab + Menu
-- **Spindle & feed:** Move-tab PWM spindle On/Off (`M3`/`M5`/`S`) plus GRBL 1.1 realtime feed (`0x90`–`0x94`) and spindle (`0x99`–`0x9D`) overrides during a run
-- **External jobs:** Menu → External jobs… (Job tab strip) — pick a **watched local folder** (`.nc` / `.gcode` / `.svg`), auto-refresh, open into the existing Job / SVG loaders; path persisted. **Google Drive** UI + OAuth scaffolding when `VITE_GOOGLE_DRIVE_CLIENT_ID` is set — see [docs/google-drive-setup.md](docs/google-drive-setup.md). Until then, point the watched folder at Drive for Desktop / USB / network.
+```bash
+git clone https://github.com/cjsharp1/sharp-cnc.git
+cd sharp-cnc
+```
 
-Browser / cloud shells without Tauri use a **mock GRBL** port (including `$Alarm` / `$X`, `$$` / `$n=`). Web Serial parity is still stubbed. Folder pick requires the desktop app.
+### 2. Prerequisites
 
-## Prerequisites
-
-- [Node.js](https://nodejs.org/) 20+
+- [Node.js](https://nodejs.org/) **20+**
 - [Rust](https://www.rust-lang.org/tools/install) (stable)
-- [Tauri 2 system dependencies](https://v2.tauri.app/start/prerequisites/) for your OS  
-  - **Windows:** WebView2 (usually present)  
-  - **Linux:** `webkit2gtk` / related GTK deps (see Tauri docs)  
+- [Tauri 2 system dependencies](https://v2.tauri.app/start/prerequisites/)  
+  - **Windows:** WebView2 (usually already installed)  
+  - **Linux:** `webkit2gtk` / related GTK deps  
   - **macOS:** Xcode CLT
 
-## Run (desktop)
+### 3. Install and open the app
 
 ```bash
 npm install
 npm run tauri dev
 ```
 
-That starts the Vite frontend and opens the Tauri window with real USB serial.
+That starts the Vite frontend and opens the SharpCNC **desktop** window with real USB serial. This is what you use next to the machine.
 
-Frontend-only (mock serial for smoke tests):
+Frontend-only (mock serial, no USB):
 
 ```bash
 npm run dev
 ```
 
-## Browser / Web Serial
+### 4. First things to do
 
-Not wired yet. The plan is to reuse this React UI with a Web Serial transport under `src/grbl/webSerial.ts` for Chrome/Edge when the usual PC isn’t available.
+1. Power the CNC safely and plug USB into the Demon Shield / Arduino.
+2. In SharpCNC: **Refresh** ports → pick COM → **Connect** at **115200** baud.
+3. Confirm **Linked** and live Work / Machine coordinates.
+4. **Menu → Calibration…** once so soft travel matches the real bed.
+5. Set **Material & tool**, load a `.nc` / `.gcode` (or SVG), run **Prepare to run…** (XY + Z probe), **Simulate**, then **Start**.
+
+Full walkthrough with screenshots: [docs/user-guide/](docs/user-guide/) or the [Pages guide](https://cjsharp1.github.io/sharp-cnc/guide.html).
+
+## What works today
+
+- USB serial connect + live MPos/WPos; jog / work zeros; G-code load & run
+- Live machine view (toolhead + path); pre-run simulate
+- Activity log, E-Stop / Hold / Unlock, alarm surfacing
+- Guided calibration + soft travel; SVG → simple engrave/outline G-code
+- Material & tool, prepare / Z probe wizard, spindle & feed overrides
+- External Demon Shield start / pause / stop mirroring
+- Optional watched jobs folder + Drive scaffolding; AI debug bridge (desktop, Debug mode)
+
+Web Serial for a second PC is still stubbed; mock GRBL covers UI without hardware.
+
+## Hardware
+
+Controller: **Demon Shield** on Arduino + GRBL over USB.
+
+- Vendor page: [Designs By Phil — Demon Shield](https://www.designsbyphil.com/demon-shield-1.html)
+- In-repo button mapping: [docs/demon-shield-controls.md](docs/demon-shield-controls.md)
+
+## Docs & Pages
+
+| Path | Role |
+|------|------|
+| [docs/index.html](docs/index.html) | GitHub Pages landing + getting started |
+| [docs/guide.html](docs/guide.html) | Themed Markdown viewer for the user guide |
+| [docs/user-guide/](docs/user-guide/) | Chapter source (install → safety) |
+| [docs/css/theme.css](docs/css/theme.css) | Theme tokens mirrored from `src/theme.css` |
+
+Enable Pages: **Settings → Pages → Deploy from a branch → `main` / `/docs`**.
+
+Preview locally:
+
+```bash
+npm run pages:preview
+```
 
 ## Layout
 
 | Path | Role |
 |------|------|
 | `src/` | React + TypeScript UI |
-| `src/grbl/` | Shared GRBL client, status parser, desktop / mock / Web Serial transports |
-| `src-tauri/` | Tauri 2 / Rust desktop shell + `serialport` USB backend |
+| `src/grbl/` | Shared GRBL client, transports, settings |
+| `src/theme.css` | Workshop steel + brass tokens (dark / light) |
+| `src-tauri/` | Tauri 2 / Rust desktop shell + serial |
+| `docs/` | User guide + GitHub Pages site |
 
 ## Smoke checks (no hardware)
 
@@ -77,15 +102,8 @@ Not wired yet. The plan is to reuse this React UI with a Web Serial transport un
 npm run smoke
 ```
 
-## Build order (high level)
+## License & contributing
 
-1. Scaffold — Tauri + React + GRBL stubs  
-2. Desktop serial connect + status / position streaming  
-3. Jog / zero + machine view  
-4. G-code load and streaming sender  
-5. Web Serial parity  
-6. SVG → simple cut/engrave → G-code ← **this**  
-7. Calibration wizard + soft travel setup  
-8. Activity log + safety controls  
-9. Debug bridge (structured export + localhost agent status)  
-10. External Demon Shield buttons ← **this**  
+- [LICENSE](LICENSE) — MIT
+- [CONTRIBUTING.md](CONTRIBUTING.md)
+- [SECURITY.md](SECURITY.md)

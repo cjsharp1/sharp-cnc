@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SharpCNC — personal GRBL controller</title>
+    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+    <meta
+      name="description"
+      content="SharpCNC is a personal GRBL controller for one custom CNC. Download the repo, run the desktop app, and follow the getting-started guide."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Sora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/theme.css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <script src="js/theme.js"></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="site-brand" href="index.html" aria-current="page">
+          <span class="site-brand__mark">SharpCNC</span>
+          <span class="site-brand__tag">Docs</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="#getting-started">Getting started</a>
+          <a href="guide.html">User guide</a>
+          <a
+            href="https://github.com/cjsharp1/sharp-cnc"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub</a
+          >
+          <button type="button" class="theme-toggle" id="theme-toggle">
+            Light
+          </button>
+        </nav>
+      </header>
+
+      <main class="site-main">
+        <section class="hero" aria-labelledby="hero-brand">
+          <h1 class="hero__brand" id="hero-brand">SharpCNC</h1>
+          <p class="hero__lead">
+            Personal GRBL controller for one custom CNC — connect, jog, zero,
+            prepare, and run jobs with a live machine view.
+          </p>
+          <p class="hero__sub">
+            Windows desktop first (Tauri + USB serial). Same workshop steel and
+            brass look as the app.
+          </p>
+          <div class="cta-row">
+            <a class="btn" href="#getting-started">Get started</a>
+            <a class="btn btn--ghost" href="guide.html">Open the user guide</a>
+          </div>
+        </section>
+
+        <section class="section" id="getting-started" aria-labelledby="gs-title">
+          <h2 class="section__title" id="gs-title">Getting started</h2>
+          <p class="section__lead">
+            Four steps from empty PC to a linked controller. Full detail lives
+            in the user guide chapters linked below.
+          </p>
+          <ol class="steps">
+            <li>
+              <h3>Download the project</h3>
+              <p>
+                Clone or download the repo from
+                <a
+                  href="https://github.com/cjsharp1/sharp-cnc"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >github.com/cjsharp1/sharp-cnc</a
+                >. You need
+                <a href="https://nodejs.org/" target="_blank" rel="noopener noreferrer"
+                  >Node.js 20+</a
+                >
+                and
+                <a
+                  href="https://www.rust-lang.org/tools/install"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  >Rust</a
+                >
+                for the desktop shell.
+              </p>
+            </li>
+            <li>
+              <h3>Install and open the desktop app</h3>
+              <p>
+                In the repo root run <code>npm install</code>, then
+                <code>npm run tauri dev</code>. That opens the SharpCNC window
+                with real USB serial. For UI practice without hardware, use
+                <code>npm run dev</code> (mock GRBL only).
+              </p>
+            </li>
+            <li>
+              <h3>Connect to the machine</h3>
+              <p>
+                Power the CNC safely, plug USB into the Demon Shield / Arduino,
+                refresh ports, pick the COM port, and Connect at
+                <strong>115200</strong> baud. Wait for <strong>Linked</strong>
+                and live Work / Machine coordinates.
+              </p>
+            </li>
+            <li>
+              <h3>First things to do</h3>
+              <p>
+                Run <strong>Menu → Calibration…</strong> once so soft travel
+                matches the bed. Set material &amp; tool, load a
+                <code>.nc</code> / <code>.gcode</code> (or SVG), use
+                <strong>Prepare to run…</strong> (XY + Z probe),
+                <strong>Simulate</strong>, then <strong>Start</strong> when
+                ready. Keep E-Stop within reach.
+              </p>
+            </li>
+          </ol>
+        </section>
+
+        <section class="section" aria-labelledby="guide-title">
+          <h2 class="section__title" id="guide-title">User guide</h2>
+          <p class="section__lead">
+            Chapter-by-chapter walkthrough with diagrams and screenshots. Same
+            Oswald / Sora / IBM Plex Mono type as the app.
+          </p>
+          <div class="guide-grid">
+            <a class="guide-link" href="guide.html#01">
+              <strong>Install &amp; run</strong>
+              <span>Prerequisites, tauri dev, mock UI</span>
+            </a>
+            <a class="guide-link" href="guide.html#02">
+              <strong>Connect</strong>
+              <span>COM ports, baud, Linked status</span>
+            </a>
+            <a class="guide-link" href="guide.html#03">
+              <strong>Understanding the UI</strong>
+              <span>Visualizer, Move / Job / Log, Menu</span>
+            </a>
+            <a class="guide-link" href="guide.html#04">
+              <strong>Jogging &amp; zeros</strong>
+              <span>Jog pad, soft limits, work zeros</span>
+            </a>
+            <a class="guide-link" href="guide.html#05">
+              <strong>Calibration</strong>
+              <span>Steps/mm, soft travel, manual $$</span>
+            </a>
+            <a class="guide-link" href="guide.html#07">
+              <strong>Prepare &amp; Z probe</strong>
+              <span>Touch plate, G38.2, pre-start</span>
+            </a>
+            <a class="guide-link" href="guide.html#08">
+              <strong>Jobs &amp; SVG</strong>
+              <span>Load, simulate, start / pause / stop</span>
+            </a>
+            <a class="guide-link" href="guide.html#11">
+              <strong>Safety</strong>
+              <span>E-Stop, alarms, unlock, habits</span>
+            </a>
+          </div>
+          <p style="margin-top: 1rem">
+            <a href="guide.html">Browse the full guide →</a>
+          </p>
+        </section>
+
+        <section class="section" aria-labelledby="ref-title">
+          <h2 class="section__title" id="ref-title">Hardware &amp; references</h2>
+          <p class="section__lead">
+            Controller board notes and optional Drive wiring.
+          </p>
+          <ul class="ref-list">
+            <li>
+              <a
+                href="https://www.designsbyphil.com/demon-shield-1.html"
+                target="_blank"
+                rel="noopener noreferrer"
+                >Demon Shield vendor page (Designs By Phil)</a
+              >
+            </li>
+            <li>
+              <a href="guide.html#demon-shield"
+                >Demon Shield external start / pause / stop (in-repo)</a
+              >
+            </li>
+            <li>
+              <a href="guide.html#google-drive"
+                >Google Drive setup (optional)</a
+              >
+            </li>
+            <li>
+              <a
+                href="https://github.com/cjsharp1/sharp-cnc#readme"
+                target="_blank"
+                rel="noopener noreferrer"
+                >README — download, run, smoke checks</a
+              >
+            </li>
+          </ul>
+        </section>
+      </main>
+
+      <footer class="site-footer">
+        SharpCNC · personal GRBL controller ·
+        <a
+          href="https://github.com/cjsharp1/sharp-cnc"
+          target="_blank"
+          rel="noopener noreferrer"
+          >source on GitHub</a
+        >
+        · Enable Pages from the <code>docs/</code> folder on
+        <code>main</code>.
+      </footer>
+    </div>
+  </body>
+</html>
