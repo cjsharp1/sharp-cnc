@@ -121,7 +121,8 @@ Full suite before a tagged release:
 npm run smoke
 ```
 
-Release process / notes template: [docs/RELEASE.md](docs/RELEASE.md).
+Release process / notes template: [docs/RELEASE.md](docs/RELEASE.md).  
+First real-machine handoff: [docs/TESTING-HANDOFF.md](docs/TESTING-HANDOFF.md).
 
 ## License & contributing
 

@@ -1,19 +1,12 @@
 import type { SoftTravelLimits, StockConfig } from "../grbl";
+import {
+  FIRST_RUN_STEPS,
+  type FirstRunStepId,
+} from "../grbl/firstRunConfig";
 
-export type FirstRunStepId =
-  | "connect"
-  | "home"
-  | "calibrate"
-  | "travel"
-  | "stock";
+export type { FirstRunStepId };
 
-const STEPS: { id: FirstRunStepId; label: string; short: string }[] = [
-  { id: "connect", label: "Connect", short: "1 · Connect" },
-  { id: "home", label: "Home", short: "2 · Home" },
-  { id: "calibrate", label: "Calibrate", short: "3 · Calibrate" },
-  { id: "travel", label: "Travel", short: "4 · Travel" },
-  { id: "stock", label: "Stock", short: "5 · Stock" },
-];
+const STEPS = FIRST_RUN_STEPS;
 
 interface FirstRunWizardProps {
   step: FirstRunStepId;
