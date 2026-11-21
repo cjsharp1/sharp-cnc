@@ -1,4 +1,4 @@
-import type { Position3, ToolpathSegment } from "../grbl";
+import type { Position3, StockConfig, ToolpathSegment } from "../grbl";
 
 interface MachineViewProps {
   tool: Position3;
@@ -10,6 +10,10 @@ interface MachineViewProps {
   pathProgress?: number;
   /** Optional label override (e.g. SVG preview vs job path). */
   pathLabel?: string | null;
+  /** Workpiece rectangle on the bed (mm). */
+  stock?: StockConfig | null;
+  /** Bit diameter for toolhead marker scale (mm). */
+  toolDiameterMm?: number;
 }
 
 function segmentToPoints(
@@ -45,6 +49,8 @@ export function MachineView({
   path = [],
   pathProgress = 0,
   pathLabel = null,
+  stock = null,
+  toolDiameterMm = 3.175,
 }: MachineViewProps) {
   const pad = 28;
   const viewW = 640;
@@ -66,6 +72,35 @@ export function MachineView({
   const donePaths = segmentToPoints(completed, mapPoint);
   const todoPaths = segmentToPoints(remaining, mapPoint);
 
+  const stockRect =
+    stock && stock.widthMm > 0 && stock.lengthMm > 0
+      ? (() => {
+          const x0 = stock.offsetXMm;
+          const y0 = stock.offsetYMm;
+          const x1 = stock.offsetXMm + stock.widthMm;
+          const y1 = stock.offsetYMm + stock.lengthMm;
+          const a = mapPoint(x0, y0);
+          const b = mapPoint(x1, y1);
+          return {
+            x: Math.min(a.x, b.x),
+            y: Math.min(a.y, b.y),
+            w: Math.abs(b.x - a.x),
+            h: Math.abs(b.y - a.y),
+          };
+        })()
+      : null;
+
+  // Tool marker radius ≈ half diameter in screen px (clamped for visibility).
+  const pxPerMm = Math.min(scaleX, scaleY);
+  const bitR = Math.min(
+    28,
+    Math.max(3.5, (Math.max(0.1, toolDiameterMm) / 2) * pxPerMm),
+  );
+
+  const stockLabel = stock
+    ? ` · stock ${stock.widthMm}×${stock.lengthMm}×${stock.thicknessMm} mm`
+    : "";
+
   return (
     <section className="machine" aria-label="Machine view">
       <div className="machine__frame">
@@ -73,7 +108,7 @@ export function MachineView({
           className="machine__svg"
           viewBox={`0 0 ${viewW} ${viewH}`}
           role="img"
-          aria-label="Bed, toolpath, and tool position"
+          aria-label="Bed, stock, toolpath, and tool position"
         >
           <defs>
             <pattern
@@ -93,6 +128,22 @@ export function MachineView({
               <stop offset="0%" stopColor="rgba(212, 168, 75, 0.16)" />
               <stop offset="100%" stopColor="rgba(18, 20, 22, 0)" />
             </radialGradient>
+            <pattern
+              id="stock-hatch"
+              width="8"
+              height="8"
+              patternUnits="userSpaceOnUse"
+              patternTransform="rotate(35)"
+            >
+              <line
+                x1="0"
+                y1="0"
+                x2="0"
+                y2="8"
+                stroke="rgba(140, 110, 70, 0.35)"
+                strokeWidth="1.5"
+              />
+            </pattern>
           </defs>
 
           <rect
@@ -113,6 +164,37 @@ export function MachineView({
             fill="url(#bed-glow)"
           />
 
+          {stockRect && (
+            <g className="machine__stock">
+              <rect
+                x={stockRect.x}
+                y={stockRect.y}
+                width={stockRect.w}
+                height={stockRect.h}
+                fill="rgba(90, 72, 48, 0.45)"
+                stroke="rgba(196, 152, 90, 0.75)"
+                strokeWidth="1.5"
+              />
+              <rect
+                x={stockRect.x}
+                y={stockRect.y}
+                width={stockRect.w}
+                height={stockRect.h}
+                fill="url(#stock-hatch)"
+                opacity="0.55"
+              />
+              <text
+                x={stockRect.x + 8}
+                y={stockRect.y + Math.min(18, stockRect.h - 4)}
+                className="machine__label"
+                fill="rgba(232, 214, 170, 0.7)"
+                fontSize="11"
+              >
+                Stock
+              </text>
+            </g>
+          )}
+
           <text
             x={pad + 10}
             y={pad + 22}
@@ -121,9 +203,11 @@ export function MachineView({
             fontSize="12"
           >
             Bed {bedMm.width}×{bedMm.depth} mm · live WPos
+            {stockLabel}
             {path.length > 0
               ? ` · ${pathLabel ?? "path"} · ${path.length} segs`
               : ""}
+            {` · Ø${toolDiameterMm} mm`}
           </text>
 
           {/* Remaining path (dim) */}
@@ -168,14 +252,14 @@ export function MachineView({
             <circle
               cx={cx}
               cy={cy}
-              r="18"
+              r={bitR * 2.2}
               fill="none"
               stroke="rgba(212, 168, 75, 0.35)"
               strokeWidth="1"
             >
               <animate
                 attributeName="r"
-                values="14;22;14"
+                values={`${bitR * 1.6};${bitR * 2.6};${bitR * 1.6}`}
                 dur="2.8s"
                 repeatCount="indefinite"
               />
@@ -186,8 +270,15 @@ export function MachineView({
                 repeatCount="indefinite"
               />
             </circle>
-            <circle cx={cx} cy={cy} r="5" fill="#d4a84b" />
-            <circle cx={cx} cy={cy} r="2" fill="#1a1c1e" />
+            <circle
+              cx={cx}
+              cy={cy}
+              r={bitR}
+              fill="rgba(212, 168, 75, 0.35)"
+              stroke="#d4a84b"
+              strokeWidth="1.25"
+            />
+            <circle cx={cx} cy={cy} r={Math.max(1.5, bitR * 0.28)} fill="#1a1c1e" />
           </g>
         </svg>
       </div>

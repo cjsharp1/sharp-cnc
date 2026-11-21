@@ -11,6 +11,8 @@ interface SvgJobPanelProps {
   draft: SvgImportResult | null;
   /** True while a G-code job is streaming — block replace/generate. */
   busy: boolean;
+  /** Bit diameter from Material & tool settings (mm). */
+  toolDiameterMm: number;
   onLoadSvg: (file: File) => void;
   onClear: () => void;
   onGenerate: (params: SvgToolpathParams) => void;
@@ -19,6 +21,7 @@ interface SvgJobPanelProps {
 export function SvgJobPanel({
   draft,
   busy,
+  toolDiameterMm,
   onLoadSvg,
   onClear,
   onGenerate,
@@ -36,9 +39,6 @@ export function SvgJobPanel({
   );
   const [depthMm, setDepthMm] = useState(String(DEFAULT_SVG_TOOLPATH.depthMm));
   const [safeZMm, setSafeZMm] = useState(String(DEFAULT_SVG_TOOLPATH.safeZMm));
-  const [toolDiameterMm, setToolDiameterMm] = useState(
-    String(DEFAULT_SVG_TOOLPATH.toolDiameterMm),
-  );
 
   const acceptFile = (file: File | undefined) => {
     if (!file) return;
@@ -81,13 +81,18 @@ export function SvgJobPanel({
     const plunge = parsePositive(plungeMmMin, "Plunge");
     const depth = parsePositive(depthMm, "Depth");
     const safeZ = parseNonNeg(safeZMm, "Safe Z");
-    const tool = parsePositive(toolDiameterMm, "Bit diameter");
+    const tool = Number.isFinite(toolDiameterMm) && toolDiameterMm > 0
+      ? toolDiameterMm
+      : null;
+    if (tool === null) {
+      setLoadError("Set a positive bit diameter in Material & tool.");
+      return;
+    }
     if (
       feed === null ||
       plunge === null ||
       depth === null ||
-      safeZ === null ||
-      tool === null
+      safeZ === null
     ) {
       return;
     }
@@ -208,18 +213,9 @@ export function SvgJobPanel({
             </label>
           </div>
 
-          <label className="svgjob__field">
-            <span className="svgjob__field-label">Bit Ø mm</span>
-            <input
-              className="svgjob__input"
-              type="number"
-              min={0.1}
-              step={0.1}
-              value={toolDiameterMm}
-              disabled={busy}
-              onChange={(e) => setToolDiameterMm(e.target.value)}
-            />
-          </label>
+          <p className="svgjob__tool-note">
+            Bit Ø {toolDiameterMm} mm from Material &amp; tool (Job settings).
+          </p>
         </div>
       )}
 

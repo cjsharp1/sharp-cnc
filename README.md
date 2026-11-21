@@ -21,7 +21,8 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 - **Calibration:** guided steps/mm wizard (known move → measured → write `$100`/`$101`/`$102` with before/after)
 - **Soft travel:** enter or use current MPos for max X/Y/Z → write `$130`–`$132`, enable `$20`; bed size persisted for the visualizer
 - **Manual settings:** read `$$`, edit `$x=value` (blocked while a job is running)
-- **SVG drop-in:** load `.svg` → path preview on the machine view → engrave/outline G-code (feed, depth, plunge, bit Ø) → hand off to the job runner (one job at a time; not full CAM)
+- **SVG drop-in:** load `.svg` → path preview on the machine view → engrave/outline G-code (feed, depth, plunge; bit Ø from tool settings) → hand off to the job runner (one job at a time; not full CAM)
+- **Material & tool:** stock width/length/thickness + bed offset (or SW/SE/NW/NE corner); bit type + diameter (V-bit tip angle); shown on the visualizer; persisted; Job tab + Menu
 
 Browser / cloud shells without Tauri use a **mock GRBL** port (including `$Alarm` / `$X`, `$$` / `$n=`). Web Serial parity is still stubbed.
 

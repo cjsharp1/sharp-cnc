@@ -27,6 +27,22 @@ export {
   saveSoftTravel,
 } from "./machineConfig";
 
+export type { StockConfig, StockCorner } from "./stockConfig";
+export {
+  DEFAULT_STOCK,
+  loadStock,
+  saveStock,
+  stockOffsetForCorner,
+} from "./stockConfig";
+
+export type { ToolBitType, ToolConfig } from "./toolConfig";
+export {
+  DEFAULT_TOOL,
+  TOOL_BIT_LABELS,
+  loadTool,
+  saveTool,
+} from "./toolConfig";
+
 export type { GrblSetting } from "./settings";
 export {
   CALIBRATION_DISTANCE_OPTIONS_MM,

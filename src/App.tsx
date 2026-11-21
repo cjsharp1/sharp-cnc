@@ -7,6 +7,7 @@ import { CoordinateReadout } from "./components/CoordinateReadout";
 import { JobLoad } from "./components/JobLoad";
 import { JogPanel, type JogAxisMap } from "./components/JogPanel";
 import { MachineView } from "./components/MachineView";
+import { MaterialToolPanel } from "./components/MaterialToolPanel";
 import { SafetyControls } from "./components/SafetyControls";
 import { SvgJobPanel } from "./components/SvgJobPanel";
 import {
@@ -41,14 +42,19 @@ import {
   listAvailablePorts,
   loadJobFromText,
   loadSoftTravel,
+  loadStock,
+  loadTool,
   OFFLINE_STATUS,
   parseAlarmLine,
   planGoToWorkZero,
   publishDebugSnapshot,
   saveSoftTravel,
+  saveStock,
+  saveTool,
   softTravelFromSettings,
   startDebugBridge,
   stopDebugBridge,
+  stockOffsetForCorner,
   writeGrblSetting,
   writeGrblSettings,
   type Axis,
@@ -61,9 +67,12 @@ import {
   type JogMode,
   type LoadedJob,
   type SoftTravelLimits,
+  type StockConfig,
+  type StockCorner,
   type StreamProgress,
   type SvgImportResult,
   type SvgToolpathParams,
+  type ToolConfig,
   type ZeroAxisSelection,
 } from "./grbl";
 import "./App.css";
@@ -102,6 +111,10 @@ export default function App() {
   const [softTravel, setSoftTravel] = useState<SoftTravelLimits>(() =>
     loadSoftTravel(),
   );
+  /** Workpiece size / placement — persisted for the visualizer. */
+  const [stock, setStock] = useState<StockConfig>(() => loadStock());
+  /** Tool / bit profile — persisted for visualizer + SVG defaults. */
+  const [tool, setTool] = useState<ToolConfig>(() => loadTool());
   const [grblSettings, setGrblSettings] = useState<Map<
     number,
     GrblSetting
@@ -110,6 +123,7 @@ export default function App() {
   const [calBusy, setCalBusy] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
   const [calOpen, setCalOpen] = useState(false);
+  const [matToolHighlight, setMatToolHighlight] = useState(false);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<DebugBridgeStatus | null>(
     null,
@@ -211,6 +225,12 @@ export default function App() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [calOpen]);
+
+  useEffect(() => {
+    if (!matToolHighlight) return;
+    const t = window.setTimeout(() => setMatToolHighlight(false), 2200);
+    return () => window.clearTimeout(t);
+  }, [matToolHighlight]);
 
   // Keep latest UI fields for the debug bridge without restarting the server.
   const bridgeContextRef = useRef({
@@ -1055,6 +1075,31 @@ export default function App() {
     }
   };
 
+  const openMaterialTool = () => {
+    setWorkspaceTab("job");
+    setMatToolHighlight(true);
+  };
+
+  const handleStockChange = (next: StockConfig) => {
+    setStock(next);
+    saveStock(next);
+  };
+
+  const handleToolChange = (next: ToolConfig) => {
+    setTool(next);
+    saveTool(next);
+  };
+
+  const handlePlaceStockCorner = (corner: StockCorner) => {
+    const offsets = stockOffsetForCorner(
+      stock,
+      corner,
+      bedMm.width,
+      bedMm.depth,
+    );
+    handleStockChange({ ...stock, ...offsets });
+  };
+
   return (
     <div className="shell">
       <div className="shell__atmosphere" aria-hidden />
@@ -1066,7 +1111,10 @@ export default function App() {
             One machine. Clear position. Run the job.
           </p>
         </div>
-        <AppMenu onOpenCalibration={openCalibration} />
+        <AppMenu
+          onOpenCalibration={openCalibration}
+          onOpenMaterialTool={openMaterialTool}
+        />
       </header>
 
       <section className="shell__essentials" aria-label="Machine essentials">
@@ -1126,6 +1174,8 @@ export default function App() {
             path={job?.path ?? svgDraft?.preview}
             pathProgress={job ? pathProgress : 0}
             pathLabel={job ? "job" : svgDraft ? "SVG preview" : null}
+            stock={stock}
+            toolDiameterMm={tool.diameterMm}
           />
         </div>
 
@@ -1183,9 +1233,23 @@ export default function App() {
                   id="workspace-panel-job"
                   aria-labelledby="workspace-tab-job"
                 >
+                  <div
+                    className={`mattool-anchor${matToolHighlight ? " is-flash" : ""}`}
+                    id="material-tool-settings"
+                  >
+                    <MaterialToolPanel
+                      stock={stock}
+                      tool={tool}
+                      bedMm={bedMm}
+                      onStockChange={handleStockChange}
+                      onToolChange={handleToolChange}
+                      onPlaceCorner={handlePlaceStockCorner}
+                    />
+                  </div>
                   <SvgJobPanel
                     draft={svgDraft}
                     busy={streaming}
+                    toolDiameterMm={tool.diameterMm}
                     onLoadSvg={handleLoadSvg}
                     onClear={handleClearSvg}
                     onGenerate={handleGenerateFromSvg}
