@@ -2,9 +2,13 @@ import { useEffect, useRef, useState } from "react";
 
 interface AppMenuProps {
   onOpenCalibration: () => void;
+  onOpenMaterialTool: () => void;
 }
 
-export function AppMenu({ onOpenCalibration }: AppMenuProps) {
+export function AppMenu({
+  onOpenCalibration,
+  onOpenMaterialTool,
+}: AppMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +43,20 @@ export function AppMenu({ onOpenCalibration }: AppMenuProps) {
       </button>
       {open && (
         <div className="appmenu__panel" role="menu">
+          <button
+            type="button"
+            role="menuitem"
+            className="appmenu__item"
+            onClick={() => {
+              setOpen(false);
+              onOpenMaterialTool();
+            }}
+          >
+            Material &amp; tool…
+          </button>
+          <p className="appmenu__hint">
+            Stock size, bed placement, and bit diameter.
+          </p>
           <button
             type="button"
             role="menuitem"
