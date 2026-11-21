@@ -97,7 +97,7 @@ export function AppMenu({
             Calibration…
           </button>
           <p className="appmenu__hint">
-            Guided wizard: zero, steps/mm, soft travel, manual settings.
+            Guided wizard: zero, axis direction, steps/mm, soft travel, manual.
           </p>
           <button
             type="button"

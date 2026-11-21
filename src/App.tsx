@@ -25,8 +25,10 @@ import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
   JOG_STEP_OPTIONS_MM,
+  SETTING_DIR_PORT_INVERT,
   SETTING_SOFT_LIMITS,
   STEPS_SETTING_FOR_AXIS,
+  describeDirInvertMask,
   UNLOCK_COMMAND,
   advanceSim,
   bedSizeFromLimits,
@@ -905,7 +907,7 @@ export default function App() {
         `Calibration move ${axis}${distanceMm > 0 ? "+" : ""}${distanceMm}`,
       );
       setCalMessage(
-        `Moving ${axis} by ${distanceMm} mm — measure the real distance when Idle.`,
+        `Moving ${axis} by ${distanceMm > 0 ? "+" : ""}${distanceMm} mm — watch direction / measure when Idle.`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -946,6 +948,46 @@ export default function App() {
       );
       setCalMessage(
         `${axis} steps/mm: ${before.toFixed(3)} → ${after.toFixed(3)} ($${id})`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleWriteDirInvert = async (mask: number) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    const value = Math.trunc(mask) & 0b111;
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await writeGrblSetting(client, SETTING_DIR_PORT_INVERT, value, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(SETTING_DIR_PORT_INVERT, {
+          id: SETTING_DIR_PORT_INVERT,
+          value,
+        });
+        return next;
+      });
+      const summary = describeDirInvertMask(value);
+      activityLog.append(
+        "event",
+        `Wrote $${SETTING_DIR_PORT_INVERT}=${value} (invert ${summary})`,
+      );
+      setCalMessage(
+        `Direction mask $${SETTING_DIR_PORT_INVERT}=${value} (${summary} inverted). Test jog to confirm.`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2049,6 +2091,9 @@ export default function App() {
                 }}
                 onWriteSteps={(axis, before, after) => {
                   void handleWriteSteps(axis, before, after);
+                }}
+                onWriteDirInvert={(mask) => {
+                  void handleWriteDirInvert(mask);
                 }}
                 onApplySoftTravel={(limits, enableSoft) => {
                   void handleApplySoftTravel(limits, enableSoft);

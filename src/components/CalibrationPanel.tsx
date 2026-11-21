@@ -3,22 +3,33 @@ import {
   CALIBRATION_DISTANCE_OPTIONS_MM,
   DEFAULT_CALIBRATION_DISTANCE_MM,
   DEFAULT_JOG_FEED_MM_MIN,
+  DIR_TEST_JOG_MM,
   MAX_TRAVEL_SETTING_FOR_AXIS,
+  SETTING_DIR_PORT_INVERT,
   SETTING_LABELS,
   SETTING_SOFT_LIMITS,
   STEPS_SETTING_FOR_AXIS,
   buildJogCommand,
   computeStepsPerMm,
+  decodeDirInvertMask,
+  describeDirInvertMask,
+  encodeDirInvertMask,
   roundStepsPerMm,
   softLimitsEnabled,
   type Axis,
+  type AxisDirInvert,
   type GrblSetting,
   type GrblStatus,
   type SoftTravelLimits,
   type ZeroAxisSelection,
 } from "../grbl";
 
-export type CalibrationStepId = "zero" | "steps" | "travel" | "manual";
+export type CalibrationStepId =
+  | "zero"
+  | "direction"
+  | "steps"
+  | "travel"
+  | "manual";
 
 const WIZARD_STEPS: {
   id: CalibrationStepId;
@@ -26,9 +37,10 @@ const WIZARD_STEPS: {
   short: string;
 }[] = [
   { id: "zero", label: "Zero context", short: "1 · Zero" },
-  { id: "steps", label: "Steps/mm", short: "2 · Steps" },
-  { id: "travel", label: "Soft travel", short: "3 · Travel" },
-  { id: "manual", label: "Manual settings", short: "4 · Manual" },
+  { id: "direction", label: "Direction", short: "2 · Dir" },
+  { id: "steps", label: "Steps/mm", short: "3 · Steps" },
+  { id: "travel", label: "Soft travel", short: "4 · Travel" },
+  { id: "manual", label: "Manual settings", short: "5 · Manual" },
 ];
 
 interface CalibrationPanelProps {
@@ -45,6 +57,7 @@ interface CalibrationPanelProps {
   onRefreshSettings: () => void;
   onCalibrateMove: (axis: Axis, distanceMm: number) => void;
   onWriteSteps: (axis: Axis, before: number, after: number) => void;
+  onWriteDirInvert: (mask: number) => void;
   onApplySoftTravel: (limits: SoftTravelLimits, enableSoft: boolean) => void;
   onWriteManual: (id: number, value: number) => void;
   onZero: (axes: ZeroAxisSelection) => void;
@@ -84,6 +97,7 @@ export function CalibrationPanel({
   onRefreshSettings,
   onCalibrateMove,
   onWriteSteps,
+  onWriteDirInvert,
   onApplySoftTravel,
   onWriteManual,
   onZero,
@@ -100,6 +114,13 @@ export function CalibrationPanel({
   const [measuredMm, setMeasuredMm] = useState("");
   const [moved, setMoved] = useState(false);
 
+  // Axis direction ($3)
+  const [dirFlags, setDirFlags] = useState<AxisDirInvert>({
+    x: false,
+    y: false,
+    z: false,
+  });
+
   // Soft travel form
   const [maxX, setMaxX] = useState(String(softTravel.maxX ?? ""));
   const [maxY, setMaxY] = useState(String(softTravel.maxY ?? ""));
@@ -114,6 +135,10 @@ export function CalibrationPanel({
 
   const stepsId = STEPS_SETTING_FOR_AXIS[axis];
   const currentSteps = settingValue(settings, stepsId);
+  const currentDirMask = settingValue(settings, SETTING_DIR_PORT_INVERT);
+  const draftDirMask = encodeDirInvertMask(dirFlags);
+  const dirDirty =
+    currentDirMask === null || draftDirMask !== Math.trunc(currentDirMask);
 
   const computed = useMemo(() => {
     const measured = Number(measuredMm);
@@ -143,6 +168,11 @@ export function CalibrationPanel({
     setMaxY(softTravel.maxY !== null ? String(softTravel.maxY) : "");
     setMaxZ(softTravel.maxZ !== null ? String(softTravel.maxZ) : "");
   }, [step.id, softTravel.maxX, softTravel.maxY, softTravel.maxZ]);
+
+  useEffect(() => {
+    if (currentDirMask === null) return;
+    setDirFlags(decodeDirInvertMask(currentDirMask));
+  }, [currentDirMask]);
 
   const parseTravel = (raw: string): number | null => {
     const t = raw.trim();
@@ -278,6 +308,134 @@ export function CalibrationPanel({
         </div>
       )}
 
+      {step.id === "direction" && (
+        <div
+          className="cal__body"
+          role="group"
+          aria-labelledby="cal-step-direction"
+        >
+          <h3 id="cal-step-direction" className="cal__step-title">
+            Axis direction invert
+          </h3>
+          <p className="cal__hint">
+            Swap stepper direction per axis so jog +X / +Y / +Z matches your
+            machine wiring (GRBL <code>$3</code>). Toggle independently, write
+            the mask, then use the short test jogs to confirm before measuring
+            steps/mm.
+          </p>
+
+          <p className="cal__current">
+            Current ${SETTING_DIR_PORT_INVERT} ={" "}
+            <strong>
+              {currentDirMask !== null ? Math.trunc(currentDirMask) : "—"}
+            </strong>
+            {currentDirMask !== null ? (
+              <>
+                {" "}
+                <span className="cal__meta">
+                  ({describeDirInvertMask(currentDirMask)} inverted)
+                </span>
+              </>
+            ) : (
+              <> — click Read $$</>
+            )}
+          </p>
+
+          <div className="cal__dir" role="group" aria-label="Invert axes">
+            {(
+              [
+                ["X", "x"],
+                ["Y", "y"],
+                ["Z", "z"],
+              ] as const
+            ).map(([ax, key]) => (
+              <div key={ax} className="cal__dir-row">
+                <label className="cal__check cal__dir-toggle">
+                  <input
+                    type="checkbox"
+                    checked={dirFlags[key]}
+                    disabled={!canAct}
+                    onChange={(e) =>
+                      setDirFlags((prev) => ({
+                        ...prev,
+                        [key]: e.target.checked,
+                      }))
+                    }
+                  />
+                  <span>
+                    Invert {ax}{" "}
+                    <span className="cal__meta">
+                      (bit {ax === "X" ? "0" : ax === "Y" ? "1" : "2"})
+                    </span>
+                  </span>
+                </label>
+                <div
+                  className="cal__dir-tests"
+                  role="group"
+                  aria-label={`Test jog ${ax}`}
+                >
+                  <button
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct}
+                    onClick={() => onCalibrateMove(ax, DIR_TEST_JOG_MM)}
+                    title={`Jog +${DIR_TEST_JOG_MM} mm on ${ax}`}
+                  >
+                    Test +{ax}
+                  </button>
+                  <button
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct}
+                    onClick={() => onCalibrateMove(ax, -DIR_TEST_JOG_MM)}
+                    title={`Jog −${DIR_TEST_JOG_MM} mm on ${ax}`}
+                  >
+                    Test −{ax}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="cal__result" aria-live="polite">
+            <p className="cal__result-line">
+              Draft mask: <strong>{draftDirMask}</strong>{" "}
+              <span className="cal__meta">
+                ({describeDirInvertMask(draftDirMask)} inverted)
+              </span>
+            </p>
+            <div className="cal__actions">
+              <button
+                type="button"
+                className="cal__btn"
+                disabled={!canAct || !dirDirty}
+                onClick={() => onWriteDirInvert(draftDirMask)}
+              >
+                Write ${SETTING_DIR_PORT_INVERT}={draftDirMask}
+              </button>
+              {currentDirMask !== null && dirDirty ? (
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!canAct}
+                  onClick={() =>
+                    setDirFlags(decodeDirInvertMask(currentDirMask))
+                  }
+                >
+                  Reset toggles
+                </button>
+              ) : null}
+            </div>
+          </div>
+
+          <p className="cal__hint">
+            Test jogs move {DIR_TEST_JOG_MM} mm at the current jog feed. Clear
+            the bed, keep Z high for XY checks, and stand ready on E-Stop. If
+            +X moves left instead of right, invert X and write again.
+          </p>
+        </div>
+      )}
+
       {step.id === "steps" && (
         <div
           className="cal__body"
@@ -289,7 +447,8 @@ export function CalibrationPanel({
           </h3>
           <p className="cal__hint">
             Command a known move, measure the real distance with a ruler, then
-            write the new steps/mm ($100–$102).
+            write the new steps/mm ($100–$102). Confirm axis direction first if
+            jog signs look wrong.
           </p>
 
           <div className="cal__row">
@@ -501,8 +660,9 @@ export function CalibrationPanel({
             Manual settings
           </h3>
           <p className="cal__hint">
-            Advanced fallback: view/edit any GRBL setting (`$$` / `$x=value`).
-            Prefer the guided steps for steps/mm and soft travel.
+            Advanced fallback: view/edit any GRBL setting (`$$` / `$x=value`),
+            including <code>$3</code> direction mask. Prefer the guided steps
+            for direction, steps/mm, and soft travel.
           </p>
 
           <div className="cal__row">
@@ -574,6 +734,7 @@ export function CalibrationPanel({
                     <tr
                       key={s.id}
                       className={
+                        s.id === SETTING_DIR_PORT_INVERT ||
                         s.id === SETTING_SOFT_LIMITS ||
                         s.id === STEPS_SETTING_FOR_AXIS.X ||
                         s.id === STEPS_SETTING_FOR_AXIS.Y ||

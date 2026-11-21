@@ -2363,7 +2363,7 @@ button {
 
 .cal__steps {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
@@ -2657,6 +2657,36 @@ button {
 
 .cal__check input {
   accent-color: var(--brass);
+}
+
+.cal__dir {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}
+
+.cal__dir-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--inset-bg-soft);
+}
+
+.cal__dir-toggle {
+  min-width: 0;
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cal__dir-tests {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .cal__table-wrap {

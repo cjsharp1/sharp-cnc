@@ -57,12 +57,15 @@ export {
   saveTool,
 } from "./toolConfig";
 
-export type { GrblSetting } from "./settings";
+export type { AxisDirInvert, GrblSetting } from "./settings";
 export {
   CALIBRATION_DISTANCE_OPTIONS_MM,
   DEFAULT_CALIBRATION_DISTANCE_MM,
   DEFAULT_GRBL_SETTINGS,
+  DIR_INVERT_BIT,
+  DIR_TEST_JOG_MM,
   MAX_TRAVEL_SETTING_FOR_AXIS,
+  SETTING_DIR_PORT_INVERT,
   SETTING_LABELS,
   SETTING_MAX_TRAVEL_X,
   SETTING_MAX_TRAVEL_Y,
@@ -74,6 +77,9 @@ export {
   STEPS_SETTING_FOR_AXIS,
   canWriteSettings,
   computeStepsPerMm,
+  decodeDirInvertMask,
+  describeDirInvertMask,
+  encodeDirInvertMask,
   formatSettingWrite,
   parseSettingLine,
   parseSettingsDump,

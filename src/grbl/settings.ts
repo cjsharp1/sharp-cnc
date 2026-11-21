@@ -2,6 +2,7 @@ import type { SoftTravelLimits } from "./machineConfig";
 import type { Axis, GrblMachineState } from "./types";
 
 /** GRBL setting IDs used by SharpCNC calibration / soft travel. */
+export const SETTING_DIR_PORT_INVERT = 3;
 export const SETTING_STEPS_X = 100;
 export const SETTING_STEPS_Y = 101;
 export const SETTING_STEPS_Z = 102;
@@ -15,6 +16,7 @@ export const DEFAULT_GRBL_SETTINGS: Record<number, number> = {
   0: 10,
   1: 25,
   2: 0,
+  3: 0, // direction port invert mask (bit0=X, bit1=Y, bit2=Z)
   10: 1,
   11: 0.01,
   12: 0.002,
@@ -58,6 +60,7 @@ export const MAX_TRAVEL_SETTING_FOR_AXIS: Record<Axis, number> = {
 
 /** Short labels for common settings shown in the editor. */
 export const SETTING_LABELS: Record<number, string> = {
+  3: "Direction invert mask",
   20: "Soft limits enable",
   21: "Hard limits enable",
   22: "Homing cycle enable",
@@ -74,6 +77,52 @@ export const SETTING_LABELS: Record<number, string> = {
   131: "Y max travel (mm)",
   132: "Z max travel (mm)",
 };
+
+/** Per-axis direction invert flags encoded in GRBL `$3`. */
+export interface AxisDirInvert {
+  x: boolean;
+  y: boolean;
+  z: boolean;
+}
+
+/** Bit masks for `$3` (GRBL direction port invert). */
+export const DIR_INVERT_BIT: Record<Axis, number> = {
+  X: 1 << 0,
+  Y: 1 << 1,
+  Z: 1 << 2,
+};
+
+/** Short calibration test jog distance for verifying axis direction. */
+export const DIR_TEST_JOG_MM = 5;
+
+/** Decode `$3` bitmask into X/Y/Z invert toggles (only bits 0–2). */
+export function decodeDirInvertMask(mask: number): AxisDirInvert {
+  const m = (Number.isFinite(mask) ? Math.trunc(mask) : 0) & 0b111;
+  return {
+    x: (m & DIR_INVERT_BIT.X) !== 0,
+    y: (m & DIR_INVERT_BIT.Y) !== 0,
+    z: (m & DIR_INVERT_BIT.Z) !== 0,
+  };
+}
+
+/** Encode X/Y/Z invert toggles into a `$3` bitmask (0–7). */
+export function encodeDirInvertMask(flags: AxisDirInvert): number {
+  return (
+    (flags.x ? DIR_INVERT_BIT.X : 0) |
+    (flags.y ? DIR_INVERT_BIT.Y : 0) |
+    (flags.z ? DIR_INVERT_BIT.Z : 0)
+  );
+}
+
+/** Human-readable summary of a `$3` mask, e.g. `X+Y` or `none`. */
+export function describeDirInvertMask(mask: number): string {
+  const flags = decodeDirInvertMask(mask);
+  const parts: string[] = [];
+  if (flags.x) parts.push("X");
+  if (flags.y) parts.push("Y");
+  if (flags.z) parts.push("Z");
+  return parts.length > 0 ? parts.join("+") : "none";
+}
 
 export interface GrblSetting {
   id: number;
