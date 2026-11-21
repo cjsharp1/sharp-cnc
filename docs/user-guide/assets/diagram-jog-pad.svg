@@ -1,54 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 360" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 420" role="img" aria-labelledby="t d">
   <title id="t">Jog pad map</title>
   <desc id="d">Eight-way XY jog pad and Z controls</desc>
   <defs>
     <style>
-      .bg { fill: #f4f6f8; }
-      .btn { fill: #ffffff; stroke: #2c3e50; stroke-width: 2; }
-      .diag { fill: #eef3f7; stroke: #2c3e50; stroke-width: 1.5; }
-      .z { fill: #fff8f0; stroke: #2c3e50; stroke-width: 2; }
-      .stop { fill: #fde8e4; stroke: #a33; stroke-width: 2; }
-      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 14px; font-weight: 700; }
+      .bg { fill: #f1f3f5; }
+      .btn { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .diag { fill: #e8eef3; stroke: #3a4550; stroke-width: 1.75; }
+      .z { fill: #f7efd9; stroke: #b8862d; stroke-width: 2; }
+      .stop { fill: #fde8e4; stroke: #a33a2c; stroke-width: 2; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 15px; font-weight: 700; }
       .title { font-size: 18px; font-weight: 700; }
-      .tiny { font-size: 12px; fill: #4a5568; font-weight: 400; }
+      .tiny { font-size: 12px; fill: #5a6570; font-weight: 400; }
     </style>
   </defs>
-  <rect class="bg" width="520" height="360" rx="8"/>
-  <text class="lab title" x="24" y="34">Jog pad (Move tab)</text>
 
-  <!-- XY pad 3x3 -->
-  <rect class="diag" x="60" y="60" width="70" height="70" rx="10"/>
-  <text class="lab" x="82" y="102">↖</text>
-  <rect class="btn" x="140" y="60" width="70" height="70" rx="10"/>
-  <text class="lab" x="158" y="102">Y+</text>
-  <rect class="diag" x="220" y="60" width="70" height="70" rx="10"/>
-  <text class="lab" x="242" y="102">↗</text>
+  <rect class="bg" width="640" height="420" rx="10"/>
+  <text class="lab title" x="28" y="36">Jog pad (Move tab)</text>
+  <text class="tiny" x="28" y="56">Eight-way XY · separate Z · Stop cancels in-flight jog</text>
 
-  <rect class="btn" x="60" y="140" width="70" height="70" rx="10"/>
-  <text class="lab" x="78" y="182">X−</text>
-  <rect x="140" y="140" width="70" height="70" rx="10" fill="#d7e0e8" stroke="#2c3e50" stroke-width="1.5"/>
-  <text class="tiny" x="152" y="180">XY pad</text>
-  <rect class="btn" x="220" y="140" width="70" height="70" rx="10"/>
-  <text class="lab" x="238" y="182">X+</text>
+  <rect class="diag" x="56" y="80" width="80" height="80" rx="12"/>
+  <text class="lab" x="82" y="128">↖</text>
+  <rect class="btn" x="148" y="80" width="80" height="80" rx="12"/>
+  <text class="lab" x="170" y="128">Y+</text>
+  <rect class="diag" x="240" y="80" width="80" height="80" rx="12"/>
+  <text class="lab" x="266" y="128">↗</text>
 
-  <rect class="diag" x="60" y="220" width="70" height="70" rx="10"/>
-  <text class="lab" x="82" y="262">↙</text>
-  <rect class="btn" x="140" y="220" width="70" height="70" rx="10"/>
-  <text class="lab" x="158" y="262">Y−</text>
-  <rect class="diag" x="220" y="220" width="70" height="70" rx="10"/>
-  <text class="lab" x="242" y="262">↘</text>
+  <rect class="btn" x="56" y="172" width="80" height="80" rx="12"/>
+  <text class="lab" x="78" y="220">X−</text>
+  <rect x="148" y="172" width="80" height="80" rx="12" fill="#d8e0e8" stroke="#3a4550" stroke-width="1.75"/>
+  <text class="tiny" x="164" y="216">XY pad</text>
+  <rect class="btn" x="240" y="172" width="80" height="80" rx="12"/>
+  <text class="lab" x="262" y="220">X+</text>
 
-  <!-- Z column -->
-  <rect class="z" x="340" y="60" width="140" height="70" rx="10"/>
-  <text class="lab" x="386" y="102">Z+</text>
-  <text class="tiny" x="368" y="118">raise tool</text>
-  <rect class="z" x="340" y="140" width="140" height="70" rx="10"/>
-  <text class="lab" x="386" y="182">Z−</text>
-  <text class="tiny" x="372" y="198">lower tool</text>
-  <rect class="stop" x="340" y="220" width="140" height="70" rx="10"/>
-  <text class="lab" x="380" y="262">Stop</text>
-  <text class="tiny" x="358" y="280">cancel jog</text>
+  <rect class="diag" x="56" y="264" width="80" height="80" rx="12"/>
+  <text class="lab" x="82" y="312">↙</text>
+  <rect class="btn" x="148" y="264" width="80" height="80" rx="12"/>
+  <text class="lab" x="170" y="312">Y−</text>
+  <rect class="diag" x="240" y="264" width="80" height="80" rx="12"/>
+  <text class="lab" x="266" y="312">↘</text>
 
-  <text class="tiny" x="24" y="322">Modes: Step (tap once) · Hold (press and keep moving)</text>
-  <text class="tiny" x="24" y="342">Steps: 0.1 / 1 / 10 / 50 mm · Feed: 200–2000 mm/min (default 500)</text>
+  <rect class="z" x="380" y="80" width="200" height="80" rx="12"/>
+  <text class="lab" x="456" y="118">Z+</text>
+  <text class="tiny" x="434" y="140">raise tool</text>
+
+  <rect class="z" x="380" y="172" width="200" height="80" rx="12"/>
+  <text class="lab" x="456" y="210">Z−</text>
+  <text class="tiny" x="432" y="232">lower tool</text>
+
+  <rect class="stop" x="380" y="264" width="200" height="80" rx="12"/>
+  <text class="lab" x="448" y="302">Stop</text>
+  <text class="tiny" x="420" y="324">cancel jog</text>
+
+  <text class="tiny" x="28" y="380">Modes: Step (tap once) · Hold (press and keep moving)</text>
+  <text class="tiny" x="28" y="400">Steps: 0.1 / 1 / 10 / 50 mm · Feed: 200–2000 mm/min (default 500)</text>
 </svg>

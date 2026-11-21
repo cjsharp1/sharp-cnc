@@ -1,55 +1,56 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 420" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 500" role="img" aria-labelledby="t d">
   <title id="t">CNC axis directions</title>
-  <desc id="d">Top-down bed with X right, Y back, and Z up inset</desc>
+  <desc id="d">Top-down square bed with X right, Y back, and Z up inset</desc>
   <defs>
     <style>
-      .bg { fill: #f4f6f8; }
-      .bed { fill: #d7e0e8; stroke: #2c3e50; stroke-width: 2.5; }
-      .grid { stroke: #a8b8c8; stroke-width: 1; }
-      .axis { stroke: #c45c26; stroke-width: 3.5; fill: none; marker-end: url(#arrow); }
+      .bg { fill: #f1f3f5; }
+      .bed { fill: #d8e0e8; stroke: #3a4550; stroke-width: 2.5; }
+      .grid { stroke: #b0bec8; stroke-width: 1; }
+      .axis { stroke: #b8862d; stroke-width: 3.5; fill: none; marker-end: url(#arrow); }
       .axis-z { stroke: #1f6a4a; stroke-width: 3.5; fill: none; marker-end: url(#arrowG); }
-      .home { fill: #2c3e50; }
-      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 15px; }
-      .big { font-size: 22px; font-weight: 700; fill: #c45c26; }
-      .big-g { font-size: 22px; font-weight: 700; fill: #1f6a4a; }
-      .tiny { font-size: 12px; fill: #4a5568; }
+      .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .home { fill: #3a4550; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
       .title { font-size: 18px; font-weight: 700; }
+      .big { font-size: 22px; font-weight: 700; fill: #b8862d; }
+      .big-g { font-size: 22px; font-weight: 700; fill: #1f6a4a; }
+      .tiny { font-size: 12px; fill: #5a6570; }
     </style>
     <marker id="arrow" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
-      <path d="M0,0 L8,3 L0,6 Z" fill="#c45c26"/>
+      <path d="M0,0 L8,3 L0,6 Z" fill="#b8862d"/>
     </marker>
     <marker id="arrowG" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
       <path d="M0,0 L8,3 L0,6 Z" fill="#1f6a4a"/>
     </marker>
   </defs>
-  <rect class="bg" width="560" height="420" rx="8"/>
+
+  <rect class="bg" width="740" height="500" rx="10"/>
   <text class="lab title" x="28" y="36">Axis directions (looking down on the bed)</text>
+  <text class="tiny" x="28" y="56">Expected signs when facing the front of the machine</text>
 
-  <!-- Bed -->
-  <rect class="bed" x="80" y="70" width="300" height="280" rx="6"/>
-  <path class="grid" d="M80 140 H380 M80 210 H380 M80 280 H380 M155 70 V350 M230 70 V350 M305 70 V350"/>
+  <rect class="bed" x="100" y="84" width="300" height="300" rx="8"/>
+  <path class="grid" d="M100 159 H400 M100 234 H400 M100 309 H400 M175 84 V384 M250 84 V384 M325 84 V384"/>
 
-  <!-- Origin home -->
-  <circle class="home" cx="100" cy="330" r="10"/>
-  <text class="lab tiny" x="116" y="335">Home / zero corner</text>
-  <text class="lab tiny" x="100" y="352">(switches on this side)</text>
+  <!-- Axes from origin -->
+  <line class="axis" x1="124" y1="360" x2="360" y2="360"/>
+  <line class="axis" x1="124" y1="360" x2="124" y2="118"/>
+  <circle class="home" cx="124" cy="360" r="9"/>
 
-  <!-- X axis -->
-  <line class="axis" x1="100" y1="330" x2="340" y2="330"/>
-  <text class="big" x="300" y="318">X+</text>
-  <text class="lab tiny" x="250" y="368">X increases to the right</text>
+  <text class="big" x="318" y="344">X+</text>
+  <text class="big" x="140" y="136">Y+</text>
 
-  <!-- Y axis -->
-  <line class="axis" x1="100" y1="330" x2="100" y2="100"/>
-  <text class="big" x="112" y="118">Y+</text>
-  <text class="lab tiny" x="28" y="210" transform="rotate(-90 28 210)">Y increases toward the back</text>
+  <!-- Labels outside bed, clear of strokes -->
+  <text class="lab" x="100" y="420" font-weight="700">Home / zero corner</text>
+  <text class="tiny" x="100" y="440">Switches on this side</text>
+  <text class="tiny" x="280" y="420">X increases to the right</text>
+  <text class="tiny" x="40" y="250" transform="rotate(-90 40 250)">Y increases toward the back</text>
 
-  <!-- Z inset -->
-  <rect x="410" y="90" width="120" height="200" rx="8" fill="#ffffff" stroke="#2c3e50" stroke-width="2"/>
-  <text class="lab" x="430" y="118" font-weight="700">Side view</text>
-  <line class="axis-z" x1="470" y1="260" x2="470" y2="130"/>
-  <text class="big-g" x="484" y="150">Z+</text>
-  <circle cx="470" cy="260" r="8" fill="#2c3e50"/>
-  <text class="lab tiny" x="428" y="290">Z+ raises the</text>
-  <text class="lab tiny" x="428" y="306">tool (safer)</text>
+  <rect class="panel" x="460" y="110" width="240" height="250" rx="10"/>
+  <text class="lab" x="480" y="144" font-weight="700">Side view</text>
+  <text class="tiny" x="480" y="166">Tool height</text>
+  <line class="axis-z" x1="560" y1="300" x2="560" y2="190"/>
+  <circle class="home" cx="560" cy="300" r="8"/>
+  <text class="big-g" x="578" y="210">Z+</text>
+  <text class="tiny" x="480" y="330">Z+ raises the tool</text>
+  <text class="tiny" x="480" y="348">(safer direction)</text>
 </svg>

@@ -1,46 +1,53 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 380" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 720 460" role="img" aria-labelledby="t d">
   <title id="t">Stock on bed</title>
   <desc id="d">Material placed on the machine bed with corner labels</desc>
   <defs>
     <style>
-      .bg { fill: #f4f6f8; }
-      .bed { fill: #d7e0e8; stroke: #2c3e50; stroke-width: 2.5; }
+      .bg { fill: #f1f3f5; }
+      .bed { fill: #d8e0e8; stroke: #3a4550; stroke-width: 2.5; }
       .stock { fill: #e8c9a0; stroke: #8a5a2b; stroke-width: 2.5; }
-      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 14px; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
       .title { font-size: 18px; font-weight: 700; }
-      .corner { font-size: 13px; font-weight: 700; fill: #c45c26; }
-      .tiny { font-size: 12px; fill: #4a5568; }
-      .dot { fill: #2c3e50; }
+      .corner { font-size: 13px; font-weight: 700; fill: #b85c2a; }
+      .tiny { font-size: 12px; fill: #5a6570; }
+      .dot { fill: #3a4550; }
     </style>
   </defs>
-  <rect class="bg" width="600" height="380" rx="8"/>
-  <text class="lab title" x="24" y="34">Stock on the bed</text>
 
-  <rect class="bed" x="80" y="70" width="360" height="250" rx="6"/>
-  <text class="tiny" x="94" y="92">Bed (soft travel X × Y)</text>
+  <rect class="bg" width="720" height="460" rx="10"/>
+  <text class="lab title" x="28" y="36">Stock on the bed</text>
+  <text class="tiny" x="28" y="56">Pick a corner or type Offset X / Offset Y in Material &amp; tool</text>
 
-  <!-- Corners -->
-  <circle class="dot" cx="100" cy="300" r="6"/>
-  <text class="corner" x="112" y="304">SW</text>
-  <text class="tiny" x="112" y="320">Front-left</text>
+  <!-- Square bed -->
+  <rect class="bed" x="100" y="80" width="320" height="320" rx="8"/>
+  <text class="tiny" x="114" y="102">Bed (soft travel X × Y)</text>
 
-  <circle class="dot" cx="420" cy="300" r="6"/>
-  <text class="corner" x="380" y="304">SE</text>
-  <text class="tiny" x="360" y="320">Front-right</text>
+  <circle class="dot" cx="124" cy="372" r="6"/>
+  <text class="corner" x="138" y="368">SW</text>
+  <text class="tiny" x="138" y="386">Front-left</text>
 
-  <circle class="dot" cx="100" cy="90" r="6"/>
-  <text class="corner" x="112" y="94">NW</text>
-  <text class="tiny" x="112" y="110">Back-left</text>
+  <circle class="dot" cx="396" cy="372" r="6"/>
+  <text class="corner" x="348" y="368">SE</text>
+  <text class="tiny" x="320" y="386">Front-right</text>
 
-  <circle class="dot" cx="420" cy="90" r="6"/>
-  <text class="corner" x="380" y="94">NE</text>
-  <text class="tiny" x="360" y="110">Back-right</text>
+  <circle class="dot" cx="124" cy="108" r="6"/>
+  <text class="corner" x="138" y="112">NW</text>
+  <text class="tiny" x="138" y="128">Back-left</text>
 
-  <!-- Example stock SE -->
-  <rect class="stock" x="260" y="200" width="150" height="90" rx="4"/>
-  <text class="lab" x="300" y="250" font-weight="700">Stock</text>
-  <text class="tiny" x="278" y="268">Width × Length</text>
+  <circle class="dot" cx="396" cy="108" r="6"/>
+  <text class="corner" x="348" y="112">NE</text>
+  <text class="tiny" x="320" y="128">Back-right</text>
 
-  <text class="tiny" x="80" y="350">Pick a corner (SW/SE/NW/NE) or type Offset X / Offset Y in Material &amp; tool.</text>
-  <text class="tiny" x="80" y="368">The orange rectangle appears on the visualizer relative to the bed.</text>
+  <rect class="stock" x="250" y="250" width="146" height="96" rx="4"/>
+  <text class="lab" x="288" y="298" font-weight="700">Stock</text>
+  <text class="tiny" x="268" y="318">Width × Length</text>
+
+  <text class="tiny" x="460" y="160">Example: SE corner</text>
+  <text class="tiny" x="460" y="180">placement — the orange</text>
+  <text class="tiny" x="460" y="200">rectangle appears on the</text>
+  <text class="tiny" x="460" y="220">visualizer relative to the bed.</text>
+  <text class="tiny" x="460" y="260">Corners: SW · SE · NW · NE</text>
+  <text class="tiny" x="460" y="280">or custom Offset X / Y.</text>
+
+  <text class="tiny" x="28" y="434">Clamp stock firmly before jogging near edges or probing Z.</text>
 </svg>

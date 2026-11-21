@@ -1,50 +1,52 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 300" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="t d">
   <title id="t">Material presets to spindle and feed</title>
   <desc id="d">Flow from material and bit choices to suggested feed and spindle, then SVG G-code and runtime overrides</desc>
   <defs>
     <style>
-      .bg { fill: #f4f6f8; }
-      .box { fill: #fff; stroke: #2c3e50; stroke-width: 2; }
-      .accent { fill: #e8c9a0; stroke: #8a5a2b; stroke-width: 2; }
-      .run { fill: #d7e0e8; stroke: #2c3e50; stroke-width: 2; }
-      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 13px; }
+      .bg { fill: #f1f3f5; }
+      .box { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .accent { fill: #f7efd9; stroke: #b8862d; stroke-width: 2; }
+      .run { fill: #e8eef3; stroke: #3a4550; stroke-width: 2; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
       .title { font-size: 18px; font-weight: 700; }
-      .tiny { font-size: 11px; fill: #4a5568; }
-      .arrow { stroke: #2c3e50; stroke-width: 2; fill: none; marker-end: url(#m); }
+      .tiny { font-size: 12px; fill: #5a6570; }
+      .arrow { stroke: #3a4550; stroke-width: 2; fill: none; marker-end: url(#m); }
     </style>
     <marker id="m" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
-      <path d="M0,0 L6,3 L0,6 Z" fill="#2c3e50"/>
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a4550"/>
     </marker>
   </defs>
-  <rect class="bg" width="640" height="300" rx="8"/>
-  <text class="lab title" x="24" y="34">Presets → F / S → cut</text>
 
-  <rect class="box" x="24" y="60" width="150" height="90" rx="6"/>
-  <text class="lab" x="36" y="88">1. Material</text>
-  <text class="tiny" x="36" y="108">Softwood · Hardwood</text>
-  <text class="tiny" x="36" y="124">Acrylic · MDF</text>
-  <text class="tiny" x="36" y="140">+ cut style + bit Ø</text>
+  <rect class="bg" width="760" height="340" rx="10"/>
+  <text class="lab title" x="28" y="36">Presets → F / S → cut</text>
+  <text class="tiny" x="28" y="56">Material choices become feed and spindle suggestions</text>
 
-  <path class="arrow" d="M180 105 H214"/>
+  <rect class="box" x="28" y="80" width="180" height="110" rx="10"/>
+  <text class="lab" x="44" y="112" font-weight="700">1. Material</text>
+  <text class="tiny" x="44" y="138">Softwood · Hardwood</text>
+  <text class="tiny" x="44" y="158">Acrylic · MDF</text>
+  <text class="tiny" x="44" y="178">+ cut style + bit Ø</text>
 
-  <rect class="accent" x="220" y="60" width="170" height="90" rx="6"/>
-  <text class="lab" x="232" y="88">2. Suggested F / S</text>
-  <text class="tiny" x="232" y="108">Feed · Plunge · RPM</text>
-  <text class="tiny" x="232" y="124">Persisted · Apply to SVG</text>
-  <text class="tiny" x="232" y="140">Starting point only</text>
+  <path class="arrow" d="M218 135 H252"/>
 
-  <path class="arrow" d="M396 105 H430"/>
+  <rect class="accent" x="260" y="80" width="200" height="110" rx="10"/>
+  <text class="lab" x="276" y="112" font-weight="700">2. Suggested F / S</text>
+  <text class="tiny" x="276" y="138">Feed · Plunge · RPM</text>
+  <text class="tiny" x="276" y="158">Persisted · Apply to SVG</text>
+  <text class="tiny" x="276" y="178">Starting point only</text>
 
-  <rect class="box" x="436" y="60" width="180" height="90" rx="6"/>
-  <text class="lab" x="448" y="88">3. SVG → G-code</text>
-  <text class="tiny" x="448" y="108">M3 S… before cuts</text>
-  <text class="tiny" x="448" y="124">F words on G1 moves</text>
-  <text class="tiny" x="448" y="140">M5 then M2 at end</text>
+  <path class="arrow" d="M470 135 H504"/>
 
-  <path class="arrow" d="M305 156 V188"/>
+  <rect class="box" x="512" y="80" width="220" height="110" rx="10"/>
+  <text class="lab" x="528" y="112" font-weight="700">3. SVG → G-code</text>
+  <text class="tiny" x="528" y="138">M3 S… before cuts</text>
+  <text class="tiny" x="528" y="158">F words on G1 moves</text>
+  <text class="tiny" x="528" y="178">M5 then M2 at end</text>
 
-  <rect class="run" x="160" y="196" width="320" height="72" rx="6"/>
-  <text class="lab" x="176" y="224">Runtime (Move tab)</text>
-  <text class="tiny" x="176" y="244">Feed override 0x90–0x94 · Spindle override 0x99–0x9D</text>
-  <text class="tiny" x="176" y="260">Manual M3 / M5 · soft limits unchanged</text>
+  <path class="arrow" d="M360 200 V228"/>
+
+  <rect class="run" x="180" y="236" width="400" height="76" rx="10"/>
+  <text class="lab" x="200" y="266" font-weight="700">Runtime (Move tab)</text>
+  <text class="tiny" x="200" y="288">Feed override 0x90–0x94 · Spindle override 0x99–0x9D</text>
+  <text class="tiny" x="200" y="306">Manual M3 / M5 · soft limits unchanged</text>
 </svg>
