@@ -9,9 +9,10 @@ Menu → **Calibration…** opens a stepped wizard. Connect first; the wizard au
 | Step | Label | Goal |
 |------|-------|------|
 | 1 | **Zero context** | Confirm work / machine zero before measuring |
-| 2 | **Steps/mm** | Known move → ruler → write `$100` / `$101` / `$102` |
-| 3 | **Soft travel** | Max bed extents → `$130`–`$132`, enable `$20` |
-| 4 | **Manual settings** | Advanced `$$` / `$x=value` fallback |
+| 2 | **Axis direction** | Invert X/Y/Z steppers via `$3` so jog signs match the machine |
+| 3 | **Steps/mm** | Known move → ruler → write `$100` / `$101` / `$102` |
+| 4 | **Soft travel** | Max bed extents → `$130`–`$132`, enable `$20` |
+| 5 | **Manual settings** | Advanced `$$` / `$x=value` fallback (includes `$3`) |
 
 Footer: **Back** · **Next** (step 1 Next is **Zeros look good — Next**) · last step **Done**. You can also click step tabs directly. **Close** dismisses the modal.
 
@@ -34,7 +35,29 @@ Zeroing here still **does not move** the machine — it only sets the work coord
 
 ---
 
-## Step 2 — Steps per mm (on the machine)
+## Step 2 — Axis direction invert (`$3`)
+
+![Axis direction bitmask](assets/diagram-axis-direction.svg)
+
+Do this **before** steps/mm if +X / +Y / +Z move the wrong way relative to the bed.
+
+GRBL `$3` is a bitmask: **bit 0 = X (1)**, **bit 1 = Y (2)**, **bit 2 = Z (4)**. Sum the bits for every axis you want inverted (example: invert X and Z → `$3=5`).
+
+### What to do
+
+1. Confirm **Current $3** (click **Read $$** if it says —).  
+2. Toggle **Invert X / Y / Z** independently to match how the machine is wired.  
+3. Press **Write $3=…**.  
+4. Use **Test +X / −X** (and Y / Z) — each jogs **5 mm** — and watch the tool.  
+5. If a positive jog goes the wrong way, flip that axis toggle, write again, and re-test.
+
+Expected signs (looking down on the bed): **+X** toward the right, **+Y** toward the back, **+Z** up. See also [diagram-axes.svg](assets/diagram-axes.svg).
+
+You can still edit `$3` later in **Manual settings** if needed.
+
+---
+
+## Step 3 — Steps per mm (on the machine)
 
 ![Wizard step 2](assets/cal-step2-steps.png)
 
@@ -57,7 +80,7 @@ Formula (handled for you):
 
 ---
 
-## Step 3 — Soft travel / bed extents
+## Step 4 — Soft travel / bed extents
 
 ![Wizard step 3](assets/cal-step3-travel.png)
 
@@ -77,7 +100,7 @@ Repeat awareness for all axes you care about. Unknown Z max means the UI will no
 
 ---
 
-## Step 4 — Manual settings
+## Step 5 — Manual settings
 
 ![Wizard step 4](assets/cal-step4-manual.png)
 
@@ -87,7 +110,7 @@ For advanced tweaks:
 2. Click a row (or type Setting # + Value).  
 3. **Write $x=value**.
 
-Key rows are highlighted: `$20`, `$100`–`$102`, `$130`–`$132`. Prefer the guided steps for those. Manual writes are blocked while a job is running.
+Key rows are highlighted: `$3`, `$20`, `$100`–`$102`, `$130`–`$132`. Prefer the guided steps for those. Manual writes are blocked while a job is running.
 
 Click **Done** when finished.
 
