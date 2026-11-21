@@ -21,9 +21,43 @@ export type { SoftTravelLimits } from "./machineConfig";
 export {
   DEFAULT_SOFT_TRAVEL,
   bedSizeFromLimits,
+  loadSoftTravel,
   maxForAxis,
   minForAxis,
+  saveSoftTravel,
 } from "./machineConfig";
+
+export type { GrblSetting } from "./settings";
+export {
+  CALIBRATION_DISTANCE_OPTIONS_MM,
+  DEFAULT_CALIBRATION_DISTANCE_MM,
+  DEFAULT_GRBL_SETTINGS,
+  MAX_TRAVEL_SETTING_FOR_AXIS,
+  SETTING_LABELS,
+  SETTING_MAX_TRAVEL_X,
+  SETTING_MAX_TRAVEL_Y,
+  SETTING_MAX_TRAVEL_Z,
+  SETTING_SOFT_LIMITS,
+  SETTING_STEPS_X,
+  SETTING_STEPS_Y,
+  SETTING_STEPS_Z,
+  STEPS_SETTING_FOR_AXIS,
+  canWriteSettings,
+  computeStepsPerMm,
+  formatSettingWrite,
+  parseSettingLine,
+  parseSettingsDump,
+  roundStepsPerMm,
+  softLimitsEnabled,
+  softTravelFromSettings,
+  softTravelWriteCommands,
+} from "./settings";
+
+export {
+  fetchGrblSettings,
+  writeGrblSetting,
+  writeGrblSettings,
+} from "./settingsIo";
 
 export type { JogDelta, JogMode, SoftLimitCheck } from "./jog";
 export {
