@@ -1,0 +1,11 @@
+[[permission]]
+identifier = "allow-serial"
+description = "Allows listing, opening, reading, and writing USB serial ports for GRBL."
+commands.allow = [
+  "list_serial_ports",
+  "serial_open",
+  "serial_close",
+  "serial_write",
+  "serial_write_bytes",
+  "serial_soft_reset"
+]

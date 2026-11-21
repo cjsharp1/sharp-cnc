@@ -28,6 +28,11 @@ export interface GrblStatus {
   machine: Position3;
   /** Work coordinates (WPos), millimeters. */
   work: Position3;
+  /**
+   * Work coordinate offset (WCO = MPos − WPos) when known.
+   * GRBL only includes `WCO:` periodically; clients should retain the last value.
+   */
+  wco?: Position3;
   /** Feed rate when reported (mm/min). */
   feedRate?: number;
   /** Spindle speed when reported (RPM). */

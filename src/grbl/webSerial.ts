@@ -1,3 +1,4 @@
+import { createGrblClient } from "./client";
 import type {
   GrblClient,
   SerialOpenOptions,
@@ -5,12 +6,10 @@ import type {
   TransportEvent,
 } from "./transport";
 import { DEFAULT_BAUD } from "./transport";
-import type { GrblStatus } from "./types";
-import { OFFLINE_STATUS } from "./types";
 
 /**
  * Browser Web Serial API transport stub (Chrome / Edge).
- * Wired later for secondary-PC use when the usual desktop isn't available.
+ * Kept for later parity — desktop USB is the priority for Demon Shield.
  */
 export function createWebSerialTransport(): SerialTransport {
   let open = false;
@@ -27,7 +26,6 @@ export function createWebSerialTransport(): SerialTransport {
       return open;
     },
     async open(_options?: SerialOpenOptions) {
-      // TODO: navigator.serial.requestPort() + port.open({ baudRate })
       if (!("serial" in navigator)) {
         emit({
           type: "error",
@@ -35,6 +33,8 @@ export function createWebSerialTransport(): SerialTransport {
         });
         throw new Error("Web Serial API is not available in this browser");
       }
+      // TODO: navigator.serial.requestPort() + port.open({ baudRate })
+      void DEFAULT_BAUD;
       open = true;
       emit({ type: "open" });
     },
@@ -49,43 +49,22 @@ export function createWebSerialTransport(): SerialTransport {
     },
     onLine(handler) {
       lineHandlers.add(handler);
-      return () => lineHandlers.delete(handler);
+      return () => {
+        lineHandlers.delete(handler);
+      };
     },
     onEvent(handler) {
       eventHandlers.add(handler);
-      return () => eventHandlers.delete(handler);
+      return () => {
+        eventHandlers.delete(handler);
+      };
     },
   };
 }
 
-/** Stub GRBL client for the browser / Web Serial path. */
+/** Stub GRBL client for the browser / Web Serial path (parity later). */
 export function createWebGrblClient(
   transport: SerialTransport = createWebSerialTransport(),
 ): GrblClient {
-  const statusHandlers = new Set<(status: GrblStatus) => void>();
-
-  return {
-    transport,
-    async connect(options?: SerialOpenOptions) {
-      await transport.open({ baudRate: DEFAULT_BAUD, ...options });
-      for (const handler of statusHandlers) handler(OFFLINE_STATUS);
-    },
-    async disconnect() {
-      await transport.close();
-      for (const handler of statusHandlers) handler(OFFLINE_STATUS);
-    },
-    async softReset() {
-      // TODO: write 0x18
-    },
-    async requestStatus() {
-      // TODO: write "?"
-    },
-    async sendLine(line: string) {
-      await transport.write(line.endsWith("\n") ? line : `${line}\n`);
-    },
-    onStatus(handler) {
-      statusHandlers.add(handler);
-      return () => statusHandlers.delete(handler);
-    },
-  };
+  return createGrblClient(transport, { softResetOnConnect: false });
 }
