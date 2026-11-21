@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import type { UiTheme } from "../grbl";
 
 interface AppMenuProps {
   onOpenCalibration: () => void;
@@ -8,6 +9,8 @@ interface AppMenuProps {
   /** When true, Log tab shows Export / Copy / Debug bridge chrome. */
   debugMode: boolean;
   onDebugModeChange: (enabled: boolean) => void;
+  theme: UiTheme;
+  onThemeChange: (theme: UiTheme) => void;
 }
 
 export function AppMenu({
@@ -17,6 +20,8 @@ export function AppMenu({
   onOpenExternalJobs,
   debugMode,
   onDebugModeChange,
+  theme,
+  onThemeChange,
 }: AppMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -107,6 +112,33 @@ export function AppMenu({
           </button>
           <p className="appmenu__hint">
             Pre-start wizard: stock, tool, XY zero, Z probe, then Start.
+          </p>
+          <div className="appmenu__divider" role="separator" />
+          <div className="appmenu__theme" role="group" aria-label="Color theme">
+            <span className="appmenu__theme-label">Appearance</span>
+            <div className="appmenu__theme-switch">
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={theme === "dark"}
+                className={`appmenu__theme-btn${theme === "dark" ? " is-active" : ""}`}
+                onClick={() => onThemeChange("dark")}
+              >
+                Dark
+              </button>
+              <button
+                type="button"
+                role="menuitemradio"
+                aria-checked={theme === "light"}
+                className={`appmenu__theme-btn${theme === "light" ? " is-active" : ""}`}
+                onClick={() => onThemeChange("light")}
+              >
+                Light
+              </button>
+            </div>
+          </div>
+          <p className="appmenu__hint">
+            Workshop steel &amp; brass — saved for next launch.
           </p>
           <div className="appmenu__divider" role="separator" />
           <label className="appmenu__toggle" role="menuitemcheckbox" aria-checked={debugMode}>

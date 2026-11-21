@@ -41,13 +41,15 @@ export function ConnectPanel({
   return (
     <section className="connect" aria-label="Machine connection">
       <div className="connect__row">
-        <div className="connect__status">
+        <div
+          className={`connect__status${connected ? " is-live" : ""}${phase === "error" ? " is-error" : ""}`}
+        >
           <span
             className={`connect__dot ${connected ? "is-live" : ""} ${phase === "error" ? "is-error" : ""}`}
             aria-hidden
           />
           <div>
-            <p className="connect__label">
+            <p className="connect__label" aria-live="polite">
               {phase === "connecting"
                 ? "Connecting"
                 : connected

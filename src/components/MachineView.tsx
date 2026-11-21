@@ -479,7 +479,7 @@ export function MachineView({
               <path
                 d={`M ${spacing.minor} 0 L 0 0 0 ${spacing.minor}`}
                 fill="none"
-                stroke="rgba(196, 168, 90, 0.11)"
+                stroke="var(--viz-grid-minor)"
                 strokeWidth={0.6}
                 vectorEffect="non-scaling-stroke"
               />
@@ -493,14 +493,14 @@ export function MachineView({
               <path
                 d={`M ${spacing.major} 0 L 0 0 0 ${spacing.major}`}
                 fill="none"
-                stroke="rgba(196, 168, 90, 0.28)"
+                stroke="var(--viz-grid-major)"
                 strokeWidth={1.1}
                 vectorEffect="non-scaling-stroke"
               />
             </pattern>
             <radialGradient id={bedGlowId} cx="50%" cy="45%" r="60%">
-              <stop offset="0%" stopColor="rgba(212, 168, 75, 0.16)" />
-              <stop offset="100%" stopColor="rgba(18, 20, 22, 0)" />
+              <stop offset="0%" stopColor="var(--viz-bed-glow-0)" />
+              <stop offset="100%" stopColor="var(--viz-bed-glow-1)" />
             </radialGradient>
             <pattern
               id={stockHatchId}
@@ -514,7 +514,7 @@ export function MachineView({
                 y1="0"
                 x2="0"
                 y2={8 / vis.pxPerMm}
-                stroke="rgba(140, 110, 70, 0.35)"
+                stroke="var(--viz-stock-hatch)"
                 strokeWidth={1.5 / vis.pxPerMm}
               />
             </pattern>
@@ -526,7 +526,7 @@ export function MachineView({
             y={vb.y - vis.height}
             width={vis.width * 3}
             height={vis.height * 3}
-            fill="rgba(10, 12, 14, 0.92)"
+            fill="var(--viz-outside)"
           />
 
           <rect
@@ -556,7 +556,7 @@ export function MachineView({
             width={bedMm.width}
             height={bedMm.depth}
             fill="none"
-            stroke="rgba(138, 148, 158, 0.55)"
+            stroke="var(--viz-bed-edge)"
             strokeWidth={1.5}
             vectorEffect="non-scaling-stroke"
           />
@@ -570,7 +570,7 @@ export function MachineView({
                 y1={0}
                 x2={x}
                 y2={bedMm.depth}
-                stroke="rgba(196, 168, 90, 0.22)"
+                stroke="var(--viz-grid-line)"
                 strokeWidth={1}
                 vectorEffect="non-scaling-stroke"
               />
@@ -584,7 +584,7 @@ export function MachineView({
                   y1={y}
                   x2={bedMm.width}
                   y2={y}
-                  stroke="rgba(196, 168, 90, 0.22)"
+                  stroke="var(--viz-grid-line)"
                   strokeWidth={1}
                   vectorEffect="non-scaling-stroke"
                 />
@@ -604,7 +604,7 @@ export function MachineView({
                     bedMm.depth - labelSize * 0.35,
                     vb.y + vb.h - labelSize * 0.4,
                   )}
-                  fill="rgba(232, 234, 237, 0.4)"
+                  fill="var(--viz-label)"
                   fontSize={labelSize}
                   style={{ fontFamily: "var(--font-mono, monospace)" }}
                 >
@@ -620,7 +620,7 @@ export function MachineView({
                     key={`ly-${yWork}`}
                     x={Math.max(0, vb.x) + labelSize * 0.25}
                     y={y - labelSize * 0.25}
-                    fill="rgba(232, 234, 237, 0.4)"
+                    fill="var(--viz-label)"
                     fontSize={labelSize}
                     style={{ fontFamily: "var(--font-mono, monospace)" }}
                   >
@@ -637,8 +637,8 @@ export function MachineView({
                 y={stockRect.y}
                 width={stockRect.w}
                 height={stockRect.h}
-                fill="rgba(90, 72, 48, 0.45)"
-                stroke="rgba(196, 152, 90, 0.75)"
+                fill="var(--viz-stock-fill)"
+                stroke="var(--viz-stock-stroke)"
                 strokeWidth={1.5}
                 vectorEffect="non-scaling-stroke"
               />
@@ -654,7 +654,7 @@ export function MachineView({
                 x={stockRect.x + labelSize * 0.6}
                 y={stockRect.y + Math.min(labelSize * 1.4, stockRect.h * 0.9)}
                 className="machine__label"
-                fill="rgba(232, 214, 170, 0.7)"
+                fill="var(--viz-stock-label)"
                 fontSize={labelSize}
               >
                 Stock
@@ -667,7 +667,7 @@ export function MachineView({
             <path
               d={todoPaths.rapid}
               fill="none"
-              stroke="rgba(138, 148, 158, 0.35)"
+              stroke="var(--viz-path-todo-rapid)"
               strokeWidth={1}
               strokeDasharray="4 3"
               vectorEffect="non-scaling-stroke"
@@ -677,7 +677,7 @@ export function MachineView({
             <path
               d={todoPaths.feed}
               fill="none"
-              stroke="rgba(212, 168, 75, 0.45)"
+              stroke="var(--viz-path-todo-feed)"
               strokeWidth={1.5}
               vectorEffect="non-scaling-stroke"
             />
@@ -688,7 +688,7 @@ export function MachineView({
             <path
               d={donePaths.rapid}
               fill="none"
-              stroke="rgba(138, 148, 158, 0.55)"
+              stroke="var(--viz-path-done-rapid)"
               strokeWidth={1}
               strokeDasharray="4 3"
               vectorEffect="non-scaling-stroke"
@@ -698,7 +698,7 @@ export function MachineView({
             <path
               d={donePaths.feed}
               fill="none"
-              stroke="rgba(232, 196, 110, 0.9)"
+              stroke="var(--viz-path-done-feed)"
               strokeWidth={1.75}
               vectorEffect="non-scaling-stroke"
             />
@@ -712,8 +712,8 @@ export function MachineView({
               fill="none"
               stroke={
                 simulating
-                  ? "rgba(120, 180, 220, 0.75)"
-                  : "rgba(212, 168, 75, 0.7)"
+                  ? "var(--viz-trail-sim)"
+                  : "var(--viz-trail)"
               }
               strokeWidth={2.25}
               strokeLinecap="round"
@@ -732,8 +732,8 @@ export function MachineView({
               fill="none"
               stroke={
                 simulating
-                  ? "rgba(120, 180, 220, 0.45)"
-                  : "rgba(212, 168, 75, 0.35)"
+                  ? "var(--viz-tool-sim-fill)"
+                  : "var(--viz-tool-fill)"
               }
               strokeWidth={1}
               vectorEffect="non-scaling-stroke"
@@ -757,10 +757,10 @@ export function MachineView({
               r={bitR}
               fill={
                 simulating
-                  ? "rgba(120, 180, 220, 0.4)"
-                  : "rgba(212, 168, 75, 0.35)"
+                  ? "var(--viz-tool-sim-fill)"
+                  : "var(--viz-tool-fill)"
               }
-              stroke={simulating ? "#78b4dc" : "#d4a84b"}
+              stroke={simulating ? "var(--viz-tool-sim-stroke)" : "var(--viz-tool-stroke)"}
               strokeWidth={1.25}
               vectorEffect="non-scaling-stroke"
             />
@@ -768,7 +768,7 @@ export function MachineView({
               cx={toolMapped.x}
               cy={toolMapped.y}
               r={Math.max(bitRMm * 0.28, 1.5 / vis.pxPerMm)}
-              fill="#1a1c1e"
+              fill="var(--viz-tool-core)"
             />
           </g>
         </svg>

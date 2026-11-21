@@ -54,6 +54,7 @@ import {
   jogDeltaFromAxes,
   listAvailablePorts,
   loadDebugMode,
+  loadUiTheme,
   loadDriveConfig,
   loadJobFromText,
   loadJobsFolderConfig,
@@ -70,6 +71,8 @@ import {
   resumeSim,
   runZProbeCycle,
   saveDebugMode,
+  saveUiTheme,
+  applyUiTheme,
   saveDriveConfig,
   saveFeedsSpeedsSelection,
   saveJobsFolderConfig,
@@ -114,6 +117,7 @@ import {
   type SvgImportResult,
   type SvgToolpathParams,
   type ToolConfig,
+  type UiTheme,
   type ZeroAxisSelection,
 } from "./grbl";
 import "./App.css";
@@ -210,6 +214,8 @@ export default function App() {
   const [extJobsHighlight, setExtJobsHighlight] = useState(false);
   /** Debug mode chrome (Export / Copy / bridge) — persisted; default off. */
   const [debugMode, setDebugMode] = useState(() => loadDebugMode());
+  /** Color theme — persisted; default dark workshop. */
+  const [theme, setTheme] = useState<UiTheme>(() => loadUiTheme());
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<DebugBridgeStatus | null>(
     null,
@@ -222,6 +228,12 @@ export default function App() {
     if (!enabled) {
       setBridgeEnabled(false);
     }
+  };
+
+  const handleThemeChange = (next: UiTheme) => {
+    setTheme(next);
+    saveUiTheme(next);
+    applyUiTheme(next);
   };
 
   const usingMock = !isDesktopShell();
@@ -1716,6 +1728,8 @@ export default function App() {
           onOpenExternalJobs={openExternalJobs}
           debugMode={debugMode}
           onDebugModeChange={handleDebugModeChange}
+          theme={theme}
+          onThemeChange={handleThemeChange}
         />
       </header>
 

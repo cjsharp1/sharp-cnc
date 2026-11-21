@@ -271,6 +271,14 @@ export {
   saveDebugMode,
 } from "./debugModeConfig";
 
+export type { UiTheme } from "./themeConfig";
+export {
+  DEFAULT_UI_THEME,
+  applyUiTheme,
+  loadUiTheme,
+  saveUiTheme,
+} from "./themeConfig";
+
 export type { ParsedAlarm } from "./safety";
 export {
   UNLOCK_COMMAND,
