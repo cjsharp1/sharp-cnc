@@ -42,6 +42,8 @@ interface PendingLine {
  * - Pause: real-time feed hold (`!`); stop filling the buffer
  * - Resume: cycle start (`~`); continue sending
  * - Stop: soft reset (`0x18`); abort remaining lines
+ * - syncFromExternal*: mirror hardware Demon Shield buttons without re-sending
+ *   the real-time command (hardware already applied it on the controller).
  */
 export function createGcodeStreamer(
   transport: SerialTransport,
@@ -51,6 +53,12 @@ export function createGcodeStreamer(
   pause(): Promise<void>;
   resume(): Promise<void>;
   stop(): Promise<void>;
+  /** Mirror external feed hold — do not send `!`. */
+  syncFromExternalHold(): void;
+  /** Mirror external cycle start — do not send `~`; resume buffer fill. */
+  syncFromExternalResume(): Promise<void>;
+  /** Mirror external abort/reset — do not send soft-reset (already done). */
+  syncFromExternalAbort(): void;
   getProgress(): StreamProgress;
   dispose(): void;
 } {
@@ -276,6 +284,34 @@ export function createGcodeStreamer(
       }
       pending = [];
       bufferUsed = 0;
+      finish("idle");
+    },
+
+    syncFromExternalHold() {
+      if (phase !== "running") return;
+      phase = "paused";
+      emit();
+    },
+
+    async syncFromExternalResume() {
+      if (phase !== "paused") return;
+      phase = "running";
+      emit();
+      await scheduleFill();
+    },
+
+    syncFromExternalAbort() {
+      if (
+        phase !== "running" &&
+        phase !== "paused" &&
+        phase !== "error" &&
+        phase !== "stopping"
+      ) {
+        return;
+      }
+      pending = [];
+      bufferUsed = 0;
+      lastError = undefined;
       finish("idle");
     },
 

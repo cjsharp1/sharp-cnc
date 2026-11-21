@@ -42,11 +42,23 @@ export function createMockTransport(): SerialTransport {
   let motionTimer: ReturnType<typeof setTimeout> | null = null;
   let statusTick = 0;
   let busy = false;
+  /** Active control pins for `Pn:` (Demon Shield button simulation). */
+  let activePins = "";
+  let pinClearTimer: ReturnType<typeof setTimeout> | null = null;
   const queue: string[] = [];
   /** Mutable GRBL EEPROM settings for `$$` / `$n=` calibration smoke tests. */
   const settings = new Map<number, number>(
     Object.entries(DEFAULT_GRBL_SETTINGS).map(([k, v]) => [Number(k), v]),
   );
+
+  const pulsePin = (letter: string, holdMs = 120) => {
+    if (!activePins.includes(letter)) activePins += letter;
+    if (pinClearTimer !== null) clearTimeout(pinClearTimer);
+    pinClearTimer = setTimeout(() => {
+      activePins = "";
+      pinClearTimer = null;
+    }, holdMs);
+  };
 
   const emit = (event: TransportEvent) => {
     for (const handler of eventHandlers) handler(event);
@@ -68,12 +80,13 @@ export function createMockTransport(): SerialTransport {
     const withWco = wcoReportCounter % 7 === 0;
     const m = machine;
     const reportState = state === "Hold" ? "Hold:0" : state;
-    const base = `<${reportState}|MPos:${m.x.toFixed(3)},${m.y.toFixed(3)},${m.z.toFixed(3)}|FS:0,0`;
-    emitLine(
-      withWco
-        ? `${base}|WCO:${wco.x.toFixed(3)},${wco.y.toFixed(3)},${wco.z.toFixed(3)}>`
-        : `${base}>`,
-    );
+    let body = `<${reportState}|MPos:${m.x.toFixed(3)},${m.y.toFixed(3)},${m.z.toFixed(3)}|FS:0,0`;
+    if (withWco) {
+      body += `|WCO:${wco.x.toFixed(3)},${wco.y.toFixed(3)},${wco.z.toFixed(3)}`;
+    }
+    // Match GRBL: only include Pn: while pins are active.
+    if (activePins) body += `|Pn:${activePins}`;
+    emitLine(`${body}>`);
   };
 
   const parseAxisValues = (cmd: string): Partial<Position3> => {
@@ -371,6 +384,32 @@ export function createMockTransport(): SerialTransport {
     }
 
     if (!trimmed) return;
+
+    // Demon Shield button sim — apply immediately (like real-time pins), not via RX queue.
+    if (/^\$ExtHold$/i.test(trimmed)) {
+      pulsePin("H");
+      if (state === "Run" || state === "Jog") {
+        heldFrom = state;
+        state = "Hold";
+      }
+      emitLine("ok");
+      return;
+    }
+    if (/^\$ExtResume$/i.test(trimmed)) {
+      pulsePin("S");
+      if (state === "Hold") {
+        state = heldFrom === "Jog" ? "Jog" : "Run";
+        pump();
+      }
+      emitLine("ok");
+      return;
+    }
+    if (/^\$ExtAbort$/i.test(trimmed)) {
+      pulsePin("R");
+      softReset();
+      return;
+    }
+
     queue.push(trimmed);
     pump();
   };

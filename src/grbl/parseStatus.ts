@@ -1,3 +1,4 @@
+import { parseActivePins } from "./externalControls";
 import type { GrblMachineState, GrblStatus, Position3 } from "./types";
 import { ZERO_POSITION } from "./types";
 
@@ -62,6 +63,7 @@ export function parseStatusReport(
   let wco: Position3 | null = null;
   let feedRate: number | undefined;
   let spindleSpeed: number | undefined;
+  let pinsRaw: string | null = null;
 
   for (let i = 1; i < fields.length; i++) {
     const field = fields[i];
@@ -76,6 +78,9 @@ export function parseStatusReport(
       work = parseVec3(value);
     } else if (key === "WCO") {
       wco = parseVec3(value);
+    } else if (key === "Pn") {
+      // Present only while at least one pin is active; empty → clear.
+      pinsRaw = value;
     } else if (key === "FS" || key === "F") {
       const nums = value.split(",").map(Number);
       if (Number.isFinite(nums[0])) feedRate = nums[0];
@@ -109,6 +114,8 @@ export function parseStatusReport(
     wco: wco ?? rememberedWco ?? undefined,
     feedRate: feedRate ?? prev?.feedRate,
     spindleSpeed: spindleSpeed ?? prev?.spindleSpeed,
+    // When Pn: is omitted, all pins are inactive (do not retain previous).
+    pins: pinsRaw !== null ? parseActivePins(pinsRaw) : undefined,
     raw: trimmed,
   };
 }

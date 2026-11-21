@@ -39,12 +39,14 @@ import {
   continuousJogDelta,
   buildDebugSnapshot,
   createActivityLog,
+  createDemonShieldExternalControlAdapter,
   createGcodeStreamer,
   createIdleSim,
   createSessionClient,
   fetchGrblSettings,
   importSvg,
   isDesktopShell,
+  isGrblResetBanner,
   jogDeltaFromAxes,
   listAvailablePorts,
   loadDriveConfig,
@@ -76,6 +78,7 @@ import {
   type DebugBridgeStatus,
   type DesktopPortInfo,
   type DriveConfig,
+  type ExternalControlAdapter,
   type GcodeStreamer,
   type GrblClient,
   type GrblSetting,
@@ -87,6 +90,7 @@ import {
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
+  type StreamPhase,
   type StreamProgress,
   type SvgImportResult,
   type SvgToolpathParams,
@@ -109,6 +113,11 @@ export default function App() {
   const continuousTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const continuousAxesRef = useRef<JogAxisMap | null>(null);
   const statusRef = useRef<GrblStatus>(OFFLINE_STATUS);
+  const streamPhaseRef = useRef<StreamPhase>("idle");
+  const externalControlsRef = useRef<ExternalControlAdapter>(
+    createDemonShieldExternalControlAdapter(),
+  );
+  const startJobRef = useRef<() => Promise<void>>(async () => undefined);
 
   const [phase, setPhase] = useState<ConnectionPhase>("disconnected");
   const [status, setStatus] = useState<GrblStatus>(OFFLINE_STATUS);
@@ -236,6 +245,10 @@ export default function App() {
     simRef.current = sim;
   }, [sim]);
 
+  useEffect(() => {
+    streamPhaseRef.current = streamProgress?.phase ?? "idle";
+  }, [streamProgress]);
+
   // Smooth live WPos + optional motion trail; drive pre-run sim on rAF.
   useEffect(() => {
     let raf = 0;
@@ -347,6 +360,28 @@ export default function App() {
   useEffect(() => {
     const client = createSessionClient({ activityLog });
     clientRef.current = client;
+    const controls = externalControlsRef.current;
+
+    const applyExternalEvents = (
+      events: ReturnType<ExternalControlAdapter["observe"]>,
+    ) => {
+      for (const ev of events) {
+        activityLog.append("event", ev.message);
+        if (ev.action === "hold") {
+          streamerRef.current?.syncFromExternalHold();
+        } else if (ev.action === "resume") {
+          void streamerRef.current?.syncFromExternalResume();
+        } else if (ev.action === "abort") {
+          streamerRef.current?.syncFromExternalAbort();
+          setErrorMessage(null);
+          setSoftLimitHint(null);
+        } else if (ev.action === "cycle-start-idle") {
+          // Demon Shield RESUME while Idle → start loaded job (confirm on HW).
+          void startJobRef.current();
+        }
+      }
+    };
+
     const unsub = client.onStatus((next) => {
       statusRef.current = next;
       setStatus(next);
@@ -359,21 +394,41 @@ export default function App() {
       if (next.state === "Offline" && client.transport.isOpen === false) {
         setPhase((prev) => (prev === "connecting" ? prev : "disconnected"));
       }
+      applyExternalEvents(
+        controls.observe({
+          status: next,
+          streamPhase: streamPhaseRef.current,
+        }),
+      );
     });
 
-    // Also catch ALARM / error:Alarm lines that may not change status raw.
+    // Also catch ALARM / error:Alarm lines that may not change status raw,
+    // plus GRBL soft-reset banners from the external Abort button.
     const unsubLines = client.transport.onLine((line) => {
       const parsed = parseAlarmLine(line);
       if (parsed) setAlarmMessage(parsed.message);
+      if (isGrblResetBanner(line)) {
+        applyExternalEvents(
+          controls.observe({
+            status: statusRef.current,
+            streamPhase: streamPhaseRef.current,
+            rawLine: line,
+          }),
+        );
+      }
     });
 
     streamerRef.current = createGcodeStreamer(client.transport, {
-      onProgress: (p) => setStreamProgress({ ...p }),
+      onProgress: (p) => {
+        streamPhaseRef.current = p.phase;
+        setStreamProgress({ ...p });
+      },
     });
 
     return () => {
       unsub();
       unsubLines();
+      controls.reset();
       streamerRef.current?.dispose();
       streamerRef.current = null;
       void client.disconnect().catch(() => undefined);
@@ -533,6 +588,7 @@ export default function App() {
     setZeroMessage(null);
     setPendingGoTo(null);
     setAlarmMessage(null);
+    externalControlsRef.current.reset();
     try {
       await client.connect({ path: selectedPath });
       setPhase("connected");
@@ -587,6 +643,7 @@ export default function App() {
 
   const handleSoftReset = async () => {
     await stopContinuousJog();
+    externalControlsRef.current.noteSoftwareAction("abort");
     if (streaming) {
       await streamerRef.current?.stop();
     }
@@ -607,6 +664,7 @@ export default function App() {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
     activityLog.append("event", "E-Stop");
+    externalControlsRef.current.noteSoftwareAction("abort");
     await stopContinuousJog();
     try {
       await client.feedHold();
@@ -643,6 +701,7 @@ export default function App() {
       return;
     }
     try {
+      externalControlsRef.current.noteSoftwareAction("hold");
       if (streamProgress?.phase === "running") {
         await streamerRef.current?.pause();
       } else {
@@ -663,6 +722,7 @@ export default function App() {
       return;
     }
     try {
+      externalControlsRef.current.noteSoftwareAction("resume");
       if (streamProgress?.phase === "paused") {
         await streamerRef.current?.resume();
       } else {
@@ -1242,6 +1302,7 @@ export default function App() {
 
     await stopContinuousJog();
     setErrorMessage(null);
+    externalControlsRef.current.noteSoftwareAction("start");
     activityLog.append("event", `Job start: ${job.name}`);
     try {
       await streamer.start(job.lines);
@@ -1252,9 +1313,11 @@ export default function App() {
       activityLog.append("event", `Job error: ${message}`);
     }
   };
+  startJobRef.current = handleStartJob;
 
   const handlePauseJob = async () => {
     try {
+      externalControlsRef.current.noteSoftwareAction("hold");
       await streamerRef.current?.pause();
       activityLog.append("event", "Job pause");
     } catch (err) {
@@ -1269,6 +1332,7 @@ export default function App() {
       return;
     }
     try {
+      externalControlsRef.current.noteSoftwareAction("resume");
       await streamerRef.current?.resume();
       activityLog.append("event", "Job resume");
     } catch (err) {
@@ -1279,6 +1343,7 @@ export default function App() {
 
   const handleStopJob = async () => {
     try {
+      externalControlsRef.current.noteSoftwareAction("abort");
       await streamerRef.current?.stop();
       activityLog.append("event", "Job stop");
     } catch (err) {
