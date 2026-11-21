@@ -109,9 +109,19 @@ npm run pages:preview
 
 ## Smoke checks (no hardware)
 
+Critical gates (also run on every PR via GitHub Actions):
+
+```bash
+npm run smoke:critical
+```
+
+Full suite before a tagged release:
+
 ```bash
 npm run smoke
 ```
+
+Release process / notes template: [docs/RELEASE.md](docs/RELEASE.md).
 
 ## License & contributing
 

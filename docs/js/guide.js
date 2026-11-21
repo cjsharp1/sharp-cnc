@@ -96,6 +96,11 @@
           title: "Google Drive setup",
           path: "google-drive-setup.md",
         },
+        {
+          id: "release",
+          title: "Release checklist",
+          path: "RELEASE.md",
+        },
       ],
     },
   ];

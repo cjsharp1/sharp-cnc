@@ -1,0 +1,49 @@
+# Critical no-hardware smoke gates for SharpCNC PRs and main.
+name: Smoke
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  critical:
+    name: smoke:critical
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Critical smokes
+        run: npm run smoke:critical
+
+  full:
+    name: smoke (full)
+    runs-on: ubuntu-latest
+    # Full suite on main pushes; PRs still get critical above.
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Full smoke suite
+        run: npm run smoke
