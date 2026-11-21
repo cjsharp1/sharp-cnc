@@ -107,6 +107,31 @@ export {
   stripGcodeComments,
 } from "./gcode";
 
+export type { Point2, Polyline2 } from "./svgPath";
+export {
+  boundsOfPolylines,
+  normalizePolylinesForCnc,
+  parsePathData,
+  tokenizePathData,
+} from "./svgPath";
+
+export type { SvgImportResult } from "./svgImport";
+export {
+  extractSvgPolylines,
+  importSvg,
+  isSvgFileName,
+  lengthToMm,
+  polylinesToPreview,
+} from "./svgImport";
+
+export type { SvgCutMode, SvgToolpathParams } from "./svgToolpath";
+export {
+  DEFAULT_SVG_TOOLPATH,
+  buildJobFromSvg,
+  formatMm,
+  generateSvgGcode,
+} from "./svgToolpath";
+
 export type { GcodeStreamer, StreamPhase, StreamProgress } from "./streamer";
 export { GRBL_RX_BUFFER, createGcodeStreamer } from "./streamer";
 

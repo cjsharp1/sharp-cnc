@@ -8,7 +8,7 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "tauri": "tauri",
-    "smoke": "node scripts/smoke-parse-status.mjs && node scripts/smoke-jog-zero.mjs && node scripts/smoke-mock-jog.mjs && node scripts/smoke-gcode-stream.mjs && npx --yes tsx scripts/smoke-mock-stream.mts && npx --yes tsx scripts/smoke-activity-safety.mts && npx --yes tsx scripts/smoke-calibration.mts"
+    "smoke": "node scripts/smoke-parse-status.mjs && node scripts/smoke-jog-zero.mjs && node scripts/smoke-mock-jog.mjs && node scripts/smoke-gcode-stream.mjs && npx --yes tsx scripts/smoke-mock-stream.mts && npx --yes tsx scripts/smoke-activity-safety.mts && npx --yes tsx scripts/smoke-calibration.mts && npx --yes tsx scripts/smoke-svg-gcode.mts"
   },
   "dependencies": {
     "react": "^19.1.0",
