@@ -1,14 +1,23 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  DEBUG_BRIDGE_DEFAULT_PORT,
+  debugBridgeBaseUrl,
   entryMatchesFilter,
   formatActivityLine,
+  isDesktopShell,
   type ActivityEntry,
   type ActivityFilter,
   type ActivityLog,
+  type DebugBridgeStatus,
 } from "../grbl";
 
 interface ActivityLogPanelProps {
   log: ActivityLog;
+  /** Desktop-only: bridge enable wiring from App. */
+  bridgeEnabled?: boolean;
+  bridgeStatus?: DebugBridgeStatus | null;
+  bridgeError?: string | null;
+  onBridgeEnabledChange?: (enabled: boolean) => void;
 }
 
 const FILTERS: { id: ActivityFilter; label: string }[] = [
@@ -19,11 +28,38 @@ const FILTERS: { id: ActivityFilter; label: string }[] = [
   { id: "raw", label: "Raw" },
 ];
 
-export function ActivityLogPanel({ log }: ActivityLogPanelProps) {
+const COPY_N_OPTIONS = [50, 100, 200] as const;
+
+function downloadBlob(filename: string, contents: string, mime: string) {
+  const blob = new Blob([contents || "(empty)\n"], {
+    type: `${mime};charset=utf-8`,
+  });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function stamp(): string {
+  return new Date().toISOString().replace(/[:.]/g, "-");
+}
+
+export function ActivityLogPanel({
+  log,
+  bridgeEnabled = false,
+  bridgeStatus = null,
+  bridgeError = null,
+  onBridgeEnabledChange,
+}: ActivityLogPanelProps) {
   const [entries, setEntries] = useState<readonly ActivityEntry[]>([]);
   const [filter, setFilter] = useState<ActivityFilter>("all");
   const [pinned, setPinned] = useState(false);
+  const [copyN, setCopyN] = useState<(typeof COPY_N_OPTIONS)[number]>(100);
+  const [copyHint, setCopyHint] = useState<string | null>(null);
   const scrollerRef = useRef<HTMLDivElement>(null);
+  const desktop = isDesktopShell();
 
   useEffect(() => log.onChange(setEntries), [log]);
 
@@ -39,20 +75,39 @@ export function ActivityLogPanel({ log }: ActivityLogPanelProps) {
     el.scrollTop = el.scrollHeight;
   }, [visible, pinned]);
 
-  const handleExport = () => {
-    const text = log.exportText(filter === "all" ? "raw" : filter);
-    const blob = new Blob([text || "(empty)\n"], {
-      type: "text/plain;charset=utf-8",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `sharpcnc-activity-${new Date()
-      .toISOString()
-      .replace(/[:.]/g, "-")}.log`;
-    a.click();
-    URL.revokeObjectURL(url);
+  const exportFilter: ActivityFilter = filter === "all" ? "raw" : filter;
+
+  const handleExportText = () => {
+    downloadBlob(
+      `sharpcnc-activity-${stamp()}.log`,
+      log.exportText(exportFilter),
+      "text/plain",
+    );
   };
+
+  const handleExportJson = () => {
+    downloadBlob(
+      `sharpcnc-activity-${stamp()}.json`,
+      log.exportJson(exportFilter),
+      "application/json",
+    );
+  };
+
+  const handleCopyLast = async () => {
+    const slice = log.getLast(copyN);
+    const text = slice.map(formatActivityLine).join("\n");
+    try {
+      await navigator.clipboard.writeText(text || "(empty)");
+      setCopyHint(`Copied ${slice.length} line(s)`);
+    } catch {
+      setCopyHint("Clipboard blocked — use Export instead");
+    }
+    window.setTimeout(() => setCopyHint(null), 2200);
+  };
+
+  const bridgeUrl = debugBridgeBaseUrl(
+    bridgeStatus?.port ?? DEBUG_BRIDGE_DEFAULT_PORT,
+  );
 
   return (
     <section className="alog" aria-label="Activity log">
@@ -78,13 +133,81 @@ export function ActivityLogPanel({ log }: ActivityLogPanelProps) {
           <button
             type="button"
             className="alog__tool"
-            onClick={handleExport}
+            onClick={handleExportText}
             disabled={entries.length === 0}
+            title="Export filtered log as text"
           >
             Export
           </button>
+          <button
+            type="button"
+            className="alog__tool"
+            onClick={handleExportJson}
+            disabled={entries.length === 0}
+            title="Export filtered log as JSON"
+          >
+            JSON
+          </button>
         </div>
       </header>
+
+      <div className="alog__copy-row">
+        <label className="alog__copy-label" htmlFor="alog-copy-n">
+          Copy last
+        </label>
+        <select
+          id="alog-copy-n"
+          className="alog__copy-select"
+          value={copyN}
+          onChange={(e) =>
+            setCopyN(Number(e.target.value) as (typeof COPY_N_OPTIONS)[number])
+          }
+        >
+          {COPY_N_OPTIONS.map((n) => (
+            <option key={n} value={n}>
+              {n}
+            </option>
+          ))}
+        </select>
+        <button
+          type="button"
+          className="alog__tool"
+          onClick={() => {
+            void handleCopyLast();
+          }}
+          disabled={entries.length === 0}
+        >
+          Copy
+        </button>
+        {copyHint && <span className="alog__copy-hint">{copyHint}</span>}
+      </div>
+
+      {onBridgeEnabledChange && (
+        <div className="alog__bridge">
+          <label className="alog__bridge-toggle">
+            <input
+              type="checkbox"
+              checked={bridgeEnabled}
+              disabled={!desktop}
+              onChange={(e) => onBridgeEnabledChange(e.target.checked)}
+            />
+            <span>Debug bridge</span>
+          </label>
+          <p className="alog__bridge-note">
+            {desktop
+              ? bridgeEnabled
+                ? `Listening on ${bridgeUrl} — localhost only, read-only. Do not expose this port.`
+                : "Optional localhost HTTP for a Cursor agent on this PC (read-only status + logs)."
+              : "Requires the SharpCNC desktop app (Tauri). In the browser, use Export / Copy instead."}
+          </p>
+          {bridgeEnabled && bridgeStatus?.running && (
+            <p className="alog__bridge-url">
+              Try <code>curl {bridgeUrl}/v1/status</code>
+            </p>
+          )}
+          {bridgeError && <p className="alog__bridge-error">{bridgeError}</p>}
+        </div>
+      )}
 
       <div className="alog__filters" role="tablist" aria-label="Log filter">
         {FILTERS.map((f) => (
@@ -119,6 +242,9 @@ export function ActivityLogPanel({ log }: ActivityLogPanelProps) {
                       : entry.kind === "alarm"
                         ? "ALM"
                         : "EVT"}
+                </span>
+                <span className="alog__cat" title={entry.category}>
+                  {entry.category.slice(0, 3)}
                 </span>
                 <span className="alog__text" title={formatActivityLine(entry)}>
                   {entry.text}

@@ -1,0 +1,9 @@
+[[permission]]
+identifier = "allow-debug-bridge"
+description = "Allows starting/stopping the localhost-only read-only debug bridge and publishing snapshots for agents."
+commands.allow = [
+  "debug_bridge_start",
+  "debug_bridge_stop",
+  "debug_bridge_set_snapshot",
+  "debug_bridge_status"
+]

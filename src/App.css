@@ -1409,10 +1409,81 @@ button {
   gap: 0.12rem;
 }
 
+.alog__copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.alog__copy-label {
+  font-size: 0.65rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--steel-dim);
+}
+
+.alog__copy-select {
+  padding: 0.18rem 0.35rem;
+  border: 1px solid rgba(138, 148, 158, 0.3);
+  background: rgba(10, 12, 14, 0.45);
+  color: var(--steel);
+  font-size: 0.7rem;
+}
+
+.alog__copy-hint {
+  font-size: 0.68rem;
+  color: var(--brass-hot);
+}
+
+.alog__bridge {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.4rem 0.45rem;
+  border: 1px solid rgba(138, 148, 158, 0.18);
+  background: rgba(10, 12, 14, 0.35);
+}
+
+.alog__bridge-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--steel);
+  cursor: pointer;
+}
+
+.alog__bridge-toggle input {
+  accent-color: var(--brass-hot);
+}
+
+.alog__bridge-note,
+.alog__bridge-url {
+  margin: 0;
+  font-size: 0.66rem;
+  line-height: 1.4;
+  color: var(--steel-dim);
+}
+
+.alog__bridge-url code {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  color: var(--muted);
+}
+
+.alog__bridge-error {
+  margin: 0;
+  font-size: 0.68rem;
+  color: #e8a090;
+}
+
 .alog__line {
   display: grid;
-  grid-template-columns: 2.2rem minmax(0, 1fr);
-  gap: 0.4rem;
+  grid-template-columns: 2.2rem 2rem minmax(0, 1fr);
+  gap: 0.35rem;
   align-items: baseline;
   font-family: var(--font-mono);
   font-size: 0.7rem;
@@ -1422,6 +1493,14 @@ button {
 .alog__kind {
   color: var(--steel-dim);
   letter-spacing: 0.04em;
+}
+
+.alog__cat {
+  color: var(--steel-dim);
+  opacity: 0.75;
+  font-size: 0.62rem;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .alog__text {
