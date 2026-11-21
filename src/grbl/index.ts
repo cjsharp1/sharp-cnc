@@ -405,9 +405,10 @@ export {
   saveDebugMode,
 } from "./debugModeConfig";
 
-export type { FirstRunState } from "./firstRunConfig";
+export type { FirstRunState, FirstRunStepId } from "./firstRunConfig";
 export {
   DEFAULT_FIRST_RUN,
+  FIRST_RUN_STEPS,
   loadFirstRunState,
   resetFirstRunState,
   saveFirstRunCompleted,

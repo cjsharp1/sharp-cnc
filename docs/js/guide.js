@@ -101,6 +101,16 @@
           title: "Release checklist",
           path: "RELEASE.md",
         },
+        {
+          id: "testing-handoff",
+          title: "Testing handoff (first cut)",
+          path: "TESTING-HANDOFF.md",
+        },
+        {
+          id: "release-notes-draft",
+          title: "v0.1.0 release notes draft",
+          path: "RELEASE-NOTES-v0.1.0-DRAFT.md",
+        },
       ],
     },
   ];

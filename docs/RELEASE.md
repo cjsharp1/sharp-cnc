@@ -24,7 +24,7 @@ npm run smoke
 
 Both must exit 0. CI also runs `smoke:critical` on PRs (see `.github/workflows/smoke.yml`).
 
-Critical smokes today (expand as polish packs land):
+Critical smokes (pre-test pack):
 
 | Script | Guards |
 |--------|--------|
@@ -32,10 +32,14 @@ Critical smokes today (expand as polish packs land):
 | `smoke-jog-zero` | Soft limits + jog / zero helpers |
 | `smoke-gcode-stream` | Streamer start / pause / stop |
 | `smoke-activity-safety` | E-Stop / unlock / alarm paths |
+| `smoke-calibration` | Steps/mm, `$3`, soft travel writes |
 | `smoke-probe` | Z probe helpers |
 | `smoke-spindle-feeds` | PWM + override math |
+| `smoke-overrides-presets` | Persisted feed/spindle % + material presets |
 | `smoke-external-controls` | Demon Shield Abort/Hold/Resume mirror |
-| `smoke-app-safety` | End-to-end mock connect → prepare → stream |
+| `smoke-first-run` | Wizard order connect→home→calibrate→travel→stock |
+| `smoke-job-recovery` | Mid-job checkpoint persist / resume label |
+| `smoke-app-safety` | Mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop |
 
 ## 2. Desktop installer
 
@@ -94,6 +98,8 @@ Personal GRBL controller for one custom CNC (Demon Shield / USB).
 
 ## Related
 
+- [TESTING-HANDOFF.md](TESTING-HANDOFF.md) — Chris’s first-machine checklist
+- [RELEASE-NOTES-v0.1.0-DRAFT.md](RELEASE-NOTES-v0.1.0-DRAFT.md)
 - [scripts/build-windows-installer.md](../scripts/build-windows-installer.md)
 - [user-guide/12-hardware-soak.md](user-guide/12-hardware-soak.md)
 - [CONTRIBUTING.md](../CONTRIBUTING.md)
