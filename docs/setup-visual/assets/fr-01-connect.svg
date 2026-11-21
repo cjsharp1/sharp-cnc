@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Step 1 — Connect</title>
+  <desc id="d">USB from PC to Demon Shield, then Connect until Linked</desc>
+  <defs>
+    <style>
+      .bg { fill: #f1f3f5; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .num { fill: #b8862d; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; }
+      .big { font-size: 28px; font-weight: 700; }
+      .act { font-size: 22px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .line { stroke: #3a4550; stroke-width: 3; fill: none; marker-end: url(#a); }
+      .ok { fill: #1f6a4a; }
+    </style>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#3a4550"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">1</text>
+  <text class="lab big" x="100" y="50">Connect</text>
+  <text class="lab act" x="100" y="84">Plug USB → Refresh → Connect → Linked</text>
+
+  <rect class="card" x="80" y="140" width="180" height="140" rx="14"/>
+  <text class="lab" x="170" y="200" text-anchor="middle" font-weight="700" font-size="22">PC</text>
+  <text class="tiny" x="170" y="230" text-anchor="middle">SharpCNC</text>
+  <text class="tiny" x="170" y="252" text-anchor="middle">desktop</text>
+
+  <path class="line" d="M270 210 H330"/>
+  <text class="tiny" x="300" y="198" text-anchor="middle">USB</text>
+
+  <rect class="card" x="340" y="140" width="220" height="140" rx="14"/>
+  <text class="lab" x="450" y="195" text-anchor="middle" font-weight="700" font-size="20">Demon Shield</text>
+  <text class="tiny" x="450" y="225" text-anchor="middle">Arduino · GRBL</text>
+  <text class="tiny" x="450" y="250" text-anchor="middle">115200 baud</text>
+
+  <path class="line" d="M570 210 H630"/>
+
+  <rect class="card" x="640" y="140" width="220" height="140" rx="14"/>
+  <text class="lab" x="750" y="200" text-anchor="middle" font-weight="700" font-size="22">CNC</text>
+  <text class="tiny" x="750" y="230" text-anchor="middle">motors · switches</text>
+  <text class="tiny" x="750" y="252" text-anchor="middle">spindle PWM</text>
+
+  <rect class="ok" x="80" y="340" width="780" height="100" rx="14"/>
+  <text class="w" x="470" y="385" text-anchor="middle" font-size="26">Status = Linked</text>
+  <text class="w" x="470" y="420" text-anchor="middle" font-size="16" font-weight="500">Work / Machine numbers updating</text>
+</svg>

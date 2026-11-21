@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Step 5 — Stock</title>
+  <desc id="d">Enter workpiece width length thickness on the bed</desc>
+  <defs>
+    <style>
+      .bg { fill: #f1f3f5; }
+      .bed { fill: #d8e0e8; stroke: #3a4550; stroke-width: 3; }
+      .stock { fill: rgba(31, 106, 74, 0.18); stroke: #1f6a4a; stroke-width: 3; }
+      .num { fill: #b8862d; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; }
+      .big { font-size: 28px; font-weight: 700; }
+      .act { font-size: 22px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .btn { fill: #1f6a4a; }
+      .dim { stroke: #b8862d; stroke-width: 2; fill: none; marker-start: url(#m); marker-end: url(#m); }
+    </style>
+    <marker id="m" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto">
+      <circle cx="4" cy="4" r="3" fill="#b8862d"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">5</text>
+  <text class="lab big" x="100" y="50">Stock</text>
+  <text class="lab act" x="100" y="84">Enter width × length × thickness → Finish</text>
+
+  <rect class="bed" x="90" y="150" width="380" height="300" rx="10"/>
+  <text class="tiny" x="110" y="178">Bed</text>
+  <rect class="stock" x="150" y="220" width="220" height="160" rx="6"/>
+  <text class="lab" x="260" y="300" text-anchor="middle" font-weight="700" fill="#1f6a4a">STOCK</text>
+  <line class="dim" x1="150" y1="200" x2="370" y2="200"/>
+  <text class="tiny" x="260" y="192" text-anchor="middle">width X</text>
+  <line class="dim" x1="400" y1="220" x2="400" y2="380"/>
+  <text class="tiny" x="430" y="305">length Y</text>
+
+  <rect class="card" x="540" y="170" width="340" height="260" rx="14"/>
+  <text class="lab" x="710" y="220" text-anchor="middle" font-weight="700">Workpiece size</text>
+  <text class="lab" x="710" y="270" text-anchor="middle" font-size="16">Width X mm</text>
+  <text class="lab" x="710" y="305" text-anchor="middle" font-size="16">Length Y mm</text>
+  <text class="lab" x="710" y="340" text-anchor="middle" font-size="16">Thickness mm</text>
+  <rect class="btn" x="600" y="370" width="220" height="40" rx="8"/>
+  <text class="w" x="710" y="397" text-anchor="middle" font-size="16">Finish setup</text>
+</svg>

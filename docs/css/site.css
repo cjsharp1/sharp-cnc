@@ -585,3 +585,222 @@ button:focus-visible {
   white-space: nowrap;
   border: 0;
 }
+
+/* —— Visual / Ikea-style setup guides —— */
+
+.visual-hub {
+  max-width: 920px;
+}
+
+.visual-hub__eyebrow,
+.visual-guide__eyebrow {
+  margin: 0 0 0.35rem;
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.visual-hub__title,
+.visual-guide__head h1 {
+  margin: 0 0 0.5rem;
+  font-family: var(--font-brand);
+  font-size: clamp(1.75rem, 4vw, 2.4rem);
+  letter-spacing: var(--tracking-title);
+  text-transform: none;
+  color: var(--brass);
+  line-height: 1.1;
+}
+
+.visual-hub__lead,
+.visual-guide__one {
+  margin: 0 0 1.5rem;
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  color: var(--ink);
+  max-width: 36rem;
+}
+
+.visual-hub__grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.visual-hub__card {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.visual-hub__card:hover {
+  border-color: var(--brass-border);
+  background: var(--brass-fill);
+  color: inherit;
+}
+
+.visual-hub__card img {
+  width: 100%;
+  height: auto;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: #f1f3f5;
+}
+
+.visual-hub__card strong {
+  color: var(--brass-hot);
+  font-size: var(--text-xl);
+}
+
+.visual-hub__card span,
+.visual-hub__foot {
+  color: var(--muted);
+  font-size: var(--text-md);
+}
+
+.visual-hub__foot {
+  margin-top: 1.75rem;
+}
+
+.visual-guide {
+  width: min(980px, 100%);
+  margin: 0 auto;
+  padding: 1.25rem clamp(1rem, 3vw, 2rem) 3rem;
+  display: grid;
+  gap: 1.75rem;
+}
+
+.visual-guide__jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 0.75rem;
+}
+
+.visual-guide__jump a {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--brass-border);
+  border-radius: 4px;
+  background: var(--brass-fill);
+  color: var(--brass-hot);
+  text-decoration: none;
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+}
+
+.visual-guide__jump a:hover {
+  border-color: var(--brass-border-hot);
+  background: var(--brass-fill-strong);
+  color: var(--brass-bright);
+}
+
+.step-card {
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.1rem clamp(0.85rem, 2vw, 1.35rem) 1.25rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--panel);
+  scroll-margin-top: 1rem;
+}
+
+.step-card__meta {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 0.85rem;
+  row-gap: 0.25rem;
+  align-items: baseline;
+}
+
+.step-card__num {
+  grid-row: 1 / span 2;
+  width: 2.6rem;
+  height: 2.6rem;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  background: var(--brass-grad);
+  border: 1px solid var(--brass-border);
+  color: var(--brass-hot);
+  font-family: var(--font-brand);
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.step-card__meta h2 {
+  margin: 0;
+  font-family: var(--font-brand);
+  font-size: clamp(1.35rem, 2.5vw, 1.7rem);
+  letter-spacing: var(--tracking-title);
+  text-transform: none;
+  color: var(--steel);
+}
+
+.step-card__action {
+  grid-column: 2;
+  margin: 0;
+  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  font-weight: 600;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.step-card__figure {
+  margin: 0;
+}
+
+.step-card__figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f1f3f5;
+}
+
+.step-card__aside {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--text-md);
+}
+
+.step-card__next {
+  justify-self: end;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.65rem 1rem;
+  border-radius: 4px;
+  border: 1px solid var(--brass-border);
+  background: var(--brass-grad);
+  color: var(--ink);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.step-card__next:hover {
+  background: var(--brass-grad-hover);
+  border-color: var(--brass-border-hot);
+  color: var(--ink);
+}
+
+@media (max-width: 640px) {
+  .step-card__meta {
+    grid-template-columns: auto 1fr;
+  }
+
+  .step-card__next {
+    justify-self: stretch;
+    text-align: center;
+    justify-content: center;
+  }
+}

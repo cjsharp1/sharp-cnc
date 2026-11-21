@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Visual setup · SharpCNC</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <meta
+      name="description"
+      content="Ikea-style visual guides for SharpCNC first-run setup and calibration."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Sora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/site.css" />
+    <script src="../js/theme.js"></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header class="site-header">
+        <a class="site-brand" href="../index.html">
+          <span class="site-brand__mark">SharpCNC</span>
+          <span class="site-brand__tag">Docs</span>
+        </a>
+        <nav class="site-nav" aria-label="Primary">
+          <a href="../index.html">Home</a>
+          <a href="../guide.html">User guide</a>
+          <a href="index.html" aria-current="page">Visual setup</a>
+          <button type="button" class="theme-toggle" id="theme-toggle">
+            Light
+          </button>
+        </nav>
+      </header>
+
+      <main class="site-main visual-hub">
+        <p class="visual-hub__eyebrow">Assembly-style instructions</p>
+        <h1 class="visual-hub__title">Visual setup</h1>
+        <p class="visual-hub__lead">
+          Big pictures. Short verbs. One next step.
+        </p>
+
+        <div class="visual-hub__grid">
+          <a class="visual-hub__card" href="first-run.html">
+            <img
+              src="assets/overview-flow.svg"
+              alt="First-run: Connect, Home, Calibrate, Travel, Stock"
+              width="960"
+              height="280"
+            />
+            <strong>1 · First-run setup</strong>
+            <span>Connect → Home → Calibrate → Travel → Stock</span>
+          </a>
+          <a class="visual-hub__card" href="calibration.html">
+            <img
+              src="assets/cal-03-steps.svg"
+              alt="Calibration steps/mm flow"
+              width="960"
+              height="520"
+            />
+            <strong>2 · Calibration</strong>
+            <span>Zeros · $3 direction · Steps/mm · Soft travel</span>
+          </a>
+        </div>
+
+        <p class="visual-hub__foot">
+          Text appendix:
+          <a href="../guide.html#02">Connect</a>
+          ·
+          <a href="../guide.html#05">Calibration</a>
+        </p>
+      </main>
+
+      <footer class="site-footer">
+        SharpCNC ·
+        <a href="../index.html">Docs home</a>
+        ·
+        <a href="../guide.html">User guide</a>
+      </footer>
+    </div>
+  </body>
+</html>
