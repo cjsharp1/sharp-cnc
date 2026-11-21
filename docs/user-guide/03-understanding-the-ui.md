@@ -40,13 +40,16 @@ Labels on the view call out bed size, stock, path name, and whether you are in p
 
 ## Workspace tabs (right rail)
 
+Four focused tabs (arrow keys move between them):
+
 | Tab | Contents |
 |-----|----------|
-| **Move** | Jog, work zero, **homing**, **G54–G59 offsets**, **XY/tool-length probe**, **console + macros**, spindle / overrides |
+| **Move** | Jog, work zero, homing, G54–G59 offsets, console + macros, spindle / overrides |
+| **Probe** | XY edge / corner probe and tool-length Z (clutter pulled out of Move) |
 | **Job** | Material & tool, External jobs, SVG → G-code, Load / Prepare / scrubber / dry run / Start / Simulate |
 | **Log** | Live activity (TX/RX/events); with **Debug mode** on — export, Copy, Debug bridge |
 
-Job tab can show a small badge (`Ready`, `Run`, `Held`, `SVG`, …) so you know job state at a glance.
+Each tab shows a one-line purpose under the tab list. Job can show a small badge (`Ready`, `Run`, `Held`, `SVG`, …).
 
 ## Menu vs tabs
 

@@ -2316,6 +2316,11 @@ export default function App() {
                   id="workspace-panel-move"
                   aria-labelledby="workspace-tab-move"
                 >
+                  <p className="workspace__intro">
+                    Move the machine: jog, home, work zeros / offsets, console,
+                    spindle. Probe tools live on the <strong>Probe</strong> tab;
+                    files and Start live on <strong>Job</strong>.
+                  </p>
                   <JogPanel
                     enabled={jogEnabled}
                     mode={jogMode}
@@ -2373,35 +2378,6 @@ export default function App() {
                       void handleRecallOffset(id);
                     }}
                   />
-                  <ProbeXyPanel
-                    enabled={
-                      canProbe(status.state, connected, streaming, {
-                        probePinActive: !!status.pins?.probe,
-                      }).ok && !xyProbeBusy
-                    }
-                    blockedReason={
-                      canProbe(status.state, connected, streaming, {
-                        probePinActive: !!status.pins?.probe,
-                      }).reason ?? null
-                    }
-                    busy={xyProbeBusy}
-                    bitDiameterMm={tool.diameterMm}
-                    seekMm={xySeekMm}
-                    feedMmMin={xyFeedMmMin}
-                    plateThicknessMm={probeConfig.plateThicknessMm}
-                    message={xyProbeMessage}
-                    onSeekChange={setXySeekMm}
-                    onFeedChange={setXyFeedMmMin}
-                    onEdge={(axis, direction) => {
-                      void handleXyEdgeProbe(axis, direction);
-                    }}
-                    onCorner={(mode) => {
-                      void handleXyCornerProbe(mode);
-                    }}
-                    onToolLength={() => {
-                      void handleToolLengthProbe();
-                    }}
-                  />
                   <ConsolePanel
                     enabled={
                       canSendConsole(connected, streaming, status.state).ok
@@ -2444,6 +2420,50 @@ export default function App() {
                 </div>
               )}
 
+              {workspaceTab === "probe" && (
+                <div
+                  className="workspace__panel"
+                  role="tabpanel"
+                  id="workspace-panel-probe"
+                  aria-labelledby="workspace-tab-probe"
+                >
+                  <p className="workspace__intro">
+                    Probe only: XY edges / corners and tool-length Z. Keep the
+                    plate path clear. Full prepare / Z0 for a job still uses{" "}
+                    <strong>Prepare to run…</strong> on the Job tab.
+                  </p>
+                  <ProbeXyPanel
+                    enabled={
+                      canProbe(status.state, connected, streaming, {
+                        probePinActive: !!status.pins?.probe,
+                      }).ok && !xyProbeBusy
+                    }
+                    blockedReason={
+                      canProbe(status.state, connected, streaming, {
+                        probePinActive: !!status.pins?.probe,
+                      }).reason ?? null
+                    }
+                    busy={xyProbeBusy}
+                    bitDiameterMm={tool.diameterMm}
+                    seekMm={xySeekMm}
+                    feedMmMin={xyFeedMmMin}
+                    plateThicknessMm={probeConfig.plateThicknessMm}
+                    message={xyProbeMessage}
+                    onSeekChange={setXySeekMm}
+                    onFeedChange={setXyFeedMmMin}
+                    onEdge={(axis, direction) => {
+                      void handleXyEdgeProbe(axis, direction);
+                    }}
+                    onCorner={(mode) => {
+                      void handleXyCornerProbe(mode);
+                    }}
+                    onToolLength={() => {
+                      void handleToolLengthProbe();
+                    }}
+                  />
+                </div>
+              )}
+
               {workspaceTab === "job" && (
                 <div
                   className="workspace__panel"
@@ -2451,6 +2471,11 @@ export default function App() {
                   id="workspace-panel-job"
                   aria-labelledby="workspace-tab-job"
                 >
+                  <p className="workspace__intro">
+                    Job only: material, files, prepare, simulate, and Start.
+                    Jogging stays on <strong>Move</strong>; touch-offs on{" "}
+                    <strong>Probe</strong>.
+                  </p>
                   <div
                     className={`mattool-anchor${matToolHighlight ? " is-flash" : ""}`}
                     id="material-tool-settings"
