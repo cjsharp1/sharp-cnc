@@ -6,9 +6,10 @@ import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
 import { JobLoad } from "./components/JobLoad";
 import { JogPanel, type JogAxisMap } from "./components/JogPanel";
-import { MachineView } from "./components/MachineView";
+import { MachineView, type TrailPoint } from "./components/MachineView";
 import { MaterialToolPanel } from "./components/MaterialToolPanel";
 import { SafetyControls } from "./components/SafetyControls";
+import { SimControls } from "./components/SimControls";
 import { SvgJobPanel } from "./components/SvgJobPanel";
 import {
   WorkspaceTabs,
@@ -21,6 +22,7 @@ import {
   SETTING_SOFT_LIMITS,
   STEPS_SETTING_FOR_AXIS,
   UNLOCK_COMMAND,
+  advanceSim,
   bedSizeFromLimits,
   buildJobFromSvg,
   buildJogCommand,
@@ -34,6 +36,7 @@ import {
   buildDebugSnapshot,
   createActivityLog,
   createGcodeStreamer,
+  createIdleSim,
   createSessionClient,
   fetchGrblSettings,
   importSvg,
@@ -46,14 +49,18 @@ import {
   loadTool,
   OFFLINE_STATUS,
   parseAlarmLine,
+  pauseSim,
   planGoToWorkZero,
   publishDebugSnapshot,
+  resumeSim,
   saveSoftTravel,
   saveStock,
   saveTool,
   softTravelFromSettings,
   startDebugBridge,
+  startSim,
   stopDebugBridge,
+  stopSim,
   stockOffsetForCorner,
   writeGrblSetting,
   writeGrblSettings,
@@ -66,6 +73,7 @@ import {
   type GrblStatus,
   type JogMode,
   type LoadedJob,
+  type PathSimSnapshot,
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
@@ -78,6 +86,11 @@ import {
 import "./App.css";
 
 const CONTINUOUS_JOG_MS = 180;
+/** Smooth display toward live WPos (ms time constant). */
+const TOOL_SMOOTH_MS = 70;
+/** Keep a short trail of recent work-mm points. */
+const TRAIL_MAX_POINTS = 48;
+const TRAIL_MIN_STEP_MM = 0.35;
 
 export default function App() {
   const activityLog = useMemo(() => createActivityLog(), []);
@@ -106,6 +119,13 @@ export default function App() {
     null,
   );
   const [svgDraft, setSvgDraft] = useState<SvgImportResult | null>(null);
+  const [sim, setSim] = useState<PathSimSnapshot>(() => createIdleSim([]));
+  const [displayTool, setDisplayTool] = useState(() => OFFLINE_STATUS.work);
+  const [trail, setTrail] = useState<TrailPoint[]>([]);
+  const displayToolRef = useRef(OFFLINE_STATUS.work);
+  const trailRef = useRef<TrailPoint[]>([]);
+  const simRef = useRef<PathSimSnapshot>(createIdleSim([]));
+  const jobPathRef = useRef<LoadedJob["path"]>([]);
 
   /** Soft travel / bed size — persisted for the visualizer. */
   const [softTravel, setSoftTravel] = useState<SoftTravelLimits>(() =>
@@ -163,13 +183,147 @@ export default function App() {
           ? (jobSoftCheck.reason ?? "Job outside soft limits")
           : null;
 
-  /** Estimate completed path segments from acked line ratio. */
-  const pathProgress =
-    job && streamProgress && job.lines.length > 0
+  const simulating =
+    sim.phase === "playing" || sim.phase === "paused" || sim.phase === "done";
+  const liveMoving =
+    !simulating &&
+    (status.state === "Jog" ||
+      status.state === "Run" ||
+      status.state === "Home" ||
+      streaming);
+
+  /** Estimate completed path segments from acked line ratio or sim. */
+  const pathProgress = simulating
+    ? sim.completedSegments
+    : job && streamProgress && job.lines.length > 0
       ? Math.round(
           (streamProgress.ackedLines / job.lines.length) * job.path.length,
         )
       : 0;
+
+  const resetSimForPath = (path: LoadedJob["path"]) => {
+    const next = createIdleSim(path);
+    simRef.current = next;
+    setSim(next);
+    trailRef.current = [];
+    setTrail([]);
+  };
+
+  useEffect(() => {
+    jobPathRef.current = job?.path ?? [];
+  }, [job]);
+
+  useEffect(() => {
+    simRef.current = sim;
+  }, [sim]);
+
+  // Smooth live WPos + optional motion trail; drive pre-run sim on rAF.
+  useEffect(() => {
+    let raf = 0;
+    let lastTs = performance.now();
+    let lastPublish = 0;
+    let trailFadeAcc = 0;
+    let published = { ...displayToolRef.current };
+
+    const publishTool = (next: typeof published, force = false) => {
+      displayToolRef.current = next;
+      const moved =
+        Math.hypot(next.x - published.x, next.y - published.y) > 0.04 ||
+        Math.abs(next.z - published.z) > 0.04;
+      if (force || moved) {
+        published = next;
+        setDisplayTool(next);
+      }
+    };
+
+    const pushTrail = (x: number, y: number) => {
+      const prev = trailRef.current;
+      const last = prev[prev.length - 1];
+      if (last && Math.hypot(x - last.x, y - last.y) < TRAIL_MIN_STEP_MM) {
+        return;
+      }
+      const next = [...prev, { x, y }];
+      if (next.length > TRAIL_MAX_POINTS) {
+        next.splice(0, next.length - TRAIL_MAX_POINTS);
+      }
+      trailRef.current = next;
+      setTrail(next);
+    };
+
+    const tick = (ts: number) => {
+      const dt = Math.min(48, Math.max(0, ts - lastTs));
+      lastTs = ts;
+      const snap = simRef.current;
+      const path = jobPathRef.current;
+
+      if (snap.phase === "playing" && path.length > 0) {
+        const advanced = advanceSim(snap, path, dt);
+        simRef.current = advanced;
+        if (
+          advanced.phase !== snap.phase ||
+          advanced.completedSegments !== snap.completedSegments ||
+          Math.abs(advanced.progress - snap.progress) > 0.002
+        ) {
+          setSim(advanced);
+        }
+        const pos = advanced.position;
+        publishTool({
+          x: pos.x,
+          y: pos.y,
+          z: displayToolRef.current.z,
+        });
+        pushTrail(pos.x, pos.y);
+      } else if (snap.phase === "paused" || snap.phase === "done") {
+        const pos = snap.position;
+        publishTool({
+          x: pos.x,
+          y: pos.y,
+          z: displayToolRef.current.z,
+        });
+      } else {
+        const target = statusRef.current.work;
+        const cur = displayToolRef.current;
+        const alpha = 1 - Math.exp(-dt / TOOL_SMOOTH_MS);
+        const next = {
+          x: cur.x + (target.x - cur.x) * alpha,
+          y: cur.y + (target.y - cur.y) * alpha,
+          z: cur.z + (target.z - cur.z) * alpha,
+        };
+        // Snap when nearly there to avoid endless micro-updates.
+        const err = Math.hypot(target.x - next.x, target.y - next.y);
+        const snapped =
+          err < 0.02
+            ? { x: target.x, y: target.y, z: target.z }
+            : next;
+        publishTool(snapped);
+
+        const moving =
+          statusRef.current.state === "Jog" ||
+          statusRef.current.state === "Run" ||
+          statusRef.current.state === "Home";
+        if (moving) {
+          pushTrail(snapped.x, snapped.y);
+          trailFadeAcc = 0;
+        } else if (trailRef.current.length > 0) {
+          trailFadeAcc += dt;
+          if (trailFadeAcc >= 40) {
+            trailFadeAcc = 0;
+            const faded = trailRef.current.slice(1);
+            trailRef.current = faded;
+            setTrail(faded);
+          }
+        }
+      }
+
+      // Keep a soft publish cadence so React stays responsive under load.
+      if (ts - lastPublish > 32) lastPublish = ts;
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
 
   useEffect(() => {
     const client = createSessionClient({ activityLog });
@@ -881,14 +1035,45 @@ export default function App() {
     }
   };
 
+  const handleSimPlay = () => {
+    if (!job || job.path.length === 0 || streaming) return;
+    const current = simRef.current;
+    const next =
+      current.phase === "paused"
+        ? resumeSim(current)
+        : startSim(job.path);
+    simRef.current = next;
+    setSim(next);
+    trailRef.current = [];
+    setTrail([]);
+    activityLog.append("event", "Path preview started (visualizer only)");
+  };
+
+  const handleSimPause = () => {
+    const next = pauseSim(simRef.current);
+    simRef.current = next;
+    setSim(next);
+  };
+
+  const handleSimStop = () => {
+    const next = stopSim(jobPathRef.current);
+    simRef.current = next;
+    setSim(next);
+    trailRef.current = [];
+    setTrail([]);
+    // Snap display back toward live WPos on the next rAF ticks.
+    activityLog.append("event", "Path preview stopped");
+  };
+
   const handleLoadFile = (file: File) => {
-    if (streaming) return;
+    if (streaming || simulating) return;
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
       const loaded = loadJobFromText(file.name, text);
       setJob(loaded);
       setSvgDraft(null);
+      resetSimForPath(loaded.path);
       setStreamProgress({
         phase: "idle",
         sentLines: 0,
@@ -944,13 +1129,14 @@ export default function App() {
   };
 
   const handleGenerateFromSvg = (params: SvgToolpathParams) => {
-    if (!svgDraft || streaming) return;
+    if (!svgDraft || streaming || simulating) return;
     if (svgDraft.polylines.length === 0) {
       setErrorMessage("SVG has no paths to convert.");
       return;
     }
     const loaded = buildJobFromSvg(svgDraft.name, svgDraft.polylines, params);
     setJob(loaded);
+    resetSimForPath(loaded.path);
     setStreamProgress({
       phase: "idle",
       sentLines: 0,
@@ -965,8 +1151,9 @@ export default function App() {
   };
 
   const handleClearJob = () => {
-    if (streaming) return;
+    if (streaming || simulating) return;
     setJob(null);
+    resetSimForPath([]);
     setStreamProgress(null);
     activityLog.append("event", "Job cleared");
   };
@@ -975,6 +1162,10 @@ export default function App() {
     const streamer = streamerRef.current;
     const client = clientRef.current;
     if (!streamer || !client || !job) return;
+    if (simulating) {
+      setErrorMessage("Stop the path preview before starting the job.");
+      return;
+    }
 
     if (statusRef.current.state === "Alarm") {
       setErrorMessage("Clear alarm (unlock) before starting.");
@@ -986,6 +1177,8 @@ export default function App() {
       setErrorMessage(gate.reason ?? "Cannot start");
       return;
     }
+
+    resetSimForPath(job.path);
 
     const soft = checkJobSoftLimits(
       job.bounds,
@@ -1169,13 +1362,44 @@ export default function App() {
       <div className="shell__stage">
         <div className="shell__main">
           <MachineView
-            tool={status.work}
+            tool={displayTool}
             bedMm={bedMm}
             path={job?.path ?? svgDraft?.preview}
             pathProgress={job ? pathProgress : 0}
-            pathLabel={job ? "job" : svgDraft ? "SVG preview" : null}
+            pathLabel={
+              simulating
+                ? "preview"
+                : job
+                  ? "job"
+                  : svgDraft
+                    ? "SVG preview"
+                    : null
+            }
             stock={stock}
             toolDiameterMm={tool.diameterMm}
+            trail={trail}
+            liveMoving={liveMoving}
+            simulating={simulating}
+            overlay={
+              job && job.path.length > 0 ? (
+                <div className="machine__overlay">
+                  <SimControls
+                    variant="overlay"
+                    phase={sim.phase}
+                    progress={sim.progress}
+                    disabled={streaming}
+                    disabledReason={
+                      streaming
+                        ? "Stop the running job before simulating."
+                        : null
+                    }
+                    onPlay={handleSimPlay}
+                    onPause={handleSimPause}
+                    onStop={handleSimStop}
+                  />
+                </div>
+              ) : null
+            }
           />
         </div>
 
@@ -1260,6 +1484,17 @@ export default function App() {
                     connected={connected}
                     machineState={status.state}
                     startBlockedReason={startBlockedReason}
+                    simPhase={sim.phase}
+                    simProgress={sim.progress}
+                    simDisabled={streaming}
+                    simDisabledReason={
+                      streaming
+                        ? "Stop the running job before simulating."
+                        : null
+                    }
+                    onSimPlay={handleSimPlay}
+                    onSimPause={handleSimPause}
+                    onSimStop={handleSimStop}
                     onLoadFile={handleLoadFile}
                     onClear={handleClearJob}
                     onStart={() => {

@@ -8,7 +8,8 @@ Desktop **USB serial connect + live MPos/WPos**, **jog / work zeros**, **G-code 
 
 - List / refresh serial ports; connect at **115200** baud (Demon Shield / Arduino)
 - Soft reset (`0x18`) on connect + manual Reset
-- Live MPos / WPos and machine-view tool marker
+- Live MPos / WPos with smoothed machine-view toolhead + short motion trail while jogging / running
+- Pre-run **Simulate** (Job tab + visualizer overlay): play / pause / stop animates the tool along the loaded path without serial motion
 - Jog X/Y/Z (and XY+ diagonal) via GRBL `$J=` — step or hold modes, step size + feed
 - Soft-limit awareness from known travel (default X/Y **1000 mm**; Z unset until calibrated)
 - Work zeros via `G10 L20` (per-axis or XYZ); go-to-zero with confirm (safe Z-up then XY)

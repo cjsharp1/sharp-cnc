@@ -123,6 +123,21 @@ export {
   stripGcodeComments,
 } from "./gcode";
 
+export type { PathSimSnapshot, SimPhase, SimSpeeds } from "./pathSimulation";
+export {
+  SIM_FEED_MM_S,
+  SIM_RAPID_MM_S,
+  advanceSim,
+  createIdleSim,
+  pathLength,
+  pauseSim,
+  resumeSim,
+  samplePathAtDistance,
+  segmentLength,
+  startSim,
+  stopSim,
+} from "./pathSimulation";
+
 export type { Point2, Polyline2 } from "./svgPath";
 export {
   boundsOfPolylines,
