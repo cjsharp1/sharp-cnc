@@ -143,12 +143,23 @@ export {
   stripGcodeComments,
 } from "./gcode";
 
-export type { PathSimSnapshot, SimPhase, SimSpeeds } from "./pathSimulation";
+export type {
+  PathSimSnapshot,
+  SimActivity,
+  SimPhase,
+  SimSpeedRate,
+  SimSpeeds,
+} from "./pathSimulation";
 export {
+  DEFAULT_SIM_SPEED,
   SIM_FEED_MM_S,
   SIM_RAPID_MM_S,
+  SIM_SPEED_PRESETS,
+  SIM_Z_MM_S,
   advanceSim,
+  classifySimActivity,
   createIdleSim,
+  formatSimActivityLabel,
   pathLength,
   pauseSim,
   resumeSim,

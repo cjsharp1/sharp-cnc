@@ -7,7 +7,13 @@ import {
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
 } from "react";
-import type { Position3, StockConfig, ToolpathSegment } from "../grbl";
+import type {
+  Position3,
+  SimActivity,
+  StockConfig,
+  ToolpathSegment,
+} from "../grbl";
+import { formatSimActivityLabel } from "../grbl";
 import {
   MAX_ZOOM,
   MIN_ZOOM,
@@ -28,6 +34,10 @@ import {
 export interface TrailPoint {
   x: number;
   y: number;
+  /** Optional Z for sim depth cues. */
+  z?: number;
+  /** Optional activity tint for sim trail segments. */
+  activity?: SimActivity;
 }
 
 interface MachineViewProps {
@@ -50,6 +60,8 @@ interface MachineViewProps {
   liveMoving?: boolean;
   /** Pre-run simulation is driving the toolhead (not serial). */
   simulating?: boolean;
+  /** Current sim activity (retract / plunge / cut / rapid). */
+  simActivity?: SimActivity | null;
   /** Optional overlay (e.g. simulate controls). */
   overlay?: ReactNode;
 }
@@ -62,6 +74,8 @@ function segmentToPoints(
   const feed: string[] = [];
 
   for (const seg of segments) {
+    // Skip pure-Z segments on the plan view (no XY travel).
+    if (seg.from.x === seg.to.x && seg.from.y === seg.to.y) continue;
     const a = map(seg.from.x, seg.from.y);
     const b = map(seg.to.x, seg.to.y);
     const d = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
@@ -75,17 +89,53 @@ function segmentToPoints(
   };
 }
 
-function trailToPath(
+function trailStrokeForActivity(activity: SimActivity | undefined): string {
+  switch (activity) {
+    case "retract":
+      return "var(--viz-trail-sim-retract)";
+    case "plunge":
+      return "var(--viz-trail-sim-plunge)";
+    case "cut":
+      return "var(--viz-trail-sim-cut)";
+    case "rapid":
+      return "var(--viz-trail-sim-rapid)";
+    default:
+      return "var(--viz-trail-sim)";
+  }
+}
+
+/** Build short trail polylines, splitting when activity/color changes. */
+function trailPathsByActivity(
   trail: TrailPoint[],
   map: (x: number, y: number) => { x: number; y: number },
-): string {
-  if (trail.length < 2) return "";
-  const parts: string[] = [];
+): { d: string; activity: SimActivity | undefined }[] {
+  if (trail.length < 2) return [];
+  const out: { d: string; activity: SimActivity | undefined }[] = [];
+  let parts: string[] = [];
+  let current = trail[0]!.activity;
+
+  const flush = () => {
+    if (parts.length >= 2) {
+      out.push({ d: parts.join(" "), activity: current });
+    }
+    parts = [];
+  };
+
   for (let i = 0; i < trail.length; i++) {
-    const p = map(trail[i]!.x, trail[i]!.y);
-    parts.push(`${i === 0 ? "M" : "L"} ${p.x} ${p.y}`);
+    const pt = trail[i]!;
+    const p = map(pt.x, pt.y);
+    if (i > 0 && pt.activity !== current) {
+      // Close previous segment at this point, then start a new one.
+      parts.push(`L ${p.x} ${p.y}`);
+      flush();
+      current = pt.activity;
+      parts.push(`M ${p.x} ${p.y}`);
+    } else {
+      parts.push(`${parts.length === 0 ? "M" : "L"} ${p.x} ${p.y}`);
+    }
   }
-  return parts.join(" ");
+  flush();
+  return out;
 }
 
 export function MachineView({
@@ -99,6 +149,7 @@ export function MachineView({
   trail = [],
   liveMoving = false,
   simulating = false,
+  simActivity = null,
   overlay = null,
 }: MachineViewProps) {
   const uid = useId().replace(/:/g, "");
@@ -355,7 +406,45 @@ export function MachineView({
   const remaining = path.slice(Math.max(0, pathProgress));
   const donePaths = segmentToPoints(completed, mapPoint);
   const todoPaths = segmentToPoints(remaining, mapPoint);
-  const trailD = trailToPath(trail, mapPoint);
+  const trailSegs = trailPathsByActivity(trail, mapPoint);
+  const simZLabel =
+    simulating && Number.isFinite(tool.z)
+      ? formatSimActivityLabel(simActivity ?? null, tool.z)
+      : null;
+  const toolLifted =
+    simulating &&
+    (simActivity === "retract" ||
+      simActivity === "rapid" ||
+      (simActivity == null && tool.z > 0.05));
+  const toolPlunging = simulating && simActivity === "plunge";
+  const toolCutting = simulating && simActivity === "cut";
+  const toolFill = !simulating
+    ? "var(--viz-tool-fill)"
+    : toolPlunging
+      ? "var(--viz-tool-sim-plunge-fill)"
+      : toolLifted
+        ? "var(--viz-tool-sim-retract-fill)"
+        : toolCutting
+          ? "var(--viz-tool-sim-cut-fill)"
+          : "var(--viz-tool-sim-fill)";
+  const toolStroke = !simulating
+    ? "var(--viz-tool-stroke)"
+    : toolPlunging
+      ? "var(--viz-tool-sim-plunge-stroke)"
+      : toolLifted
+        ? "var(--viz-tool-sim-retract-stroke)"
+        : toolCutting
+          ? "var(--viz-tool-sim-cut-stroke)"
+          : "var(--viz-tool-sim-stroke)";
+  const toolClass = [
+    "machine__tool",
+    liveMoving || simulating ? "is-moving" : "",
+    simulating && toolLifted ? "is-lifted" : "",
+    simulating && toolPlunging ? "is-plunging" : "",
+    simulating && toolCutting ? "is-cutting" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
   const stockRect =
     stock && stock.widthMm > 0 && stock.lengthMm > 0
@@ -383,6 +472,10 @@ export function MachineView({
   const bitRMm = Math.max(0.05, toolDiameterMm / 2);
   const minScreenR = 3.5;
   const bitR = Math.max(bitRMm, minScreenR / vis.pxPerMm);
+  const liftStem = Math.max(
+    bitR * (toolLifted ? 2.8 : toolPlunging ? 0.6 : 1.4),
+    2 / vis.pxPerMm,
+  );
 
   const workYMin = bedMm.depth - (vb.y + vb.h);
   const workYMax = bedMm.depth - vb.y;
@@ -704,43 +797,63 @@ export function MachineView({
             />
           )}
 
-          {/* Short motion trail */}
-          {trailD && (
+          {/* Short motion trail (activity-tinted during sim) */}
+          {trailSegs.map((seg, i) => (
             <path
+              key={`trail-${i}`}
               className="machine__trail"
-              d={trailD}
+              d={seg.d}
               fill="none"
               stroke={
                 simulating
-                  ? "var(--viz-trail-sim)"
+                  ? trailStrokeForActivity(seg.activity)
                   : "var(--viz-trail)"
               }
               strokeWidth={2.25}
               strokeLinecap="round"
               strokeLinejoin="round"
+              strokeDasharray={
+                simulating &&
+                (seg.activity === "retract" || seg.activity === "rapid")
+                  ? "5 4"
+                  : undefined
+              }
               vectorEffect="non-scaling-stroke"
             />
-          )}
+          ))}
 
-          <g
-            className={`machine__tool${liveMoving || simulating ? " is-moving" : ""}`}
-          >
+          <g className={toolClass}>
+            {simulating && (
+              <line
+                className="machine__tool-stem"
+                x1={toolMapped.x}
+                y1={toolMapped.y - liftStem}
+                x2={toolMapped.x}
+                y2={toolMapped.y}
+                stroke={toolStroke}
+                strokeWidth={1.5}
+                strokeLinecap="round"
+                vectorEffect="non-scaling-stroke"
+              />
+            )}
             <circle
               cx={toolMapped.x}
               cy={toolMapped.y}
-              r={bitR * 2.2}
+              r={bitR * (toolLifted ? 2.8 : toolPlunging ? 1.7 : 2.2)}
               fill="none"
-              stroke={
-                simulating
-                  ? "var(--viz-tool-sim-fill)"
-                  : "var(--viz-tool-fill)"
-              }
+              stroke={toolFill}
               strokeWidth={1}
               vectorEffect="non-scaling-stroke"
             >
               <animate
                 attributeName="r"
-                values={`${bitR * 1.6};${bitR * 2.6};${bitR * 1.6}`}
+                values={
+                  toolLifted
+                    ? `${bitR * 2.2};${bitR * 3.2};${bitR * 2.2}`
+                    : toolPlunging
+                      ? `${bitR * 1.3};${bitR * 2.0};${bitR * 1.3}`
+                      : `${bitR * 1.6};${bitR * 2.6};${bitR * 1.6}`
+                }
                 dur={liveMoving || simulating ? "1.1s" : "2.8s"}
                 repeatCount="indefinite"
               />
@@ -754,13 +867,9 @@ export function MachineView({
             <circle
               cx={toolMapped.x}
               cy={toolMapped.y}
-              r={bitR}
-              fill={
-                simulating
-                  ? "var(--viz-tool-sim-fill)"
-                  : "var(--viz-tool-fill)"
-              }
-              stroke={simulating ? "var(--viz-tool-sim-stroke)" : "var(--viz-tool-stroke)"}
+              r={bitR * (toolLifted ? 1.15 : toolPlunging ? 0.85 : 1)}
+              fill={toolFill}
+              stroke={toolStroke}
               strokeWidth={1.25}
               vectorEffect="non-scaling-stroke"
             />
@@ -781,6 +890,7 @@ export function MachineView({
             ? ` · ${pathLabel ?? "path"} · ${path.length} segs`
             : ""}
           {` · Ø${toolDiameterMm} mm`}
+          {simZLabel ? ` · ${simZLabel}` : ""}
         </p>
 
         {simulating && (

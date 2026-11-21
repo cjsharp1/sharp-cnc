@@ -35,7 +35,14 @@ Always simulate after generate. Depth is into the material — double-check sign
 
 - **Play** / **Resume** / **Replay**  
 - **Pause**  
-- **Stop**
+- **Stop**  
+- **Speed** — 0.25× / 0.5× / 1× (default) / 2× / 4× so you can slow down to watch lifts and shallow passes, or speed through a long path
+
+During play, SharpCNC shows Z cues so lifts and depth are obvious:
+
+- Status line: **Retract**, **Plunge**, **Cut Z=…**, or **Rapid** with the live work Z  
+- Toolhead stem grows when lifted / retracting; trail color shifts for retract vs plunge vs cut  
+- Position readout Z tracks the preview (still preview-only)
 
 Available in the Job panel and as an overlay on the visualizer when a path exists. Disabled while a real job is streaming — stop the job first.
 
