@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 280" role="img" aria-labelledby="t d">
+  <title id="t">External jobs sources</title>
+  <desc id="d">Watched local folder and optional Google Drive path into SharpCNC</desc>
+  <defs>
+    <style>
+      .bg { fill: #f4f6f8; }
+      .box { fill: #ffffff; stroke: #2c3e50; stroke-width: 2; }
+      .ok { fill: #e8f4ee; stroke: #1f6a4a; stroke-width: 2; }
+      .soon { fill: #fff8f0; stroke: #c45c26; stroke-width: 2; stroke-dasharray: 6 4; }
+      .lab { font-family: system-ui,Segoe UI,sans-serif; fill: #1a2332; font-size: 13px; font-weight: 700; }
+      .title { font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 11px; fill: #4a5568; font-weight: 400; }
+      .line { stroke: #2c3e50; stroke-width: 2; fill: none; marker-end: url(#a); }
+    </style>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#2c3e50"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="640" height="280" rx="8"/>
+  <text class="lab title" x="24" y="36">External jobs</text>
+
+  <rect class="ok" x="30" y="70" width="180" height="120" rx="10"/>
+  <text class="lab" x="58" y="110">Watched folder</text>
+  <text class="tiny" x="48" y="134">Pick… a local path</text>
+  <text class="tiny" x="48" y="152">.nc · .gcode · .svg</text>
+  <text class="tiny" x="48" y="170">Auto-refresh ~2.5s</text>
+  <text class="lab" x="78" y="196" fill="#1f6a4a">Works today</text>
+
+  <rect class="soon" x="230" y="70" width="180" height="120" rx="10"/>
+  <text class="lab" x="262" y="110">Google Drive</text>
+  <text class="tiny" x="248" y="134">OAuth when client ID</text>
+  <text class="tiny" x="248" y="152">is configured</text>
+  <text class="tiny" x="248" y="170">or use Drive Desktop</text>
+  <text class="tiny" x="248" y="188">folder as watched path</text>
+
+  <path class="line" d="M220 130 H230"/>
+  <path class="line" d="M420 130 H460"/>
+
+  <rect class="box" x="470" y="85" width="140" height="90" rx="10"/>
+  <text class="lab" x="496" y="128">SharpCNC</text>
+  <text class="tiny" x="490" y="150">Job / SVG loaders</text>
+
+  <text class="tiny" x="30" y="230">Menu → External jobs… or open the Job tab strip.</text>
+  <text class="tiny" x="30" y="250">Click a listed file to open it. Folder pick needs the desktop app.</text>
+</svg>
