@@ -1,0 +1,48 @@
+/**
+ * First-run setup wizard completion flag (local).
+ */
+
+const STORAGE_KEY = "sharpcnc.firstRun.v1";
+
+export interface FirstRunState {
+  /** Operator finished or skipped the guided setup. */
+  completed: boolean;
+  completedAt: number | null;
+}
+
+export const DEFAULT_FIRST_RUN: FirstRunState = {
+  completed: false,
+  completedAt: null,
+};
+
+export function loadFirstRunState(): FirstRunState {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return { ...DEFAULT_FIRST_RUN };
+    const parsed = JSON.parse(raw) as Partial<FirstRunState>;
+    return {
+      completed: parsed.completed === true,
+      completedAt:
+        typeof parsed.completedAt === "number" ? parsed.completedAt : null,
+    };
+  } catch {
+    return { ...DEFAULT_FIRST_RUN };
+  }
+}
+
+export function saveFirstRunCompleted(completed = true): FirstRunState {
+  const next: FirstRunState = {
+    completed,
+    completedAt: completed ? Date.now() : null,
+  };
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+  } catch {
+    /* private mode / quota — ignore */
+  }
+  return next;
+}
+
+export function resetFirstRunState(): FirstRunState {
+  return saveFirstRunCompleted(false);
+}

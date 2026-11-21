@@ -32,10 +32,11 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 ## Quick start (experienced)
 
 1. Install from [Releases](https://github.com/cjsharp1/sharp-cnc/releases/latest), or `npm install` then `npm run tauri dev` on the Windows PC next to the CNC.
-2. Plug USB → **Refresh** ports → pick COM → **Connect** (115200).
-3. Confirm **Linked** and live Work / Machine coordinates.
-4. Menu → **Calibration…** once, so soft travel matches the real bed.
-5. Set **Material & tool**, load a job, **Prepare to run…** (XY + Z probe), **Simulate**, then **Start**.
+2. Complete **First-run setup** (or **Menu → First-run setup…**): connect → home → calibrate → travel → stock.
+3. Plug USB → **Refresh** ports → pick COM → **Connect** (115200).
+4. Confirm **Linked** and live Work / Machine coordinates.
+5. Menu → **Calibration…** once if you skipped it, so soft travel matches the real bed.
+6. Set **Material & tool**, load a job, **Prepare to run…** (XY + Z probe), **Simulate**, then **Start**.
 
 ## Screenshots & diagrams
 

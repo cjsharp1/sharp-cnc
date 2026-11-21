@@ -6,6 +6,10 @@ import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { ConsolePanel } from "./components/ConsolePanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
 import {
+  FirstRunWizard,
+  type FirstRunStepId,
+} from "./components/FirstRunWizard";
+import {
   ExternalJobsPanel,
   type ExternalJobKind,
 } from "./components/ExternalJobsPanel";
@@ -81,6 +85,7 @@ import {
   loadDebugMode,
   loadDriveConfig,
   loadFeedsSpeedsSelection,
+  loadFirstRunState,
   loadJobFromText,
   loadJobsFolderConfig,
   loadMacros,
@@ -91,6 +96,7 @@ import {
   loadTool,
   loadUiTheme,
   loadWorkOffsets,
+  saveFirstRunCompleted,
   OFFLINE_STATUS,
   parseAlarmLine,
   parseConsoleLines,
@@ -266,6 +272,11 @@ export default function App() {
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
   const [calOpen, setCalOpen] = useState(false);
   const [prepareOpen, setPrepareOpen] = useState(false);
+  const [firstRunOpen, setFirstRunOpen] = useState(
+    () => !loadFirstRunState().completed,
+  );
+  const [firstRunStep, setFirstRunStep] = useState<FirstRunStepId>("connect");
+  const [firstRunMessage, setFirstRunMessage] = useState<string | null>(null);
   const [probeConfig, setProbeConfig] = useState<ProbeConfig>(() =>
     loadProbeConfig(),
   );
@@ -2048,6 +2059,35 @@ export default function App() {
     }
   };
 
+  const openFirstRun = () => {
+    setFirstRunStep("connect");
+    setFirstRunMessage(null);
+    setFirstRunOpen(true);
+  };
+
+  const finishFirstRun = (skipped: boolean) => {
+    saveFirstRunCompleted(true);
+    setFirstRunOpen(false);
+    setFirstRunMessage(null);
+    activityLog.append(
+      "event",
+      skipped ? "First-run setup skipped" : "First-run setup finished",
+    );
+  };
+
+  const handleFirstRunSoftTravel = async () => {
+    updateSoftTravel(softTravel);
+    setFirstRunMessage(
+      `Saved local soft travel X${softTravel.maxX ?? "—"} Y${softTravel.maxY ?? "—"} Z${softTravel.maxZ ?? "—"}`,
+    );
+    if (connected) {
+      await handleApplySoftTravel(softTravel, true);
+      setFirstRunMessage(
+        (prev) => `${prev ?? "Saved"} · wrote GRBL max travel + $20=1`,
+      );
+    }
+  };
+
   const openPrepareRun = () => {
     setPrepareOpen(true);
     setWorkspaceTab("job");
@@ -2195,6 +2235,7 @@ export default function App() {
           onOpenPrepareRun={openPrepareRun}
           onOpenMaterialTool={openMaterialTool}
           onOpenExternalJobs={openExternalJobs}
+          onOpenFirstRun={openFirstRun}
           debugMode={debugMode}
           onDebugModeChange={handleDebugModeChange}
           theme={theme}
@@ -2607,6 +2648,57 @@ export default function App() {
           </section>
         </aside>
       </div>
+
+      {firstRunOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="First-run setup"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close first-run setup"
+            onClick={() => finishFirstRun(true)}
+          />
+          <div className="cal-modal__sheet">
+            <FirstRunWizard
+              step={firstRunStep}
+              connected={connected}
+              homed={homed}
+              homeBusy={homeBusy}
+              homeBlockedReason={
+                canHome(status.state, connected, streaming).reason ?? null
+              }
+              homeMessage={homeMessage}
+              softTravel={softTravel}
+              stock={stock}
+              message={firstRunMessage}
+              onStepChange={setFirstRunStep}
+              onRefreshPorts={() => {
+                void refreshPorts();
+              }}
+              onConnect={() => {
+                void handleConnect();
+              }}
+              onHome={() => {
+                void handleHome();
+              }}
+              onOpenCalibration={() => {
+                openCalibration();
+              }}
+              onSoftTravelChange={updateSoftTravel}
+              onApplySoftTravel={() => {
+                void handleFirstRunSoftTravel();
+              }}
+              onStockChange={handleStockChange}
+              onComplete={() => finishFirstRun(false)}
+              onSkip={() => finishFirstRun(true)}
+            />
+          </div>
+        </div>
+      )}
 
       {calOpen && (
         <div

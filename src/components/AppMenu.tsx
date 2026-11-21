@@ -6,6 +6,7 @@ interface AppMenuProps {
   onOpenPrepareRun: () => void;
   onOpenMaterialTool: () => void;
   onOpenExternalJobs: () => void;
+  onOpenFirstRun?: () => void;
   /** When true, Log tab shows Export / Copy / Debug bridge chrome. */
   debugMode: boolean;
   onDebugModeChange: (enabled: boolean) => void;
@@ -18,6 +19,7 @@ export function AppMenu({
   onOpenPrepareRun,
   onOpenMaterialTool,
   onOpenExternalJobs,
+  onOpenFirstRun,
   debugMode,
   onDebugModeChange,
   theme,
@@ -85,6 +87,24 @@ export function AppMenu({
           <p className="appmenu__hint">
             Watched local folder and Google Drive job sources.
           </p>
+          {onOpenFirstRun ? (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                className="appmenu__item"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenFirstRun();
+                }}
+              >
+                First-run setup…
+              </button>
+              <p className="appmenu__hint">
+                Connect → home → calibrate → travel → stock.
+              </p>
+            </>
+          ) : null}
           <button
             type="button"
             role="menuitem"
