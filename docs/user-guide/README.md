@@ -19,7 +19,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | 1 | [Install & run](01-install-and-run.md) | Prerequisites, `npm run tauri dev`, mock UI |
 | 2 | [Connect](02-connect.md) | COM ports, 115200 baud, Linked status |
 | 3 | [Understanding the UI](03-understanding-the-ui.md) | Essentials strip, visualizer, Move / Job / Log, Menu |
-| 4 | [Jogging & zeros](04-jogging-and-zeros.md) | Jog pad, soft limits, work zeros, go-to-zero |
+| 4 | [Jogging & zeros](04-jogging-and-zeros.md) | Jog, home, G54–G59, XY probe, console, overrides |
 | 5 | [Calibration wizard](05-calibration.md) | Zero → axis direction → steps/mm → soft travel → manual |
 | 6 | [Material & tool](06-material-and-tool.md) | Stock size, bed corners, bit diameter |
 | 7 | [Prepare to run & Z probe](07-prepare-and-z-probe.md) | Pre-start wizard, touch plate, G38.2 |

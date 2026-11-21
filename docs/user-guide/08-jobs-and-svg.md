@@ -48,21 +48,32 @@ Available in the Job panel and as an overlay on the visualizer when a path exist
 
 Banner: **Preview — not sending to CNC**.
 
+## Scrubber, skip-to-line, time estimate, dry run
+
+With a job loaded (and not streaming):
+
+- **Start at line** scrubber — next **Start** begins at that line (preview shows the G-code).  
+- Rough **time estimate** from path length (feed vs rapid assumptions).  
+- **Spindle-off dry run** — strips `M3`/`M4`/`S` and forces `M5` so you can air-cut without spinning the bit.
+
 ## Start / Pause / Resume / Stop
 
 | Button | What it does |
 |--------|----------------|
 | **Prepare…** | Opens the pre-start wizard (stock, tool, XY, Z probe). Shows **Prepared** when ready. |
-| **Start** | Streams G-code to GRBL (needs Linked, Idle-capable state, soft-limit OK, **and** Prepare ready) |
+| **Start** | Streams G-code to GRBL (needs Linked, Idle-capable state, soft-limit OK, **and** Prepare ready). Honors scrubber + dry-run. |
 | **Pause** | Feed hold (`!`) |
 | **Resume** | Cycle start (`~`) from Hold |
+| **Resume after tool change** | Continues past an `M6` pause after you change the bit |
 | **Stop** | Soft reset / cancel stream — treat as abort |
 
-Progress shows line counts and a bar. State badges: Ready / Running / Held / Stopping / Done / Error.
+Progress shows line counts and a bar. State badges: Ready / Running / Held / Tool change / Stopping / Done / Error.
+
+When the stream hits **`M6`**, SharpCNC pauses for a tool change. Change the bit, then **Resume after tool change**.
 
 Hardware **start / pause / stop** buttons on the Demon Shield stay in sync; Start from hardware respects the same Prepare gate.
 
-> **Safety:** Stay at the machine while Running. Know where **E-Stop** is (UI and physical). Do not Start if clamps, bit, or soft travel look wrong. When in doubt, Simulate again or jog a dry pass with Z raised.
+> **Safety:** Stay at the machine while Running. Know where **E-Stop** is (UI and physical). Do not Start if clamps, bit, or soft travel look wrong. When in doubt, Simulate again or use **spindle-off dry run** with Z raised.
 
 ## Alarms during a job
 

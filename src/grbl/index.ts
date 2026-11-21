@@ -115,6 +115,89 @@ export {
   planGoToWorkZero,
 } from "./workZero";
 
+export type { HomingConfig } from "./homing";
+export {
+  DEFAULT_HOMING_CONFIG,
+  HOME_COMMAND,
+  HOMING_CONFIG_KEY,
+  canHome,
+  describeClearHomeState,
+  loadHomingConfig,
+  saveHomingConfig,
+} from "./homing";
+
+export type {
+  SavedWorkOffset,
+  WcsId,
+  WorkOffsetsStore,
+} from "./workOffsets";
+export {
+  DEFAULT_WORK_OFFSETS,
+  WCS_OPTIONS,
+  WORK_OFFSETS_KEY,
+  buildRecallOffsetCommands,
+  buildSelectWcsCommand,
+  buildSetAbsoluteWcoCommand,
+  currentWcoFromStatus,
+  loadWorkOffsets,
+  parseWcsId,
+  saveWorkOffsets,
+  snapshotOffset,
+  wcsP,
+} from "./workOffsets";
+
+export type { GcodeMacro } from "./consoleMacros";
+export {
+  DEFAULT_MACROS,
+  MACROS_KEY,
+  canSendConsole,
+  createMacro,
+  loadMacros,
+  parseConsoleLines,
+  saveMacros,
+} from "./consoleMacros";
+
+export type {
+  CornerProbeOptions,
+  EdgeDirection,
+  EdgeProbeOptions,
+  ToolLengthProbeOptions,
+} from "./xyProbe";
+export {
+  bitRadiusMm,
+  buildAxisProbeSeekCommand,
+  buildEdgeWorkZeroCommand,
+  buildRelativeRetractCommand,
+  canToolLengthProbe,
+  runCornerProbeCycle,
+  runEdgeProbeCycle,
+  runToolLengthProbeCycle,
+} from "./xyProbe";
+
+export type { DryRunOptions, JobTimeEstimate } from "./jobControls";
+export {
+  ESTIMATE_FEED_MM_MIN,
+  ESTIMATE_RAPID_MM_MIN,
+  buildDryRunLines,
+  clampScrubIndex,
+  estimateJobTime,
+  estimateJobTimeFromJob,
+  findNextToolChange,
+  isToolChangeLine,
+  sliceJobFromLine,
+} from "./jobControls";
+
+export type {
+  AlarmGuide,
+  AlarmGuideKind,
+  AlarmGuideStep,
+} from "./alarmGuide";
+export {
+  classifyAlarm,
+  guideForAlarm,
+  guideFromAlarmLine,
+} from "./alarmGuide";
+
 export type { DesktopPortInfo } from "./desktopSerial";
 export {
   createDesktopGrblClient,
@@ -214,7 +297,7 @@ export {
   suggestFeedsSpeeds,
 } from "./materialPresets";
 
-export type { OverrideStep } from "./spindleFeed";
+export type { OverrideStep, RapidOverrideStep } from "./spindleFeed";
 export {
   DEFAULT_SPINDLE_RPM,
   FEED_OVERRIDE_COARSE_MINUS,
@@ -226,6 +309,9 @@ export {
   FEED_OVERRIDE_RESET,
   MAX_SPINDLE_RPM,
   MIN_SPINDLE_RPM,
+  RAPID_OVERRIDE_LOW,
+  RAPID_OVERRIDE_MEDIUM,
+  RAPID_OVERRIDE_RESET,
   SPINDLE_OVERRIDE_COARSE_MINUS,
   SPINDLE_OVERRIDE_COARSE_PLUS,
   SPINDLE_OVERRIDE_FINE_MINUS,
@@ -234,14 +320,21 @@ export {
   SPINDLE_OVERRIDE_MIN,
   SPINDLE_OVERRIDE_RESET,
   applyOverrideStep,
+  applyRapidOverrideStep,
   buildSpindleOffCommand,
   buildSpindleOnCommand,
   buildSpindleSpeedCommand,
   feedOverrideByte,
+  rapidOverrideByte,
   spindleOverrideByte,
 } from "./spindleFeed";
 
-export type { GcodeStreamer, StreamPhase, StreamProgress } from "./streamer";
+export type {
+  GcodeStreamer,
+  StreamPhase,
+  StreamProgress,
+  StreamStartOptions,
+} from "./streamer";
 export { GRBL_RX_BUFFER, createGcodeStreamer } from "./streamer";
 
 export type {

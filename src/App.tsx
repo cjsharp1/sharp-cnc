@@ -3,16 +3,20 @@ import { ActivityLogPanel } from "./components/ActivityLogPanel";
 import { AppMenu } from "./components/AppMenu";
 import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
+import { ConsolePanel } from "./components/ConsolePanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
 import {
   ExternalJobsPanel,
   type ExternalJobKind,
 } from "./components/ExternalJobsPanel";
+import { HomingPanel } from "./components/HomingPanel";
 import { JobLoad } from "./components/JobLoad";
 import { JogPanel, type JogAxisMap } from "./components/JogPanel";
 import { MachineView, type TrailPoint } from "./components/MachineView";
 import { MaterialToolPanel } from "./components/MaterialToolPanel";
+import { OverridesStrip } from "./components/OverridesStrip";
 import { PrepareRunPanel } from "./components/PrepareRunPanel";
+import { ProbeXyPanel } from "./components/ProbeXyPanel";
 import { SafetyControls } from "./components/SafetyControls";
 import { SimControls } from "./components/SimControls";
 import { SpindleFeedPanel } from "./components/SpindleFeedPanel";
@@ -21,6 +25,7 @@ import {
   WorkspaceTabs,
   type WorkspaceTabId,
 } from "./components/WorkspaceTabs";
+import { WorkOffsetsPanel } from "./components/WorkOffsetsPanel";
 import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
@@ -29,65 +34,88 @@ import {
   SETTING_SOFT_LIMITS,
   STEPS_SETTING_FOR_AXIS,
   describeDirInvertMask,
+  HOME_COMMAND,
   UNLOCK_COMMAND,
   advanceSim,
+  applyOverrideStep,
+  applyRapidOverrideStep,
   bedSizeFromLimits,
+  bitRadiusMm,
+  buildDryRunLines,
   buildJobFromSvg,
   buildJogCommand,
   buildProbeRetractCommand,
+  buildRecallOffsetCommands,
+  buildSelectWcsCommand,
   buildSetWorkZeroCommand,
+  buildSpindleOffCommand,
+  buildSpindleOnCommand,
+  canHome,
   canJogOrZero,
   canProbe,
+  canSendConsole,
   canStartJob,
   canWriteSettings,
   checkJobSoftLimits,
   checkSoftLimits,
+  clampScrubIndex,
   continuousJogDelta,
-  buildDebugSnapshot,
   createActivityLog,
   createDemonShieldExternalControlAdapter,
   createGcodeStreamer,
   createIdleSim,
+  createMacro,
   DEFAULT_SIM_SPEED,
   createSessionClient,
+  currentWcoFromStatus,
+  describeClearHomeState,
+  estimateJobTimeFromJob,
+  feedOverrideByte,
   fetchGrblSettings,
+  guideForAlarm,
   importSvg,
   isDesktopShell,
   isGrblResetBanner,
   jogDeltaFromAxes,
   listAvailablePorts,
   loadDebugMode,
-  loadUiTheme,
   loadDriveConfig,
+  loadFeedsSpeedsSelection,
   loadJobFromText,
   loadJobsFolderConfig,
-  loadFeedsSpeedsSelection,
+  loadMacros,
   loadProbeConfig,
   loadSoftTravel,
   loadStock,
   loadTool,
+  loadUiTheme,
+  loadWorkOffsets,
   OFFLINE_STATUS,
   parseAlarmLine,
+  parseConsoleLines,
   pauseSim,
   planGoToWorkZero,
   publishDebugSnapshot,
+  rapidOverrideByte,
   resumeSim,
+  runCornerProbeCycle,
+  runEdgeProbeCycle,
+  runToolLengthProbeCycle,
   runZProbeCycle,
   saveDebugMode,
-  saveUiTheme,
-  applyUiTheme,
   saveDriveConfig,
   saveFeedsSpeedsSelection,
   saveJobsFolderConfig,
+  saveMacros,
   saveProbeConfig,
   saveSoftTravel,
   saveStock,
   saveTool,
+  saveUiTheme,
+  applyUiTheme,
+  saveWorkOffsets,
   softTravelFromSettings,
-  applyOverrideStep,
-  buildSpindleOffCommand,
-  buildSpindleOnCommand,
-  feedOverrideByte,
+  snapshotOffset,
   spindleOverrideByte,
   startDebugBridge,
   startSim,
@@ -96,12 +124,15 @@ import {
   stockOffsetForCorner,
   writeGrblSetting,
   writeGrblSettings,
+  buildDebugSnapshot,
   type Axis,
   type DebugBridgeStatus,
   type DesktopPortInfo,
   type DriveConfig,
+  type EdgeDirection,
   type ExternalControlAdapter,
   type FeedsSpeedsSelection,
+  type GcodeMacro,
   type GcodeStreamer,
   type GrblClient,
   type GrblSetting,
@@ -112,6 +143,7 @@ import {
   type OverrideStep,
   type PathSimSnapshot,
   type ProbeConfig,
+  type RapidOverrideStep,
   type SimSpeedRate,
   type SoftTravelLimits,
   type StockConfig,
@@ -122,6 +154,8 @@ import {
   type SvgToolpathParams,
   type ToolConfig,
   type UiTheme,
+  type WcsId,
+  type WorkOffsetsStore,
   type ZeroAxisSelection,
 } from "./grbl";
 import "./App.css";
@@ -152,6 +186,7 @@ export default function App() {
   const [selectedPath, setSelectedPath] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [alarmMessage, setAlarmMessage] = useState<string | null>(null);
+  const [alarmCode, setAlarmCode] = useState<number | null>(null);
 
   const [jogMode, setJogMode] = useState<JogMode>("incremental");
   const [stepMm, setStepMm] = useState<number>(JOG_STEP_OPTIONS_MM[1]);
@@ -189,7 +224,23 @@ export default function App() {
   );
   const [feedsApplyToken, setFeedsApplyToken] = useState(0);
   const [feedOverridePercent, setFeedOverridePercent] = useState(100);
+  const [rapidOverridePercent, setRapidOverridePercent] = useState(100);
   const [spindleOverridePercent, setSpindleOverridePercent] = useState(100);
+  const [homed, setHomed] = useState(false);
+  const [homeBusy, setHomeBusy] = useState(false);
+  const [homeMessage, setHomeMessage] = useState<string | null>(null);
+  const [workOffsets, setWorkOffsets] = useState<WorkOffsetsStore>(() =>
+    loadWorkOffsets(),
+  );
+  const [offsetsMessage, setOffsetsMessage] = useState<string | null>(null);
+  const [macros, setMacros] = useState<GcodeMacro[]>(() => loadMacros());
+  const [consoleResult, setConsoleResult] = useState<string | null>(null);
+  const [scrubIndex, setScrubIndex] = useState(0);
+  const [dryRun, setDryRun] = useState(false);
+  const [xyProbeBusy, setXyProbeBusy] = useState(false);
+  const [xyProbeMessage, setXyProbeMessage] = useState<string | null>(null);
+  const [xySeekMm, setXySeekMm] = useState(20);
+  const [xyFeedMmMin, setXyFeedMmMin] = useState(80);
   /** Watched local jobs folder — persisted path + auto-refresh. */
   const [jobsFolder, setJobsFolder] = useState<JobsFolderConfig>(() =>
     loadJobsFolderConfig(),
@@ -249,7 +300,32 @@ export default function App() {
   const streaming =
     streamProgress?.phase === "running" ||
     streamProgress?.phase === "paused" ||
+    streamProgress?.phase === "tool-change" ||
     streamProgress?.phase === "stopping";
+
+  const currentWco = currentWcoFromStatus(
+    status.machine,
+    status.work,
+    status.wco,
+  );
+
+  const alarmGuide =
+    status.state === "Alarm"
+      ? guideForAlarm(
+          alarmMessage
+            ? { code: alarmCode, message: alarmMessage, raw: alarmMessage }
+            : null,
+        )
+      : null;
+
+  const jobTimeEstimate = job ? estimateJobTimeFromJob(job) : null;
+
+  const liveFeedPercent =
+    status.overrides?.feed ?? feedOverridePercent;
+  const liveRapidPercent =
+    status.overrides?.rapid ?? rapidOverridePercent;
+  const liveSpindlePercent =
+    status.overrides?.spindle ?? spindleOverridePercent;
 
   const jobSoftCheck =
     job && connected
@@ -477,9 +553,13 @@ export default function App() {
       setStatus(next);
       if (next.state === "Alarm" && next.raw) {
         const parsed = parseAlarmLine(next.raw);
-        if (parsed) setAlarmMessage(parsed.message);
+        if (parsed) {
+          setAlarmMessage(parsed.message);
+          setAlarmCode(parsed.code);
+        }
       } else if (next.state !== "Alarm") {
         setAlarmMessage(null);
+        setAlarmCode(null);
       }
       if (next.state === "Offline" && client.transport.isOpen === false) {
         setPhase((prev) => (prev === "connecting" ? prev : "disconnected"));
@@ -496,7 +576,10 @@ export default function App() {
     // plus GRBL soft-reset banners from the external Abort button.
     const unsubLines = client.transport.onLine((line) => {
       const parsed = parseAlarmLine(line);
-      if (parsed) setAlarmMessage(parsed.message);
+      if (parsed) {
+        setAlarmMessage(parsed.message);
+        setAlarmCode(parsed.code);
+      }
       if (isGrblResetBanner(line)) {
         applyExternalEvents(
           controls.observe({
@@ -732,11 +815,14 @@ export default function App() {
       setStatus(OFFLINE_STATUS);
       setErrorMessage(null);
       setAlarmMessage(null);
+      setAlarmCode(null);
       setPendingGoTo(null);
       setStreamProgress(null);
       setGrblSettings(null);
       setCalMessage(null);
       setCalBusy(false);
+      setHomed(false);
+      setHomeMessage(null);
       resetPrepareSession();
     }
   };
@@ -752,7 +838,9 @@ export default function App() {
     try {
       await client.softReset();
       setFeedOverridePercent(100);
+      setRapidOverridePercent(100);
       setSpindleOverridePercent(100);
+      setHomed(false);
       setErrorMessage(null);
       setSoftLimitHint(null);
       activityLog.append("event", "Soft reset");
@@ -780,6 +868,7 @@ export default function App() {
       if (
         streamPhase === "running" ||
         streamPhase === "paused" ||
+        streamPhase === "tool-change" ||
         streamPhase === "stopping" ||
         streamPhase === "error"
       ) {
@@ -845,6 +934,7 @@ export default function App() {
       activityLog.append("event", "Unlock ($X)");
       setErrorMessage(null);
       setAlarmMessage(null);
+      setAlarmCode(null);
       await client.requestStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -852,14 +942,284 @@ export default function App() {
     }
   };
 
-  const handleSimulateAlarm = async () => {
+  const simulateMockAlarm = async (cmd: string, label: string) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
     try {
       await stopContinuousJog();
       if (streaming) await streamerRef.current?.stop();
-      await client.sendLine("$Alarm");
-      activityLog.append("event", "Simulated alarm (mock)");
+      await client.sendLine(cmd);
+      activityLog.append("event", label);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleSimulateAlarm = async () => {
+    await simulateMockAlarm("$Alarm", "Simulated hard-limit alarm (mock)");
+  };
+
+  const handleSimulateSoftLimit = async () => {
+    await simulateMockAlarm("$Alarm2", "Simulated soft-limit alarm (mock)");
+  };
+
+  const handleSimulateProbeFail = async () => {
+    await simulateMockAlarm("$Alarm4", "Simulated probe-fail alarm (mock)");
+  };
+
+  const handleHome = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canHome(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setHomeMessage(gate.reason ?? "Cannot home");
+      return;
+    }
+    setHomeBusy(true);
+    setHomeMessage(null);
+    try {
+      await stopContinuousJog();
+      await client.sendLine(HOME_COMMAND);
+      // Allow the controller to enter Home before we treat Idle as “done”.
+      await new Promise((r) => setTimeout(r, usingMock ? 120 : 400));
+      const deadline = Date.now() + (usingMock ? 4000 : 120_000);
+      let sawHome = statusRef.current.state === "Home";
+      while (Date.now() < deadline) {
+        await client.requestStatus();
+        const st = statusRef.current.state;
+        if (st === "Home") sawHome = true;
+        if (st === "Alarm") {
+          throw new Error(alarmMessage ?? "Homing failed (Alarm)");
+        }
+        if (st === "Idle" && (sawHome || usingMock)) break;
+        await new Promise((r) => setTimeout(r, usingMock ? 80 : 250));
+      }
+      if (statusRef.current.state === "Alarm") {
+        throw new Error(alarmMessage ?? "Homing failed (Alarm)");
+      }
+      setHomed(true);
+      setHomeMessage("Homed — machine coordinates at home switches.");
+      activityLog.append("event", "Homing ($H) complete");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setHomeMessage(message);
+      setErrorMessage(message);
+      setHomed(false);
+    } finally {
+      setHomeBusy(false);
+    }
+  };
+
+  const handleClearHome = () => {
+    setHomed(false);
+    setHomeMessage(describeClearHomeState());
+    activityLog.append("event", "Cleared SharpCNC home flag");
+  };
+
+  const updateWorkOffsets = (next: WorkOffsetsStore) => {
+    setWorkOffsets(next);
+    saveWorkOffsets(next);
+  };
+
+  const handleSelectWcs = async (id: WcsId) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.sendLine(buildSelectWcsCommand(id));
+      updateWorkOffsets({ ...workOffsets, active: id });
+      setOffsetsMessage(`Active ${id}`);
+      activityLog.append("event", `WCS ${id}`);
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setOffsetsMessage(message);
+    }
+  };
+
+  const handleSaveOffset = (id: WcsId) => {
+    const slot = snapshotOffset(id, currentWco, id);
+    updateWorkOffsets({
+      ...workOffsets,
+      active: id,
+      slots: { ...workOffsets.slots, [id]: slot },
+    });
+    setOffsetsMessage(`Saved ${id} WCO`);
+    activityLog.append("event", `Saved work offset ${id}`);
+  };
+
+  const handleRecallOffset = async (id: WcsId) => {
+    const client = clientRef.current;
+    const slot = workOffsets.slots[id];
+    if (!client || !client.transport.isOpen || !slot) return;
+    try {
+      for (const line of buildRecallOffsetCommands(slot)) {
+        await client.sendLine(line);
+      }
+      updateWorkOffsets({ ...workOffsets, active: id });
+      setOffsetsMessage(`Recalled ${id}`);
+      activityLog.append("event", `Recalled work offset ${id}`);
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setOffsetsMessage(message);
+    }
+  };
+
+  const sendConsoleText = async (text: string) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canSendConsole(connected, streaming, statusRef.current.state);
+    if (!gate.ok) {
+      setConsoleResult(gate.reason ?? "Cannot send");
+      return;
+    }
+    const parsed = parseConsoleLines(text);
+    if (parsed.blocked) {
+      setConsoleResult(parsed.blocked);
+      return;
+    }
+    try {
+      for (const line of parsed.lines) {
+        await client.sendLine(line);
+      }
+      setConsoleResult(`Sent ${parsed.lines.length} line(s)`);
+      activityLog.append("event", `Console: ${parsed.lines.length} line(s)`);
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setConsoleResult(message);
+    }
+  };
+
+  const handleSaveMacro = (name: string, body: string) => {
+    const next = [...macros, createMacro(name, body)];
+    setMacros(next);
+    saveMacros(next);
+    setConsoleResult(`Saved macro “${name}”`);
+  };
+
+  const handleDeleteMacro = (id: string) => {
+    const next = macros.filter((m) => m.id !== id);
+    setMacros(next);
+    saveMacros(next);
+  };
+
+  const handleXyEdgeProbe = async (
+    axis: "X" | "Y",
+    direction: EdgeDirection,
+  ) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canProbe(statusRef.current.state, connected, streaming, {
+      probePinActive: !!statusRef.current.pins?.probe,
+    });
+    if (!gate.ok) {
+      setXyProbeMessage(gate.reason ?? "Cannot probe");
+      return;
+    }
+    setXyProbeBusy(true);
+    setXyProbeMessage(null);
+    try {
+      const result = await runEdgeProbeCycle(client, {
+        axis,
+        direction,
+        seekMm: xySeekMm,
+        feedMmMin: xyFeedMmMin,
+        workOffsetMm: 0,
+        timeoutMs: usingMock ? 5000 : 20_000,
+      });
+      setXyProbeMessage(
+        `Edge ${axis} set · ${result.workZeroCommand}`,
+      );
+      activityLog.append("event", `XY edge probe ${axis}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setXyProbeMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setXyProbeBusy(false);
+    }
+  };
+
+  const handleXyCornerProbe = async (mode: "outside" | "inside") => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canProbe(statusRef.current.state, connected, streaming, {
+      probePinActive: !!statusRef.current.pins?.probe,
+    });
+    if (!gate.ok) {
+      setXyProbeMessage(gate.reason ?? "Cannot probe");
+      return;
+    }
+    setXyProbeBusy(true);
+    setXyProbeMessage(null);
+    try {
+      await runCornerProbeCycle(client, {
+        mode,
+        seekMm: xySeekMm,
+        feedMmMin: xyFeedMmMin,
+        bitRadiusMm: bitRadiusMm(tool.diameterMm),
+        timeoutMs: usingMock ? 8000 : 30_000,
+      });
+      setXyProbeMessage(`Corner (${mode}) work XY set`);
+      activityLog.append("event", `XY corner probe (${mode})`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setXyProbeMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setXyProbeBusy(false);
+    }
+  };
+
+  const handleToolLengthProbe = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canProbe(statusRef.current.state, connected, streaming, {
+      probePinActive: !!statusRef.current.pins?.probe,
+    });
+    if (!gate.ok) {
+      setXyProbeMessage(gate.reason ?? "Cannot probe");
+      return;
+    }
+    setXyProbeBusy(true);
+    setXyProbeMessage(null);
+    try {
+      const result = await runToolLengthProbeCycle(client, {
+        plateThicknessMm: probeConfig.plateThicknessMm,
+        seekMm: probeConfig.seekMm,
+        feedMmMin: probeConfig.feedMmMin,
+        timeoutMs: usingMock ? 5000 : 20_000,
+      });
+      setXyProbeMessage(`Tool length Z · ${result.workZeroCommand}`);
+      activityLog.append("event", "Tool-length Z probe");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setXyProbeMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setXyProbeBusy(false);
+    }
+  };
+
+  const handleRapidOverride = async (step: RapidOverrideStep) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.rapidOverride(rapidOverrideByte(step));
+      setRapidOverridePercent(applyRapidOverrideStep(step));
+      activityLog.append("event", `Rapid override ${step}%`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setErrorMessage(message);
+    }
+  };
+
+  const handleResumeToolChange = async () => {
+    try {
+      await streamerRef.current?.resumeAfterToolChange();
+      activityLog.append("event", "Resumed after M6 tool change");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
@@ -1430,6 +1790,8 @@ export default function App() {
     setJob(loaded);
     setSvgDraft(null);
     resetSimForPath(loaded.path);
+    setScrubIndex(0);
+    setDryRun(false);
     setStreamProgress({
       phase: "idle",
       sentLines: 0,
@@ -1538,6 +1900,8 @@ export default function App() {
     setJob(null);
     resetSimForPath([]);
     setStreamProgress(null);
+    setScrubIndex(0);
+    setDryRun(false);
     resetPrepareSession();
     activityLog.append("event", "Job cleared");
   };
@@ -1586,12 +1950,21 @@ export default function App() {
       return;
     }
 
+    const startAt = clampScrubIndex(scrubIndex, job.lines.length);
+    const sliced = job.lines.slice(startAt);
+    const sourceLines = dryRun
+      ? buildDryRunLines(sliced, { spindleOff: true })
+      : sliced;
+
     await stopContinuousJog();
     setErrorMessage(null);
     externalControlsRef.current.noteSoftwareAction("start");
-    activityLog.append("event", `Job start: ${job.name}`);
+    activityLog.append(
+      "event",
+      `Job start: ${job.name}${dryRun ? " (dry run)" : ""}${startAt > 0 ? ` @ line ${startAt + 1}` : ""}`,
+    );
     try {
-      await streamer.start(job.lines);
+      await streamer.start(sourceLines);
       activityLog.append("event", `Job completed: ${job.name}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1830,6 +2203,7 @@ export default function App() {
           connected={connected}
           machineState={status.state}
           alarmMessage={alarmMessage}
+          alarmGuide={alarmGuide}
           usingMock={usingMock}
           onEstop={() => {
             void handleEstop();
@@ -1848,6 +2222,30 @@ export default function App() {
           }}
           onSimulateAlarm={() => {
             void handleSimulateAlarm();
+          }}
+          onSimulateSoftLimit={() => {
+            void handleSimulateSoftLimit();
+          }}
+          onSimulateProbeFail={() => {
+            void handleSimulateProbeFail();
+          }}
+        />
+        <OverridesStrip
+          visible={streaming || status.state === "Run" || status.state === "Hold"}
+          feedPercent={liveFeedPercent}
+          rapidPercent={liveRapidPercent}
+          spindlePercent={liveSpindlePercent}
+          feedRate={status.feedRate}
+          spindleSpeed={status.spindleSpeed}
+          connected={connected}
+          onFeedOverride={(step) => {
+            void handleFeedOverride(step);
+          }}
+          onSpindleOverride={(step) => {
+            void handleSpindleOverride(step);
+          }}
+          onRapidOverride={(step) => {
+            void handleRapidOverride(step);
           }}
         />
       </section>
@@ -1874,6 +2272,7 @@ export default function App() {
             liveMoving={liveMoving}
             simulating={simulating}
             simActivity={simulating ? sim.activity : null}
+            wco={status.wco ?? currentWco}
             overlay={
               job && job.path.length > 0 ? (
                 <div className="machine__overlay">
@@ -1944,6 +2343,83 @@ export default function App() {
                       void handleConfirmGoTo();
                     }}
                     onCancelGoTo={() => setPendingGoTo(null)}
+                  />
+                  <HomingPanel
+                    enabled={
+                      canHome(status.state, connected, streaming).ok && !homeBusy
+                    }
+                    blockedReason={
+                      canHome(status.state, connected, streaming).reason ?? null
+                    }
+                    homed={homed}
+                    busy={homeBusy}
+                    message={homeMessage}
+                    onHome={() => {
+                      void handleHome();
+                    }}
+                    onClearHome={handleClearHome}
+                  />
+                  <WorkOffsetsPanel
+                    enabled={jogEnabled}
+                    active={workOffsets.active}
+                    slots={workOffsets.slots}
+                    currentWco={currentWco}
+                    message={offsetsMessage}
+                    onSelect={(id) => {
+                      void handleSelectWcs(id);
+                    }}
+                    onSave={handleSaveOffset}
+                    onRecall={(id) => {
+                      void handleRecallOffset(id);
+                    }}
+                  />
+                  <ProbeXyPanel
+                    enabled={
+                      canProbe(status.state, connected, streaming, {
+                        probePinActive: !!status.pins?.probe,
+                      }).ok && !xyProbeBusy
+                    }
+                    blockedReason={
+                      canProbe(status.state, connected, streaming, {
+                        probePinActive: !!status.pins?.probe,
+                      }).reason ?? null
+                    }
+                    busy={xyProbeBusy}
+                    bitDiameterMm={tool.diameterMm}
+                    seekMm={xySeekMm}
+                    feedMmMin={xyFeedMmMin}
+                    plateThicknessMm={probeConfig.plateThicknessMm}
+                    message={xyProbeMessage}
+                    onSeekChange={setXySeekMm}
+                    onFeedChange={setXyFeedMmMin}
+                    onEdge={(axis, direction) => {
+                      void handleXyEdgeProbe(axis, direction);
+                    }}
+                    onCorner={(mode) => {
+                      void handleXyCornerProbe(mode);
+                    }}
+                    onToolLength={() => {
+                      void handleToolLengthProbe();
+                    }}
+                  />
+                  <ConsolePanel
+                    enabled={
+                      canSendConsole(connected, streaming, status.state).ok
+                    }
+                    blockedReason={
+                      canSendConsole(connected, streaming, status.state)
+                        .reason ?? null
+                    }
+                    macros={macros}
+                    lastResult={consoleResult}
+                    onSend={(text) => {
+                      void sendConsoleText(text);
+                    }}
+                    onRunMacro={(macro) => {
+                      void sendConsoleText(macro.body);
+                    }}
+                    onSaveMacro={handleSaveMacro}
+                    onDeleteMacro={handleDeleteMacro}
                   />
                   <SpindleFeedPanel
                     connected={connected}
@@ -2047,6 +2523,14 @@ export default function App() {
                     }}
                     onPrepareRun={openPrepareRun}
                     prepareReady={prepareReady}
+                    scrubIndex={scrubIndex}
+                    onScrubIndexChange={setScrubIndex}
+                    timeEstimate={jobTimeEstimate}
+                    dryRun={dryRun}
+                    onDryRunChange={setDryRun}
+                    onResumeToolChange={() => {
+                      void handleResumeToolChange();
+                    }}
                   />
                 </div>
               )}

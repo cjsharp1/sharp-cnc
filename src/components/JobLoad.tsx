@@ -1,5 +1,6 @@
 import { useRef, useState, type DragEvent } from "react";
 import type {
+  JobTimeEstimate,
   LoadedJob,
   SimActivity,
   SimPhase,
@@ -41,6 +42,13 @@ interface JobLoadProps {
   onPrepareRun?: () => void;
   /** Session work-zero confirmed via Prepare wizard. */
   prepareReady?: boolean;
+  /** Scrubber: 0-based start line for next Start. */
+  scrubIndex?: number;
+  onScrubIndexChange?: (index: number) => void;
+  timeEstimate?: JobTimeEstimate | null;
+  dryRun?: boolean;
+  onDryRunChange?: (enabled: boolean) => void;
+  onResumeToolChange?: () => void;
 }
 
 function phaseLabel(phase: JobRunPhase): string {
@@ -49,6 +57,8 @@ function phaseLabel(phase: JobRunPhase): string {
       return "Running";
     case "paused":
       return "Held";
+    case "tool-change":
+      return "Tool change";
     case "stopping":
       return "Stopping";
     case "completed":
@@ -85,6 +95,12 @@ export function JobLoad({
   onStop,
   onPrepareRun,
   prepareReady = false,
+  scrubIndex = 0,
+  onScrubIndexChange,
+  timeEstimate = null,
+  dryRun = false,
+  onDryRunChange,
+  onResumeToolChange,
 }: JobLoadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -94,6 +110,7 @@ export function JobLoad({
   const streaming =
     phase === "running" ||
     phase === "paused" ||
+    phase === "tool-change" ||
     phase === "stopping" ||
     phase === "error";
   const simulating =
@@ -115,8 +132,12 @@ export function JobLoad({
     !!onSimStop;
   const showPause = phase === "running";
   const showResume = phase === "paused";
+  const showToolChange = phase === "tool-change";
   const showStop =
-    phase === "running" || phase === "paused" || phase === "error";
+    phase === "running" ||
+    phase === "paused" ||
+    phase === "tool-change" ||
+    phase === "error";
 
   const acceptFile = (file: File | undefined) => {
     if (!file) return;
@@ -142,6 +163,12 @@ export function JobLoad({
       ? `${job.lines.length} lines`
       : null;
 
+  const maxScrub = job ? Math.max(0, job.lines.length - 1) : 0;
+  const previewLine =
+    job && job.lines.length > 0
+      ? job.lines[Math.min(scrubIndex, maxScrub)]
+      : null;
+
   return (
     <section
       className={`job${dragOver ? " is-dragover" : ""}`}
@@ -158,7 +185,7 @@ export function JobLoad({
         <p className="job__name">{job?.name ?? "No file loaded"}</p>
         <p className="job__hint">
           {job
-            ? `${lineText} · drop .nc / .gcode to replace`
+            ? `${lineText}${timeEstimate ? ` · ${timeEstimate.label}` : ""} · drop .nc / .gcode to replace`
             : "Load or drop .nc / .gcode"}
         </p>
       </div>
@@ -187,6 +214,7 @@ export function JobLoad({
             {!streaming && machineState === "Alarm" && (
               <span className="job__warn">Alarm</span>
             )}
+            {dryRun && !streaming && <span className="job__warn">Dry run</span>}
           </div>
           {(streaming || phase === "completed") && (
             <div
@@ -202,9 +230,56 @@ export function JobLoad({
           {progress?.lastError && (
             <p className="job__error">{progress.lastError}</p>
           )}
+          {progress?.toolChangeMessage && phase === "tool-change" && (
+            <p className="job__toolchange" role="status">
+              {progress.toolChangeMessage}
+            </p>
+          )}
           {startBlockedReason && !streaming && (
             <p className="job__warn-text">{startBlockedReason}</p>
           )}
+        </div>
+      )}
+
+      {job && onScrubIndexChange && !streaming && (
+        <div className="job__scrubber">
+          <label className="job__scrub-label" htmlFor="job-scrub">
+            Start at line {scrubIndex + 1}
+            {previewLine ? (
+              <span className="job__scrub-preview"> · {previewLine}</span>
+            ) : null}
+          </label>
+          <input
+            id="job-scrub"
+            type="range"
+            className="job__scrub"
+            min={0}
+            max={maxScrub}
+            value={Math.min(scrubIndex, maxScrub)}
+            disabled={simulating}
+            onChange={(e) => onScrubIndexChange(Number(e.target.value))}
+          />
+          <div className="job__scrub-actions">
+            <button
+              type="button"
+              className="job__btn job__btn--ghost"
+              disabled={simulating || scrubIndex === 0}
+              onClick={() => onScrubIndexChange(0)}
+            >
+              Reset to start
+            </button>
+            {onDryRunChange && (
+              <label className="job__dryrun">
+                <input
+                  type="checkbox"
+                  checked={dryRun}
+                  disabled={simulating}
+                  onChange={(e) => onDryRunChange(e.target.checked)}
+                />
+                Spindle-off dry run
+              </label>
+            )}
+          </div>
         </div>
       )}
 
@@ -271,7 +346,7 @@ export function JobLoad({
           }
           onClick={onStart}
         >
-          Start
+          {scrubIndex > 0 ? `Start @ ${scrubIndex + 1}` : "Start"}
         </button>
         {showPause && (
           <button type="button" className="job__btn job__btn--hold" onClick={onPause}>
@@ -281,6 +356,16 @@ export function JobLoad({
         {showResume && (
           <button type="button" className="job__btn" onClick={onResume}>
             Resume
+          </button>
+        )}
+        {showToolChange && onResumeToolChange && (
+          <button
+            type="button"
+            className="job__btn"
+            onClick={onResumeToolChange}
+            title="Bit changed — continue past M6"
+          >
+            Resume after tool change
           </button>
         )}
         {showStop && (

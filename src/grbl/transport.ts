@@ -53,6 +53,11 @@ export interface GrblClient {
    * No newline — works during a running job.
    */
   spindleOverride(byte: number): Promise<void>;
+  /**
+   * GRBL 1.1 realtime rapid override byte (`0x95`–`0x97`).
+   * No newline — works during a running job.
+   */
+  rapidOverride(byte: number): Promise<void>;
   sendLine(line: string): Promise<void>;
   onStatus(handler: (status: GrblStatus) => void): () => void;
 }

@@ -131,6 +131,9 @@ export function createGrblClient(
     async spindleOverride(byte: number) {
       await transport.write(new Uint8Array([byte & 0xff]));
     },
+    async rapidOverride(byte: number) {
+      await transport.write(new Uint8Array([byte & 0xff]));
+    },
     async sendLine(line: string) {
       await transport.write(line.endsWith("\n") ? line : `${line}\n`);
     },

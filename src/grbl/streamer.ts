@@ -1,3 +1,4 @@
+import { isToolChangeLine } from "./jobControls";
 import type { SerialTransport } from "./transport";
 
 /** Typical GRBL 1.1 serial RX buffer size (bytes). */
@@ -7,6 +8,7 @@ export type StreamPhase =
   | "idle"
   | "running"
   | "paused"
+  | "tool-change"
   | "stopping"
   | "completed"
   | "error";
@@ -18,16 +20,34 @@ export interface StreamProgress {
   /** Lines that received ok/error so far. */
   ackedLines: number;
   totalLines: number;
+  /**
+   * Absolute 0-based index into the original job for the next line
+   * (accounts for skip-to-line start offset).
+   */
+  absoluteLine?: number;
   /** Percent complete based on acked lines (0–100). */
   percent: number;
   /** Last error message from GRBL, if any. */
   lastError?: string;
+  /** Set when paused for M6 tool change. */
+  toolChangeLine?: number;
+  toolChangeMessage?: string;
 }
 
 export interface GcodeStreamerOptions {
   /** RX buffer size used for character counting. Default 128. */
   rxBufferSize?: number;
   onProgress?: (progress: StreamProgress) => void;
+  /**
+   * When true (default), pause streaming on M6 / M06 until resumeAfterToolChange().
+   * The M6 line itself is still sent to GRBL (many configs treat it as a no-op or pause).
+   */
+  pauseOnToolChange?: boolean;
+}
+
+export interface StreamStartOptions {
+  /** 0-based offset into jobLines — skip earlier lines (scrubber / skip-to-line). */
+  startIndex?: number;
 }
 
 interface PendingLine {
@@ -49,9 +69,11 @@ export function createGcodeStreamer(
   transport: SerialTransport,
   options: GcodeStreamerOptions = {},
 ): {
-  start(lines: string[]): Promise<void>;
+  start(lines: string[], startOptions?: StreamStartOptions): Promise<void>;
   pause(): Promise<void>;
   resume(): Promise<void>;
+  /** Continue after an M6 tool-change pause (does not send `~` unless also held). */
+  resumeAfterToolChange(): Promise<void>;
   stop(): Promise<void>;
   /** Mirror external feed hold — do not send `!`. */
   syncFromExternalHold(): void;
@@ -64,14 +86,19 @@ export function createGcodeStreamer(
 } {
   const rxBufferSize = options.rxBufferSize ?? GRBL_RX_BUFFER;
   const onProgress = options.onProgress;
+  const pauseOnToolChange = options.pauseOnToolChange !== false;
 
   let lines: string[] = [];
+  /** Absolute index of lines[0] in the original job. */
+  let lineOffset = 0;
   let sendIndex = 0;
   let acked = 0;
   let bufferUsed = 0;
   let pending: PendingLine[] = [];
   let phase: StreamPhase = "idle";
   let lastError: string | undefined;
+  let toolChangeLine: number | undefined;
+  let toolChangeMessage: string | undefined;
   let unsubLine: (() => void) | null = null;
   let settle: (() => void) | null = null;
   let settleReject: ((err: Error) => void) | null = null;
@@ -87,8 +114,11 @@ export function createGcodeStreamer(
       sentLines: sendIndex,
       ackedLines: acked,
       totalLines: total,
+      absoluteLine: lineOffset + sendIndex,
       percent,
       lastError,
+      toolChangeLine,
+      toolChangeMessage,
     };
   };
 
@@ -112,12 +142,19 @@ export function createGcodeStreamer(
 
   const maybeComplete = () => {
     if (
-      (phase === "running" || phase === "paused") &&
+      (phase === "running" || phase === "paused" || phase === "tool-change") &&
       sendIndex >= lines.length &&
       pending.length === 0
     ) {
       finish("completed");
     }
+  };
+
+  const enterToolChange = (absoluteIndex: number, line: string) => {
+    phase = "tool-change";
+    toolChangeLine = absoluteIndex;
+    toolChangeMessage = `Tool change (M6) at line ${absoluteIndex + 1}: ${line}`;
+    emit();
   };
 
   const fillBuffer = async () => {
@@ -129,7 +166,15 @@ export function createGcodeStreamer(
     }
 
     while (sendIndex < lines.length && phase === "running") {
-      const body = lines[sendIndex];
+      const body = lines[sendIndex]!;
+
+      // Pause *before* sending M6 so the operator can change the bit first
+      // when configured; still allow resumeAfterToolChange to send it.
+      if (pauseOnToolChange && isToolChangeLine(body) && toolChangeLine == null) {
+        enterToolChange(lineOffset + sendIndex, body);
+        return;
+      }
+
       const payload = body.endsWith("\n") ? body : `${body}\n`;
       const chars = payload.length;
       if (bufferUsed + chars > rxBufferSize) break;
@@ -140,6 +185,11 @@ export function createGcodeStreamer(
       pending.push({ chars, index });
       bufferUsed += chars;
       sendIndex += 1;
+      // Clear latch so a later M6 can pause again.
+      if (toolChangeLine !== undefined && index === toolChangeLine - lineOffset) {
+        toolChangeLine = undefined;
+        toolChangeMessage = undefined;
+      }
       emit();
 
       try {
@@ -171,8 +221,29 @@ export function createGcodeStreamer(
     if (
       phase === "idle" ||
       phase === "completed" ||
-      phase === "stopping"
+      phase === "stopping" ||
+      phase === "tool-change"
     ) {
+      // Still ack buffer while tool-change if GRBL replies for prior lines.
+      if (
+        phase === "tool-change" &&
+        (trimmed === "ok" || trimmed.startsWith("error"))
+      ) {
+        const item = pending.shift();
+        if (item) {
+          bufferUsed = Math.max(0, bufferUsed - item.chars);
+          acked = Math.max(acked, item.index + 1);
+          emit();
+        }
+        if (trimmed.startsWith("error")) {
+          lastError = trimmed;
+          phase = "error";
+          emit();
+          settleReject?.(new Error(trimmed));
+          settle = null;
+          settleReject = null;
+        }
+      }
       return;
     }
 
@@ -224,11 +295,18 @@ export function createGcodeStreamer(
     bufferUsed = 0;
     pending = [];
     lastError = undefined;
+    toolChangeLine = undefined;
+    toolChangeMessage = undefined;
   };
 
   return {
-    async start(jobLines: string[]) {
-      if (phase === "running" || phase === "paused" || phase === "stopping") {
+    async start(jobLines: string[], startOptions: StreamStartOptions = {}) {
+      if (
+        phase === "running" ||
+        phase === "paused" ||
+        phase === "tool-change" ||
+        phase === "stopping"
+      ) {
         throw new Error("A job is already in progress");
       }
       if (!transport.isOpen) {
@@ -238,8 +316,14 @@ export function createGcodeStreamer(
         throw new Error("Job has no lines to send");
       }
 
+      const startIndex = Math.max(
+        0,
+        Math.min(jobLines.length - 1, Math.floor(startOptions.startIndex ?? 0)),
+      );
+
       attach();
-      lines = [...jobLines];
+      lineOffset = startIndex;
+      lines = jobLines.slice(startIndex);
       resetCounters();
       phase = "running";
       emit();
@@ -266,10 +350,21 @@ export function createGcodeStreamer(
       await scheduleFill();
     },
 
+    async resumeAfterToolChange() {
+      if (phase !== "tool-change") return;
+      // Mark so fillBuffer will send the pending M6 line instead of re-pausing.
+      toolChangeLine = lineOffset + sendIndex;
+      toolChangeMessage = undefined;
+      phase = "running";
+      emit();
+      await scheduleFill();
+    },
+
     async stop() {
       if (
         phase !== "running" &&
         phase !== "paused" &&
+        phase !== "tool-change" &&
         phase !== "error" &&
         phase !== "stopping"
       ) {
@@ -294,6 +389,10 @@ export function createGcodeStreamer(
     },
 
     async syncFromExternalResume() {
+      if (phase === "tool-change") {
+        await this.resumeAfterToolChange();
+        return;
+      }
       if (phase !== "paused") return;
       phase = "running";
       emit();
@@ -304,6 +403,7 @@ export function createGcodeStreamer(
       if (
         phase !== "running" &&
         phase !== "paused" &&
+        phase !== "tool-change" &&
         phase !== "error" &&
         phase !== "stopping"
       ) {
@@ -312,6 +412,8 @@ export function createGcodeStreamer(
       pending = [];
       bufferUsed = 0;
       lastError = undefined;
+      toolChangeLine = undefined;
+      toolChangeMessage = undefined;
       finish("idle");
     },
 
@@ -320,6 +422,7 @@ export function createGcodeStreamer(
     dispose() {
       detach();
       lines = [];
+      lineOffset = 0;
       resetCounters();
       phase = "idle";
       settle = null;

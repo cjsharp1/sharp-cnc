@@ -18,6 +18,10 @@ SharpCNC helps you see position and refuse some bad moves, but **you** are still
 
 Alarm banner: **Alarm lock** — jog and job Start stay refused until unlocked.
 
+### Guided unlock
+
+After soft-limit, hard-limit, probe-fail, or homing-fail alarms, the Safety panel shows short steps (clear the cause → unlock → re-check zeros). Unlock only when the hint says the machine is clear. Mock mode can simulate hard limit, soft limit, and probe-fail alarms for practice.
+
 ## Soft limits
 
 - Home/limit switches: **zero side only**  

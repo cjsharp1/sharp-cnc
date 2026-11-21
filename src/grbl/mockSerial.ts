@@ -9,6 +9,9 @@ import {
   FEED_OVERRIDE_MAX,
   FEED_OVERRIDE_MIN,
   FEED_OVERRIDE_RESET,
+  RAPID_OVERRIDE_LOW,
+  RAPID_OVERRIDE_MEDIUM,
+  RAPID_OVERRIDE_RESET,
   SPINDLE_OVERRIDE_COARSE_MINUS,
   SPINDLE_OVERRIDE_COARSE_PLUS,
   SPINDLE_OVERRIDE_FINE_MINUS,
@@ -35,7 +38,7 @@ const MOCK_PORTS: DesktopPortInfo[] = [
 
 const SOFT_RESET_BYTE = 0x18;
 
-type MockState = "Idle" | "Jog" | "Run" | "Hold" | "Alarm";
+type MockState = "Idle" | "Jog" | "Run" | "Hold" | "Alarm" | "Home";
 
 /**
  * In-browser / cloud-VM mock transport so connect + live position UX can be
@@ -65,7 +68,14 @@ export function createMockTransport(): SerialTransport {
   let spindleOn = false;
   /** Tracked override percents (UI / status estimate). */
   let feedOverridePct = 100;
+  let rapidOverridePct = 100;
   let spindleOverridePct = 100;
+  /** Active WCS P index 1–6 (G54–G59). */
+  let activeWcsP = 1;
+  /** Per-WCS absolute WCO storage (G10 L2). */
+  const wcsOffsets = new Map<number, Position3>([
+    [1, { x: 10, y: 5, z: 0 }],
+  ]);
   /** Active control pins for `Pn:` (Demon Shield button simulation). */
   let activePins = "";
   let pinClearTimer: ReturnType<typeof setTimeout> | null = null;
@@ -112,6 +122,10 @@ export function createMockTransport(): SerialTransport {
     let body = `<${reportState}|MPos:${m.x.toFixed(3)},${m.y.toFixed(3)},${m.z.toFixed(3)}|FS:${feedReport},${spindleReport}`;
     if (withWco) {
       body += `|WCO:${wco.x.toFixed(3)},${wco.y.toFixed(3)},${wco.z.toFixed(3)}`;
+    }
+    // Periodically include Ov: like GRBL (feed, rapid, spindle).
+    if (wcoReportCounter % 5 === 0) {
+      body += `|Ov:${feedOverridePct},${rapidOverridePct},${spindleOverridePct}`;
     }
     // Match GRBL: only include Pn: while pins are active.
     if (activePins) body += `|Pn:${activePins}`;
@@ -187,7 +201,12 @@ export function createMockTransport(): SerialTransport {
         motionTimer = setTimeout(step, 40);
         return;
       }
-      if (state !== nextState && state !== "Run" && state !== "Jog") {
+      if (
+        state !== nextState &&
+        state !== "Run" &&
+        state !== "Jog" &&
+        state !== "Home"
+      ) {
         // Aborted by soft reset / cancel — do not ack.
         motionTimer = null;
         return;
@@ -246,6 +265,31 @@ export function createMockTransport(): SerialTransport {
     if (values.x !== undefined) wco.x = machine.x - values.x;
     if (values.y !== undefined) wco.y = machine.y - values.y;
     if (values.z !== undefined) wco.z = machine.z - values.z;
+    wcsOffsets.set(activeWcsP, { ...wco });
+    emitLine("ok");
+  };
+
+  const applyG10L2 = (cmd: string) => {
+    const pMatch = /\bP(\d+)\b/i.exec(cmd);
+    const p = pMatch ? Number(pMatch[1]) : activeWcsP;
+    const values = parseAxisValues(cmd);
+    const next: Position3 = { ...(wcsOffsets.get(p) ?? { ...wco }) };
+    if (values.x !== undefined) next.x = values.x;
+    if (values.y !== undefined) next.y = values.y;
+    if (values.z !== undefined) next.z = values.z;
+    wcsOffsets.set(p, next);
+    if (p === activeWcsP) wco = { ...next };
+    emitLine("ok");
+  };
+
+  const applyWcsSelect = (cmd: string) => {
+    const m = /\bG5([4-9])\b/i.exec(cmd);
+    if (!m) {
+      emitLine("ok");
+      return;
+    }
+    activeWcsP = Number(m[1]) - 3; // G54 → 1 … G59 → 6
+    wco = { ...(wcsOffsets.get(activeWcsP) ?? wco) };
     emitLine("ok");
   };
 
@@ -315,12 +359,15 @@ export function createMockTransport(): SerialTransport {
     }
 
     // Mock-only: force Alarm so unlock / refuse-motion UX can be exercised.
-    if (/^\$Alarm$/i.test(trimmed)) {
+    // `$Alarm` / `$Alarm1` hard limit; `$Alarm2` soft limit; `$Alarm4` probe fail.
+    const mockAlarm = /^\$Alarm(\d+)?$/i.exec(trimmed);
+    if (mockAlarm) {
       clearMotion();
       queue.length = 0;
       busy = false;
       state = "Alarm";
-      emitLine("ALARM:1");
+      const code = mockAlarm[1] ?? "1";
+      emitLine(`ALARM:${code}`);
       emitLine("ok");
       return;
     }
@@ -353,28 +400,54 @@ export function createMockTransport(): SerialTransport {
       return;
     }
 
-    // Z probe (G38.2). Mock plate is a few mm below the current tip so
-    // relative seeks (G91 G38.2 Z-…) succeed unless the seek is too short.
+    // Homing cycle ($H) — continue below after jog/settings.
+    if (/^\$H$/i.test(trimmed)) {
+      busy = true;
+      state = "Home";
+      animateTo({ x: 0, y: 0, z: 0 }, 2000, "Home", () => {
+        machine = { x: 0, y: 0, z: 0 };
+        // After home, GRBL zeros machine; WCO preserved so work coords shift.
+        finishCommand();
+      });
+      return;
+    }
+
+    // Probe (G38.2) — Z plate and XY edges.
     if (/\bG38\.2\b/i.test(trimmed)) {
       const values = parseAxisValues(trimmed);
       const feedMatch = /F(\d+(?:\.\d+)?)/i.exec(trimmed);
       const feed = feedMatch ? Number(feedMatch[1]) : 80;
-      const seekAbsolute = absolute
-        ? values.z
-        : values.z !== undefined
-          ? machine.z + values.z
-          : undefined;
 
-      if (seekAbsolute === undefined) {
+      const axis =
+        values.z !== undefined
+          ? "z"
+          : values.x !== undefined
+            ? "x"
+            : values.y !== undefined
+              ? "y"
+              : null;
+
+      if (axis === null) {
         emitLine("error:Invalid gcode");
         return;
       }
 
-      // Mock plate ~2 mm below current Z (toward more-negative).
-      const contactZ = machine.z - 2;
+      const delta = values[axis]!;
+      const seekAbsolute = absolute ? delta : machine[axis] + delta;
 
-      // Seeking upward / wrong direction → treat as early contact style fail.
-      if (seekAbsolute >= machine.z - 1e-6) {
+      // Mock contact ~2 mm toward the seek direction from current position.
+      const dir = seekAbsolute >= machine[axis] ? 1 : -1;
+      const contact = machine[axis] + dir * 2;
+
+      // Already past / at contact when seeking the wrong way.
+      if (dir > 0 && seekAbsolute <= machine[axis] + 1e-6) {
+        clearMotion();
+        busy = false;
+        state = "Alarm";
+        emitLine("ALARM:5");
+        return;
+      }
+      if (dir < 0 && seekAbsolute >= machine[axis] - 1e-6) {
         clearMotion();
         busy = false;
         state = "Alarm";
@@ -382,10 +455,13 @@ export function createMockTransport(): SerialTransport {
         return;
       }
 
-      // Seek does not reach plate → Alarm 4 (no contact).
-      if (seekAbsolute > contactZ + 1e-6) {
+      // Seek does not reach contact → Alarm 4.
+      const reaches =
+        dir > 0 ? seekAbsolute >= contact - 1e-6 : seekAbsolute <= contact + 1e-6;
+      if (!reaches) {
+        const failTarget = { ...machine, [axis]: seekAbsolute } as Position3;
         busy = true;
-        animateTo({ ...machine, z: seekAbsolute }, feed, "Run", () => {
+        animateTo(failTarget, feed, "Run", () => {
           busy = false;
           state = "Alarm";
           emitLine("ALARM:4");
@@ -393,13 +469,30 @@ export function createMockTransport(): SerialTransport {
         return;
       }
 
+      const target = { ...machine, [axis]: contact } as Position3;
       busy = true;
-      animateTo({ ...machine, z: contactZ }, feed, "Run", () => {
+      animateTo(target, feed, "Run", () => {
         emitLine(
           `[PRB:${machine.x.toFixed(3)},${machine.y.toFixed(3)},${machine.z.toFixed(3)}:1]`,
         );
         finishCommand();
       });
+      return;
+    }
+
+    if (/^G10\s+L2\b/i.test(trimmed)) {
+      applyG10L2(trimmed);
+      return;
+    }
+
+    if (/\bG5[4-9]\b/i.test(trimmed) && !/\bG5[4-9]\d/i.test(trimmed)) {
+      applyWcsSelect(trimmed);
+      return;
+    }
+
+    // M6 tool change — ack only (UI streamer pauses around this).
+    if (/\bM0*6\b/i.test(trimmed)) {
+      emitLine("ok");
       return;
     }
 
@@ -460,6 +553,7 @@ export function createMockTransport(): SerialTransport {
     absolute = true;
     spindleOn = false;
     feedOverridePct = 100;
+    rapidOverridePct = 100;
     spindleOverridePct = 100;
     // Soft reset from Alarm stays locked until `$X` (matches GRBL alarm lock UX).
     state = wasAlarm ? "Alarm" : "Idle";
@@ -488,22 +582,28 @@ export function createMockTransport(): SerialTransport {
         return;
       }
       if (bytes.length === 1) {
-        const ov = overrideStepFromByte(bytes[0]);
-        if (ov) {
-          if (ov.kind === "feed") {
-            feedOverridePct = applyOverrideStep(
-              feedOverridePct,
-              ov.step,
-              FEED_OVERRIDE_MIN,
-              FEED_OVERRIDE_MAX,
-            );
-          } else {
-            spindleOverridePct = applyOverrideStep(
-              spindleOverridePct,
-              ov.step,
-              SPINDLE_OVERRIDE_MIN,
-              SPINDLE_OVERRIDE_MAX,
-            );
+        const b = bytes[0]!;
+        if (b === RAPID_OVERRIDE_RESET) rapidOverridePct = 100;
+        else if (b === RAPID_OVERRIDE_MEDIUM) rapidOverridePct = 50;
+        else if (b === RAPID_OVERRIDE_LOW) rapidOverridePct = 25;
+        else {
+          const ov = overrideStepFromByte(b);
+          if (ov) {
+            if (ov.kind === "feed") {
+              feedOverridePct = applyOverrideStep(
+                feedOverridePct,
+                ov.step,
+                FEED_OVERRIDE_MIN,
+                FEED_OVERRIDE_MAX,
+              );
+            } else {
+              spindleOverridePct = applyOverrideStep(
+                spindleOverridePct,
+                ov.step,
+                SPINDLE_OVERRIDE_MIN,
+                SPINDLE_OVERRIDE_MAX,
+              );
+            }
           }
         }
       }
