@@ -108,9 +108,10 @@ button {
   font-family: var(--font-brand);
   font-weight: 600;
   font-size: var(--text-brand);
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   line-height: 0.92;
-  text-transform: uppercase;
+  /* Keep source casing: SharpCNC (never CSS-forced SHARPCNC) */
+  text-transform: none;
   color: var(--ink);
 }
 

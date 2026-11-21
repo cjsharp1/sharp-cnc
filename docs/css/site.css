@@ -81,7 +81,8 @@ button:focus-visible {
   font-family: var(--font-brand);
   font-size: 1.35rem;
   letter-spacing: var(--tracking-title);
-  text-transform: uppercase;
+  /* Keep source casing: SharpCNC (never CSS-forced SHARPCNC) */
+  text-transform: none;
   color: var(--brass);
 }
 
@@ -165,7 +166,8 @@ button:focus-visible {
   font-family: var(--font-brand);
   font-size: var(--text-brand);
   letter-spacing: var(--tracking-title);
-  text-transform: uppercase;
+  /* Keep source casing: SharpCNC (never CSS-forced SHARPCNC) */
+  text-transform: none;
   line-height: 1.05;
   color: var(--brass);
 }
@@ -462,7 +464,8 @@ button:focus-visible {
 .md-body h4 {
   font-family: var(--font-brand);
   letter-spacing: 0.04em;
-  text-transform: uppercase;
+  /* Preserve SharpCNC (and other) casing in chapter titles */
+  text-transform: none;
   line-height: 1.2;
   color: var(--steel);
 }
