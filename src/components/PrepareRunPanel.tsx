@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
   JOG_FEED_OPTIONS_MM_MIN,
@@ -15,6 +15,7 @@ import {
   type ToolConfig,
 } from "../grbl";
 import { JogPanel, type JogAxisMap } from "./JogPanel";
+import { useWizardStepGate, WizardStepConfirm } from "./wizardStepGate";
 
 export type PrepareStepId =
   | "stock"
@@ -132,15 +133,39 @@ export function PrepareRunPanel({
   onConfirmReady,
   onClose,
 }: PrepareRunPanelProps) {
-  const [stepIndex, setStepIndex] = useState(0);
-  const [stockConfirmed, setStockConfirmed] = useState(false);
-  const [toolConfirmed, setToolConfirmed] = useState(false);
-  const [safeZConfirmed, setSafeZConfirmed] = useState(false);
+  const {
+    stepIndex,
+    confirmed,
+    isConfirmed,
+    canVisit,
+    setStepConfirmed,
+    goNext,
+    goBack,
+    goTo,
+    isFirst,
+    isLast,
+  } = useWizardStepGate(WIZARD_STEPS.length);
   const step = WIZARD_STEPS[stepIndex]!;
+  const stockStep = WIZARD_STEPS.findIndex((s) => s.id === "stock");
+  const toolStep = WIZARD_STEPS.findIndex((s) => s.id === "tool");
+  const xyStep = WIZARD_STEPS.findIndex((s) => s.id === "xy");
+  const probeStep = WIZARD_STEPS.findIndex((s) => s.id === "probe");
+  const safeZStep = WIZARD_STEPS.findIndex((s) => s.id === "safez");
+
+  const stockConfirmed = confirmed[stockStep] === true;
+  const toolConfirmed = confirmed[toolStep] === true;
+  const safeZConfirmed = confirmed[safeZStep] === true;
 
   const canAct = enabled && !busy;
-  const isFirst = stepIndex === 0;
-  const isLast = stepIndex === WIZARD_STEPS.length - 1;
+
+  /** XY zero / Z probe are system-verifiable actions — auto-confirm those steps. */
+  useEffect(() => {
+    setStepConfirmed(xyZeroed, xyStep);
+  }, [xyZeroed, xyStep, setStepConfirmed]);
+
+  useEffect(() => {
+    setStepConfirmed(zProbed, probeStep);
+  }, [zProbed, probeStep, setStepConfirmed]);
 
   const activeCorner = useMemo(() => {
     return (
@@ -161,32 +186,20 @@ export function PrepareRunPanel({
 
   const patchStock = (partial: Partial<StockConfig>) => {
     onStockChange({ ...stock, ...partial });
-    setStockConfirmed(false);
+    setStepConfirmed(false, stockStep);
   };
 
   const patchTool = (partial: Partial<ToolConfig>) => {
     onToolChange({ ...tool, ...partial });
-    setToolConfirmed(false);
+    setStepConfirmed(false, toolStep);
   };
 
   const patchProbe = (partial: Partial<ProbeConfig>) => {
     onProbeChange({ ...probe, ...partial });
+    if (step.id === "safez") setStepConfirmed(false, safeZStep);
   };
 
-  const goNext = () => {
-    if (!isLast) setStepIndex((i) => Math.min(i + 1, WIZARD_STEPS.length - 1));
-  };
-
-  const goBack = () => {
-    if (!isFirst) setStepIndex((i) => Math.max(i - 1, 0));
-  };
-
-  const nextDisabled =
-    (step.id === "stock" && !stockConfirmed) ||
-    (step.id === "tool" && !toolConfirmed) ||
-    (step.id === "xy" && !xyZeroed) ||
-    (step.id === "probe" && !zProbed) ||
-    (step.id === "safez" && !safeZConfirmed);
+  const nextDisabled = !isConfirmed;
 
   const softMaxHint =
     softTravel.maxZ !== null
@@ -195,17 +208,20 @@ export function PrepareRunPanel({
 
   return (
     <section className="cal prep" aria-label="Prepare to run wizard">
-      <nav className="cal__steps" aria-label="Prepare steps">
+      <nav className="cal__steps prep__steps" aria-label="Prepare steps">
         {WIZARD_STEPS.map((s, i) => {
           const state =
             i === stepIndex ? "current" : i < stepIndex ? "done" : "upcoming";
+          const locked = !canVisit(i);
           return (
             <button
               key={s.id}
               type="button"
-              className={`cal__step cal__step--${state}`}
+              className={`cal__step cal__step--${state}${locked ? " is-locked" : ""}`}
               aria-current={i === stepIndex ? "step" : undefined}
-              onClick={() => setStepIndex(i)}
+              aria-disabled={locked || undefined}
+              disabled={locked}
+              onClick={() => goTo(i)}
             >
               <span className="cal__step-num" aria-hidden>
                 {i + 1}
@@ -323,7 +339,7 @@ export function PrepareRunPanel({
                     disabled={!canAct}
                     onClick={() => {
                       onPlaceCorner(c.id);
-                      setStockConfirmed(false);
+                      setStepConfirmed(false, stockStep);
                     }}
                   >
                     {c.label}
@@ -332,15 +348,13 @@ export function PrepareRunPanel({
               </div>
             </div>
           </div>
-          <label className="cal__check">
-            <input
-              type="checkbox"
-              checked={stockConfirmed}
-              disabled={!canAct}
-              onChange={(e) => setStockConfirmed(e.target.checked)}
-            />
-            <span>Stock is clamped and matches these numbers</span>
-          </label>
+          <WizardStepConfirm
+            id="prep-confirm-stock"
+            checked={stockConfirmed}
+            disabled={!canAct}
+            label="Stock is clamped and matches these numbers"
+            onChange={(v) => setStepConfirmed(v, stockStep)}
+          />
         </div>
       )}
 
@@ -410,15 +424,13 @@ export function PrepareRunPanel({
               />
             </label>
           )}
-          <label className="cal__check">
-            <input
-              type="checkbox"
-              checked={toolConfirmed}
-              disabled={!canAct}
-              onChange={(e) => setToolConfirmed(e.target.checked)}
-            />
-            <span>Bit is tight and diameter matches</span>
-          </label>
+          <WizardStepConfirm
+            id="prep-confirm-tool"
+            checked={toolConfirmed}
+            disabled={!canAct}
+            label="Bit is tight and diameter matches"
+            onChange={(v) => setStepConfirmed(v, toolStep)}
+          />
         </div>
       )}
 
@@ -456,9 +468,13 @@ export function PrepareRunPanel({
               Zero XY
             </button>
             {xyZeroed ? (
-              <span className="cal__meta prep__ok">XY zero set</span>
+              <span className="cal__meta prep__ok">
+                XY zero set — Next unlocked
+              </span>
             ) : (
-              <span className="cal__meta">XY not confirmed yet</span>
+              <span className="cal__meta">
+                XY not set yet — Next stays locked
+              </span>
             )}
           </div>
         </div>
@@ -556,9 +572,13 @@ export function PrepareRunPanel({
               Manual Zero Z
             </button>
             {zProbed ? (
-              <span className="cal__meta prep__ok">Z zero set</span>
+              <span className="cal__meta prep__ok">
+                Z zero set — Next unlocked
+              </span>
             ) : (
-              <span className="cal__meta">Z not confirmed yet</span>
+              <span className="cal__meta">
+                Probe or manual Z zero required — Next stays locked
+              </span>
             )}
           </div>
         </div>
@@ -608,15 +628,13 @@ export function PrepareRunPanel({
               {JOG_FEED_OPTIONS_MM_MIN.slice(0, 3).join("/")}…
             </span>
           </div>
-          <label className="cal__check">
-            <input
-              type="checkbox"
-              checked={safeZConfirmed}
-              disabled={!canAct}
-              onChange={(e) => setSafeZConfirmed(e.target.checked)}
-            />
-            <span>Plate removed · clamps clear · Z looks safe</span>
-          </label>
+          <WizardStepConfirm
+            id="prep-confirm-safez"
+            checked={safeZConfirmed}
+            disabled={!canAct}
+            label="Plate removed · clamps clear · Z looks safe"
+            onChange={(v) => setStepConfirmed(v, safeZStep)}
+          />
         </div>
       )}
 
@@ -695,6 +713,11 @@ export function PrepareRunPanel({
             className="cal__btn"
             disabled={nextDisabled}
             onClick={goNext}
+            title={
+              nextDisabled
+                ? "Confirm this step before continuing"
+                : undefined
+            }
           >
             {step.id === "stock"
               ? "Stock looks good — Next"

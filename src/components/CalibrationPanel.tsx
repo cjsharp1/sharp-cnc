@@ -23,6 +23,7 @@ import {
   type SoftTravelLimits,
   type ZeroAxisSelection,
 } from "../grbl";
+import { useWizardStepGate, WizardStepConfirm } from "./wizardStepGate";
 
 export type CalibrationStepId =
   | "zero"
@@ -42,6 +43,14 @@ const WIZARD_STEPS: {
   { id: "travel", label: "Soft travel", short: "4 · Travel" },
   { id: "manual", label: "Manual settings", short: "5 · Manual" },
 ];
+
+const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
+  zero: "Work zero looks right — I completed this step",
+  direction: "Jog direction matches the machine — I completed this step",
+  steps: "Measured and wrote steps/mm — I completed this step",
+  travel: "Soft travel / bed extents set — I completed this step",
+  manual: "Reviewed manual settings — I completed this step",
+};
 
 interface CalibrationPanelProps {
   enabled: boolean;
@@ -103,7 +112,17 @@ export function CalibrationPanel({
   onZero,
   onClose,
 }: CalibrationPanelProps) {
-  const [stepIndex, setStepIndex] = useState(0);
+  const {
+    stepIndex,
+    isConfirmed,
+    canVisit,
+    setStepConfirmed,
+    goNext,
+    goBack,
+    goTo,
+    isFirst,
+    isLast,
+  } = useWizardStepGate(WIZARD_STEPS.length);
   const step = WIZARD_STEPS[stepIndex]!;
 
   // Steps/mm wizard
@@ -188,16 +207,8 @@ export function CalibrationPanel({
   }, [settings]);
 
   const canAct = enabled && !busy;
-  const isFirst = stepIndex === 0;
-  const isLast = stepIndex === WIZARD_STEPS.length - 1;
 
-  const goNext = () => {
-    if (!isLast) setStepIndex((i) => Math.min(i + 1, WIZARD_STEPS.length - 1));
-  };
-
-  const goBack = () => {
-    if (!isFirst) setStepIndex((i) => Math.max(i - 1, 0));
-  };
+  const clearConfirm = () => setStepConfirmed(false);
 
   return (
     <section className="cal" aria-label="Calibration wizard">
@@ -205,13 +216,16 @@ export function CalibrationPanel({
         {WIZARD_STEPS.map((s, i) => {
           const state =
             i === stepIndex ? "current" : i < stepIndex ? "done" : "upcoming";
+          const locked = !canVisit(i);
           return (
             <button
               key={s.id}
               type="button"
-              className={`cal__step cal__step--${state}`}
+              className={`cal__step cal__step--${state}${locked ? " is-locked" : ""}`}
               aria-current={i === stepIndex ? "step" : undefined}
-              onClick={() => setStepIndex(i)}
+              aria-disabled={locked || undefined}
+              disabled={locked}
+              onClick={() => goTo(i)}
             >
               <span className="cal__step-num" aria-hidden>
                 {i + 1}
@@ -305,6 +319,14 @@ export function CalibrationPanel({
               first.
             </p>
           )}
+
+          <WizardStepConfirm
+            id="cal-confirm-zero"
+            checked={isConfirmed}
+            disabled={!canAct}
+            label={STEP_CONFIRM_LABELS.zero}
+            onChange={setStepConfirmed}
+          />
         </div>
       )}
 
@@ -355,12 +377,13 @@ export function CalibrationPanel({
                     type="checkbox"
                     checked={dirFlags[key]}
                     disabled={!canAct}
-                    onChange={(e) =>
+                    onChange={(e) => {
+                      clearConfirm();
                       setDirFlags((prev) => ({
                         ...prev,
                         [key]: e.target.checked,
-                      }))
-                    }
+                      }));
+                    }}
                   />
                   <span>
                     Invert {ax}{" "}
@@ -433,6 +456,14 @@ export function CalibrationPanel({
             the bed, keep Z high for XY checks, and stand ready on E-Stop. If
             +X moves left instead of right, invert X and write again.
           </p>
+
+          <WizardStepConfirm
+            id="cal-confirm-direction"
+            checked={isConfirmed}
+            disabled={!canAct}
+            label={STEP_CONFIRM_LABELS.direction}
+            onChange={setStepConfirmed}
+          />
         </div>
       )}
 
@@ -459,6 +490,7 @@ export function CalibrationPanel({
                 value={axis}
                 disabled={!canAct}
                 onChange={(e) => {
+                  clearConfirm();
                   setAxis(e.target.value as Axis);
                   setMoved(false);
                   setMeasuredMm("");
@@ -476,6 +508,7 @@ export function CalibrationPanel({
                 value={commandedMm}
                 disabled={!canAct}
                 onChange={(e) => {
+                  clearConfirm();
                   setCommandedMm(Number(e.target.value));
                   setMoved(false);
                 }}
@@ -530,7 +563,10 @@ export function CalibrationPanel({
               placeholder={moved ? "e.g. 98.5" : "Move first, then measure"}
               value={measuredMm}
               disabled={!canAct}
-              onChange={(e) => setMeasuredMm(e.target.value)}
+              onChange={(e) => {
+                clearConfirm();
+                setMeasuredMm(e.target.value);
+              }}
             />
           </label>
 
@@ -554,6 +590,14 @@ export function CalibrationPanel({
               </button>
             </div>
           )}
+
+          <WizardStepConfirm
+            id="cal-confirm-steps"
+            checked={isConfirmed}
+            disabled={!canAct}
+            label={STEP_CONFIRM_LABELS.steps}
+            onChange={setStepConfirmed}
+          />
         </div>
       )}
 
@@ -594,7 +638,10 @@ export function CalibrationPanel({
                     placeholder={ax === "Z" ? "optional" : "e.g. 1000"}
                     value={value}
                     disabled={!canAct}
-                    onChange={(e) => setter(e.target.value)}
+                    onChange={(e) => {
+                      clearConfirm();
+                      setter(e.target.value);
+                    }}
                   />
                 </label>
                 <button
@@ -602,7 +649,10 @@ export function CalibrationPanel({
                   className="cal__btn cal__btn--ghost"
                   disabled={!canAct}
                   title={`Use current machine ${ax} (${mpos.toFixed(2)} mm)`}
-                  onClick={() => setter(mpos.toFixed(2))}
+                  onClick={() => {
+                    clearConfirm();
+                    setter(mpos.toFixed(2));
+                  }}
                 >
                   Use MPos
                 </button>
@@ -615,7 +665,10 @@ export function CalibrationPanel({
               type="checkbox"
               checked={enableSoft}
               disabled={!canAct}
-              onChange={(e) => setEnableSoft(e.target.checked)}
+              onChange={(e) => {
+                clearConfirm();
+                setEnableSoft(e.target.checked);
+              }}
             />
             <span>Enable soft limits ($20=1)</span>
           </label>
@@ -647,6 +700,14 @@ export function CalibrationPanel({
               Write travel + $20
             </button>
           </div>
+
+          <WizardStepConfirm
+            id="cal-confirm-travel"
+            checked={isConfirmed}
+            disabled={!canAct}
+            label={STEP_CONFIRM_LABELS.travel}
+            onChange={setStepConfirmed}
+          />
         </div>
       )}
 
@@ -759,6 +820,14 @@ export function CalibrationPanel({
               </tbody>
             </table>
           </div>
+
+          <WizardStepConfirm
+            id="cal-confirm-manual"
+            checked={isConfirmed}
+            disabled={!canAct}
+            label={STEP_CONFIRM_LABELS.manual}
+            onChange={setStepConfirmed}
+          />
         </div>
       )}
 
@@ -785,13 +854,24 @@ export function CalibrationPanel({
             type="button"
             className="cal__btn"
             onClick={onClose}
-            disabled={!onClose}
+            disabled={!onClose || !isConfirmed}
+            title={
+              isConfirmed ? undefined : "Confirm this step before finishing"
+            }
           >
             Done
           </button>
         ) : (
-          <button type="button" className="cal__btn" onClick={goNext}>
-            {step.id === "zero" ? "Zeros look good — Next" : "Next"}
+          <button
+            type="button"
+            className="cal__btn"
+            disabled={!isConfirmed}
+            onClick={goNext}
+            title={
+              isConfirmed ? undefined : "Confirm this step before continuing"
+            }
+          >
+            Next
           </button>
         )}
       </footer>
