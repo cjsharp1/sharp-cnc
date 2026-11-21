@@ -39,6 +39,7 @@ import {
   bitRadiusMm,
   buildAxisProbeSeekCommand,
   buildEdgeWorkZeroCommand,
+  runCornerProbeCycle,
   runEdgeProbeCycle,
   runToolLengthProbeCycle,
 } from "../src/grbl/xyProbe.ts";
@@ -160,6 +161,18 @@ const edge = await runEdgeProbeCycle(client, {
   timeoutMs: 5000,
 });
 assert(edge.probe.success, "edge probe ok");
+
+const corner = await runCornerProbeCycle(client, {
+  mode: "outside",
+  seekMm: 30,
+  feedMmMin: 100,
+  bitRadiusMm: 1.5875,
+  timeoutMs: 8000,
+});
+assert(
+  corner.probes.length === 2 && corner.probes.every((p) => p.success),
+  "corner probe ok",
+);
 
 const toolLen = await runToolLengthProbeCycle(client, {
   plateThicknessMm: 1.5,
