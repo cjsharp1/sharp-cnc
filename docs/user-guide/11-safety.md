@@ -50,12 +50,24 @@ Before the first wood cut (and after wiring changes), run the [hardware soak pla
 - Remote e-stop over the network (debug bridge is read-only)  
 - Perfect CAM — SVG import is simple 2D only  
 
+## Crash / mid-job recovery
+
+While a job runs, SharpCNC saves a **recovery checkpoint** (job name, next line, last Work/Machine). After power loss, soft reset, or Alarm:
+
+1. Reconnect and open the **Job** tab (essentials banner links there).  
+2. Read **Where am I?** — saved vs live positions and resume line.  
+3. Clear the fault → **Unlock ($X)** if Alarm.  
+4. Reload the same job file if needed → **Resume from checkpoint** (sets the scrubber) → confirm clear path → **Start**.  
+5. Or **Safe abort** — stop stream, spindle off, clear checkpoint.
+
+Do not resume into clamps or an unknown Z. Re-probe when unsure.
+
 ## If something goes wrong
 
 1. **E-Stop** (UI or hardware).  
 2. Kill spindle power if needed.  
 3. Open **Log** — filter **Alarms**, Export / Copy for later.  
 4. Optional: enable [Debug bridge](10-debug-bridge.md) and share status with an agent.  
-5. Fix the cause → Unlock → re-zero → Simulate → careful Start.
+5. Use [crash / mid-job recovery](#crash--mid-job-recovery) or fix the cause → Unlock → re-zero → Simulate → careful Start.
 
 Back to the [guide index](README.md).

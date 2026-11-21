@@ -351,6 +351,16 @@ export type {
 } from "./streamer";
 export { GRBL_RX_BUFFER, createGcodeStreamer } from "./streamer";
 
+export type { JobRecoveryCheckpoint } from "./jobRecovery";
+export {
+  clearJobRecoveryCheckpoint,
+  formatRecoveryPos,
+  isIncompleteRecovery,
+  loadJobRecoveryCheckpoint,
+  recoveryResumeLineLabel,
+  saveJobRecoveryCheckpoint,
+} from "./jobRecovery";
+
 export type {
   ActivityAppendOptions,
   ActivityCategory,
