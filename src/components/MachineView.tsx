@@ -15,8 +15,10 @@ export function MachineView({
   const viewH = 400;
   const scaleX = (viewW - pad * 2) / bedMm.width;
   const scaleY = (viewH - pad * 2) / bedMm.depth;
-  const cx = pad + tool.x * scaleX;
-  const cy = viewH - pad - tool.y * scaleY;
+  const clampedX = Math.min(Math.max(tool.x, 0), bedMm.width);
+  const clampedY = Math.min(Math.max(tool.y, 0), bedMm.depth);
+  const cx = pad + clampedX * scaleX;
+  const cy = viewH - pad - clampedY * scaleY;
 
   return (
     <section className="machine" aria-label="Machine view">
@@ -72,7 +74,7 @@ export function MachineView({
             fill="rgba(232, 234, 237, 0.45)"
             fontSize="12"
           >
-            Bed {bedMm.width}×{bedMm.depth} mm · toolpath soon
+            Bed {bedMm.width}×{bedMm.depth} mm · live WPos
           </text>
 
           <g className="machine__tool">
