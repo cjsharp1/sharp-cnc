@@ -31,6 +31,7 @@ function JogButton({
   onJog,
   onJogEnd,
   axes,
+  variant = "cardinal",
 }: {
   label: string;
   ariaLabel: string;
@@ -39,6 +40,7 @@ function JogButton({
   onJog: (axes: JogAxisMap) => void;
   onJogEnd: () => void;
   axes: JogAxisMap;
+  variant?: "cardinal" | "diagonal" | "axis";
 }) {
   const start = () => {
     if (disabled) return;
@@ -51,7 +53,7 @@ function JogButton({
   return (
     <button
       type="button"
-      className="jog__btn"
+      className={`jog__btn jog__btn--${variant}`}
       aria-label={ariaLabel}
       disabled={disabled}
       onClick={mode === "incremental" ? start : undefined}
@@ -71,6 +73,63 @@ function JogButton({
   );
 }
 
+const XY_PAD: {
+  label: string;
+  ariaLabel: string;
+  axes: JogAxisMap | null;
+  variant?: "cardinal" | "diagonal";
+}[] = [
+  {
+    label: "↖",
+    ariaLabel: "Jog diagonal X negative Y positive",
+    axes: { X: -1, Y: 1 },
+    variant: "diagonal",
+  },
+  {
+    label: "Y+",
+    ariaLabel: "Jog Y positive",
+    axes: { Y: 1 },
+  },
+  {
+    label: "↗",
+    ariaLabel: "Jog diagonal X positive Y positive",
+    axes: { X: 1, Y: 1 },
+    variant: "diagonal",
+  },
+  {
+    label: "X−",
+    ariaLabel: "Jog X negative",
+    axes: { X: -1 },
+  },
+  {
+    label: "·",
+    ariaLabel: "",
+    axes: null,
+  },
+  {
+    label: "X+",
+    ariaLabel: "Jog X positive",
+    axes: { X: 1 },
+  },
+  {
+    label: "↙",
+    ariaLabel: "Jog diagonal X negative Y negative",
+    axes: { X: -1, Y: -1 },
+    variant: "diagonal",
+  },
+  {
+    label: "Y−",
+    ariaLabel: "Jog Y negative",
+    axes: { Y: -1 },
+  },
+  {
+    label: "↘",
+    ariaLabel: "Jog diagonal X positive Y negative",
+    axes: { X: 1, Y: -1 },
+    variant: "diagonal",
+  },
+];
+
 export function JogPanel({
   enabled,
   mode,
@@ -87,108 +146,25 @@ export function JogPanel({
     <section className="jog" aria-label="Jog controls">
       <header className="jog__head">
         <h2 className="jog__title">Jog</h2>
-        <div className="jog__modes" role="group" aria-label="Jog mode">
-          <button
-            type="button"
-            className={`jog__mode ${mode === "incremental" ? "is-active" : ""}`}
-            disabled={!enabled}
-            onClick={() => onModeChange("incremental")}
-          >
-            Step
-          </button>
-          <button
-            type="button"
-            className={`jog__mode ${mode === "continuous" ? "is-active" : ""}`}
-            disabled={!enabled}
-            onClick={() => onModeChange("continuous")}
-            title="Hold to move; release cancels jog"
-          >
-            Hold
-          </button>
-        </div>
       </header>
 
-      <div className="jog__pad" aria-label="Axis jog pad">
-        <span className="jog__spacer" />
-        <JogButton
-          label="Y+"
-          ariaLabel="Jog Y positive"
-          disabled={!enabled}
-          mode={mode}
-          onJog={onJog}
-          onJogEnd={onJogEnd}
-          axes={{ Y: 1 }}
-        />
-        <span className="jog__spacer" />
-
-        <JogButton
-          label="X−"
-          ariaLabel="Jog X negative"
-          disabled={!enabled}
-          mode={mode}
-          onJog={onJog}
-          onJogEnd={onJogEnd}
-          axes={{ X: -1 }}
-        />
-        <JogButton
-          label="XY+"
-          ariaLabel="Jog diagonal X positive Y positive"
-          disabled={!enabled}
-          mode={mode}
-          onJog={onJog}
-          onJogEnd={onJogEnd}
-          axes={{ X: 1, Y: 1 }}
-        />
-        <JogButton
-          label="X+"
-          ariaLabel="Jog X positive"
-          disabled={!enabled}
-          mode={mode}
-          onJog={onJog}
-          onJogEnd={onJogEnd}
-          axes={{ X: 1 }}
-        />
-
-        <span className="jog__spacer" />
-        <JogButton
-          label="Y−"
-          ariaLabel="Jog Y negative"
-          disabled={!enabled}
-          mode={mode}
-          onJog={onJog}
-          onJogEnd={onJogEnd}
-          axes={{ Y: -1 }}
-        />
-        <span className="jog__spacer" />
-      </div>
-
-      <div className="jog__z" role="group" aria-label="Z jog">
-        <JogButton
-          label="Z+"
-          ariaLabel="Jog Z positive"
-          disabled={!enabled}
-          mode={mode}
-          onJog={onJog}
-          onJogEnd={onJogEnd}
-          axes={{ Z: 1 }}
-        />
-        <JogButton
-          label="Z−"
-          ariaLabel="Jog Z negative"
-          disabled={!enabled}
-          mode={mode}
-          onJog={onJog}
-          onJogEnd={onJogEnd}
-          axes={{ Z: -1 }}
-        />
+      <div className="jog__modes" role="group" aria-label="Jog mode">
         <button
           type="button"
-          className="jog__btn jog__btn--stop"
+          className={`jog__mode ${mode === "incremental" ? "is-active" : ""}`}
           disabled={!enabled}
-          onClick={onJogEnd}
-          title="Cancel jog (0x85)"
+          onClick={() => onModeChange("incremental")}
         >
-          Stop
+          Step
+        </button>
+        <button
+          type="button"
+          className={`jog__mode ${mode === "continuous" ? "is-active" : ""}`}
+          disabled={!enabled}
+          onClick={() => onModeChange("continuous")}
+          title="Hold to move; release cancels jog"
+        >
+          Hold
         </button>
       </div>
 
@@ -226,10 +202,77 @@ export function JogPanel({
         </label>
       </div>
 
+      <div className="jog__motion">
+        <div className="jog__block">
+          <p className="jog__block-label">XY pad · 8-way</p>
+          <div className="jog__pad" aria-label="XY jog pad">
+            {XY_PAD.map((cell, i) =>
+              cell.axes ? (
+                <JogButton
+                  key={i}
+                  label={cell.label}
+                  ariaLabel={cell.ariaLabel}
+                  disabled={!enabled}
+                  mode={mode}
+                  onJog={onJog}
+                  onJogEnd={onJogEnd}
+                  axes={cell.axes}
+                  variant={cell.variant ?? "cardinal"}
+                />
+              ) : (
+                <span
+                  key={i}
+                  className="jog__origin"
+                  aria-hidden="true"
+                  title="Pad center"
+                >
+                  ·
+                </span>
+              ),
+            )}
+          </div>
+        </div>
+
+        <div className="jog__block">
+          <p className="jog__block-label">Z · cancel</p>
+          <div className="jog__z" role="group" aria-label="Z jog">
+            <JogButton
+              label="Z+"
+              ariaLabel="Jog Z positive"
+              disabled={!enabled}
+              mode={mode}
+              onJog={onJog}
+              onJogEnd={onJogEnd}
+              axes={{ Z: 1 }}
+              variant="axis"
+            />
+            <JogButton
+              label="Z−"
+              ariaLabel="Jog Z negative"
+              disabled={!enabled}
+              mode={mode}
+              onJog={onJog}
+              onJogEnd={onJogEnd}
+              axes={{ Z: -1 }}
+              variant="axis"
+            />
+            <button
+              type="button"
+              className="jog__btn jog__btn--stop"
+              disabled={!enabled}
+              onClick={onJogEnd}
+              title="Cancel jog (0x85)"
+            >
+              Stop
+            </button>
+          </div>
+        </div>
+      </div>
+
       <p className="jog__hint">
         {mode === "incremental"
-          ? "Tap an axis for one step. Diagonal XY+ is the center pad."
-          : "Hold an axis to move; release or Stop cancels the jog."}
+          ? "Tap a direction for one step. Corners jog XY together."
+          : "Hold a direction to move; release or Stop cancels the jog."}
       </p>
       {softLimitHint ? (
         <p className="jog__warn" role="status">

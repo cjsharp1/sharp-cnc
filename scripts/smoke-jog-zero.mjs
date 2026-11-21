@@ -77,8 +77,17 @@ function assert(cond, msg) {
 const jog = buildJogCommand({ x: 10, y: -1 }, 500);
 assert(jog === "$J=G91 G21 X10 Y-1 F500", `jog cmd: ${jog}`);
 
-const diag = buildJogCommand({ x: 1, y: 1 }, 200);
-assert(diag.includes("X1") && diag.includes("Y1"), "diagonal");
+const diagNE = buildJogCommand({ x: 1, y: 1 }, 200);
+assert(diagNE.includes("X1") && diagNE.includes("Y1"), "diagonal NE");
+
+const diagNW = buildJogCommand({ x: -1, y: 1 }, 200);
+assert(diagNW.includes("X-1") && diagNW.includes("Y1"), "diagonal NW");
+
+const diagSE = buildJogCommand({ x: 1, y: -1 }, 200);
+assert(diagSE.includes("X1") && diagSE.includes("Y-1"), "diagonal SE");
+
+const diagSW = buildJogCommand({ x: -1, y: -1 }, 200);
+assert(diagSW.includes("X-1") && diagSW.includes("Y-1"), "diagonal SW");
 
 const limits = { maxX: 1000, maxY: 1000, maxZ: null, min: { x: 0, y: 0, z: 0 } };
 const ok = checkSoftLimits({ x: 10, y: 10, z: -1 }, { x: 5 }, limits);
@@ -86,6 +95,13 @@ assert(ok.ok, "within soft limits");
 
 const blocked = checkSoftLimits({ x: 995, y: 10, z: -1 }, { x: 10 }, limits);
 assert(!blocked.ok, "soft max X");
+
+const diagSoft = checkSoftLimits(
+  { x: 995, y: 995, z: -1 },
+  { x: 10, y: 10 },
+  limits,
+);
+assert(!diagSoft.ok, "diagonal soft max still blocked");
 
 const zFree = checkSoftLimits({ x: 10, y: 10, z: 0 }, { z: 50 }, limits);
 assert(zFree.ok, "unknown Z max not blocked on positive move");
