@@ -16,9 +16,12 @@ import {
   driveStatusLabel,
 } from "../grbl/googleDrive";
 import {
+  JOBS_FOLDER_ERROR_BACKOFF_MS,
   JOBS_FOLDER_POLL_MS,
+  jobsFolderHealthLabel,
   shortFolderLabel,
   type JobsFolderConfig,
+  type JobsFolderHealth,
 } from "../grbl/jobsFolderConfig";
 import { isDesktopShell } from "../grbl/session";
 
@@ -65,13 +68,21 @@ export function ExternalJobsPanel({
   const [driveMessage, setDriveMessage] = useState<string | null>(null);
   const [listing, setListing] = useState(false);
   const [folderMissing, setFolderMissing] = useState(false);
+  const [health, setHealth] = useState<JobsFolderHealth>("idle");
+  const [lastOkAt, setLastOkAt] = useState<number | null>(null);
+  const [failStreak, setFailStreak] = useState(0);
   const fingerprintRef = useRef("");
+  const nextAllowedPollRef = useRef(0);
 
   const refresh = async (silent = false) => {
     if (!desktop || !folder.path) {
       setFiles([]);
       setFolderMissing(false);
+      setHealth("idle");
       if (!silent) setListError(null);
+      return;
+    }
+    if (silent && Date.now() < nextAllowedPollRef.current) {
       return;
     }
     if (!silent) setListing(true);
@@ -80,7 +91,10 @@ export function ExternalJobsPanel({
       setFolderMissing(!exists);
       if (!exists) {
         setFiles([]);
-        setListError("Folder not found — pick it again.");
+        setHealth("missing");
+        setFailStreak((n) => n + 1);
+        nextAllowedPollRef.current = Date.now() + JOBS_FOLDER_ERROR_BACKOFF_MS;
+        setListError("Folder not found — pick it again (Drive sync offline?).");
         return;
       }
       const next = await listJobFiles(folder.path);
@@ -92,9 +106,18 @@ export function ExternalJobsPanel({
         setFiles(next);
       }
       setListError(null);
+      setHealth("ok");
+      setFailStreak(0);
+      setLastOkAt(Date.now());
+      nextAllowedPollRef.current = 0;
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setListError(message);
+      setListError(
+        `${message} — watched folders over Drive/network can flake; retrying with backoff.`,
+      );
+      setHealth("error");
+      setFailStreak((n) => n + 1);
+      nextAllowedPollRef.current = Date.now() + JOBS_FOLDER_ERROR_BACKOFF_MS;
     } finally {
       if (!silent) setListing(false);
     }
@@ -177,6 +200,15 @@ export function ExternalJobsPanel({
         <p className="extjobs__hint">
           Watched folder for .nc / .gcode / .svg · Google Drive when configured
         </p>
+        {folder.path ? (
+          <p className="extjobs__health" role="status">
+            {jobsFolderHealthLabel(health)}
+            {failStreak > 0 ? ` · ${failStreak} fail(s)` : ""}
+            {lastOkAt
+              ? ` · last ok ${new Date(lastOkAt).toLocaleTimeString()}`
+              : ""}
+          </p>
+        ) : null}
       </div>
 
       <div className="extjobs__block">
@@ -320,7 +352,14 @@ export function ExternalJobsPanel({
         {driveReady && !drive.folderId && (
           <p className="extjobs__hint-inline">
             Connect opens Google sign-in (PKCE). Folder pick + file load finish
-            after the OAuth loopback is wired with your client ID.
+            after the OAuth loopback is wired with your client ID. Until then,
+            prefer a watched folder pointed at Drive for Desktop for reliability.
+          </p>
+        )}
+        {driveReady && (
+          <p className="extjobs__hint-inline">
+            Drive listing can lag when offline. Keep Auto-refresh on the local
+            watched folder as the primary job inbox.
           </p>
         )}
         {driveMessage && <p className="extjobs__ok">{driveMessage}</p>}

@@ -9,6 +9,10 @@ Keep job files in a folder SharpCNC watches, then click to open them into the no
 - **Menu → External jobs…**, or  
 - **Job** tab → **External jobs** section
 
+## Recent jobs
+
+The **Job** tab keeps a **Recent** list of opened files with path **thumbnails**. Click to reopen; Remove drops one entry. Text is cached locally (large files truncated).
+
 ## Watched local folder (works today)
 
 1. Click **Pick…** (desktop app required).  
@@ -16,6 +20,8 @@ Keep job files in a folder SharpCNC watches, then click to open them into the no
 3. Path is remembered across sessions.  
 4. Leave **Auto-refresh** on to re-list about every **2.5 s** (or hit **Refresh**).  
 5. Click a file row to load it.
+
+Health line shows **Watching** / **Folder missing** / **List failed — retrying**. Transient Drive/network list errors back off (~8 s) instead of hammering the folder.
 
 **Change…** / **Clear** manage the path. If the folder goes missing (USB unplugged), you will see a folder-missing hint — pick it again.
 

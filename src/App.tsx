@@ -22,6 +22,7 @@ import { MaterialToolPanel } from "./components/MaterialToolPanel";
 import { OverridesStrip } from "./components/OverridesStrip";
 import { PrepareRunPanel } from "./components/PrepareRunPanel";
 import { ProbeXyPanel } from "./components/ProbeXyPanel";
+import { RecentJobsPanel } from "./components/RecentJobsPanel";
 import { SafetyControls } from "./components/SafetyControls";
 import { SimControls } from "./components/SimControls";
 import { SpindleFeedPanel } from "./components/SpindleFeedPanel";
@@ -95,6 +96,7 @@ import {
   loadMacros,
   loadOverridePercents,
   loadProbeConfig,
+  loadRecentJobs,
   loadSoftTravel,
   loadStock,
   loadTool,
@@ -108,6 +110,8 @@ import {
   planGoToWorkZero,
   publishDebugSnapshot,
   rapidOverrideByte,
+  rememberRecentJob,
+  removeRecentJob,
   resumeSim,
   runCornerProbeCycle,
   runEdgeProbeCycle,
@@ -158,6 +162,7 @@ import {
   type PathSimSnapshot,
   type ProbeConfig,
   type RapidOverrideStep,
+  type RecentJobEntry,
   type SimSpeedRate,
   type SoftTravelLimits,
   type StockConfig,
@@ -303,6 +308,9 @@ export default function App() {
   const [prepareBusy, setPrepareBusy] = useState(false);
   const [matToolHighlight, setMatToolHighlight] = useState(false);
   const [extJobsHighlight, setExtJobsHighlight] = useState(false);
+  const [recentJobs, setRecentJobs] = useState<RecentJobEntry[]>(() =>
+    loadRecentJobs(),
+  );
   /** Debug mode chrome (Export / Copy / bridge) — persisted; default off. */
   const [debugMode, setDebugMode] = useState(() => loadDebugMode());
   /** Color theme — persisted; default dark workshop. */
@@ -1878,16 +1886,52 @@ export default function App() {
     });
     // New job → require Prepare again before Start.
     setPrepareReady(false);
+    setRecentJobs(
+      rememberRecentJob({
+        name: loaded.name,
+        text,
+        kind: "gcode",
+        lineCount: loaded.lines.length,
+        path: loaded.path,
+        bounds: loaded.bounds,
+      }),
+    );
     activityLog.append(
       "event",
       `Loaded ${name} (${loaded.lines.length} lines)`,
     );
   };
 
+  const handleOpenRecent = (entry: RecentJobEntry) => {
+    if (streaming || simulating) return;
+    if (entry.kind === "svg") {
+      applySvgText(entry.name, entry.text);
+      return;
+    }
+    applyGcodeText(entry.name, entry.text);
+  };
+
   const applySvgText = (name: string, text: string) => {
     try {
       const imported = importSvg(name, text);
       setSvgDraft(imported);
+      setRecentJobs(
+        rememberRecentJob({
+          name,
+          text,
+          kind: "svg",
+          lineCount: imported.polylines.length,
+          path: [],
+          bounds: imported.bounds
+            ? {
+                minX: imported.bounds.minX,
+                minY: imported.bounds.minY,
+                maxX: imported.bounds.maxX,
+                maxY: imported.bounds.maxY,
+              }
+            : null,
+        }),
+      );
       activityLog.append(
         "event",
         `SVG ${name}: ${imported.polylines.length} path(s)` +
@@ -1966,6 +2010,16 @@ export default function App() {
       totalLines: loaded.lines.length,
       percent: 0,
     });
+    setRecentJobs(
+      rememberRecentJob({
+        name: loaded.name,
+        text: loaded.text,
+        kind: "gcode",
+        lineCount: loaded.lines.length,
+        path: loaded.path,
+        bounds: loaded.bounds,
+      }),
+    );
     activityLog.append(
       "event",
       `SVG→G-code ${loaded.name} (${loaded.lines.length} lines, ${params.mode})`,
@@ -2701,6 +2755,12 @@ export default function App() {
                       onApplyToSvg={handleApplyFeedsToSvg}
                     />
                   </div>
+                  <RecentJobsPanel
+                    entries={recentJobs}
+                    busy={streaming || simulating}
+                    onOpen={handleOpenRecent}
+                    onRemove={(id) => setRecentJobs(removeRecentJob(id))}
+                  />
                   <ExternalJobsPanel
                     folder={jobsFolder}
                     drive={driveConfig}

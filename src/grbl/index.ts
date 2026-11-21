@@ -449,14 +449,24 @@ export {
   saveProbeConfig,
 } from "./probe";
 
-export type { JobsFolderConfig } from "./jobsFolderConfig";
+export type { JobsFolderConfig, JobsFolderHealth } from "./jobsFolderConfig";
 export {
   DEFAULT_JOBS_FOLDER,
+  JOBS_FOLDER_ERROR_BACKOFF_MS,
   JOBS_FOLDER_POLL_MS,
+  jobsFolderHealthLabel,
   loadJobsFolderConfig,
   saveJobsFolderConfig,
   shortFolderLabel,
 } from "./jobsFolderConfig";
+
+export type { RecentJobEntry } from "./recentJobs";
+export {
+  loadRecentJobs,
+  recentJobThumbnailSvg,
+  rememberRecentJob,
+  removeRecentJob,
+} from "./recentJobs";
 
 export type { DriveConfig } from "./driveConfig";
 export {
