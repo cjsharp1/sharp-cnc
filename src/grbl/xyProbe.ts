@@ -88,7 +88,8 @@ export function buildRelativeRetractCommand(
 
 export { canProbe };
 
-async function waitForProbe(
+/** Attach the probe listener *before* sending G38.2 so PRB/ok cannot race. */
+function beginProbeWait(
   client: GrblClient,
   timeoutMs: number,
 ): Promise<ProbeResult> {
@@ -97,7 +98,7 @@ async function waitForProbe(
     alarm: string | null;
   } = { probe: null, alarm: null };
 
-  await new Promise<void>((resolve, reject) => {
+  return new Promise<ProbeResult>((resolve, reject) => {
     const timer = setTimeout(() => {
       unsub();
       reject(new Error("Timed out waiting for probe result (G38.2)."));
@@ -128,20 +129,18 @@ async function waitForProbe(
       if (trimmed === "ok" && holder.probe) {
         clearTimeout(timer);
         unsub();
-        resolve();
+        if (!holder.probe.success) {
+          reject(
+            new Error(
+              holder.alarm ?? "Probe reported no contact ([PRB:…:0]).",
+            ),
+          );
+          return;
+        }
+        resolve(holder.probe);
       }
     });
   });
-
-  if (!holder.probe || !holder.probe.success) {
-    throw new Error(
-      holder.alarm ??
-        (holder.probe
-          ? "Probe reported no contact ([PRB:…:0])."
-          : "Probe finished without a [PRB:] report."),
-    );
-  }
-  return holder.probe;
 }
 
 /** Single-axis edge probe + G10 L20 work zero on that axis. */
@@ -159,6 +158,8 @@ export async function runEdgeProbeCycle(
 
   try {
     await client.sendLine("G91");
+    // Attach after G91 is queued; still before G38.2 so PRB cannot race away.
+    const probeWait = beginProbeWait(client, timeoutMs);
     await client.sendLine(
       buildAxisProbeSeekCommand(
         options.axis,
@@ -167,7 +168,7 @@ export async function runEdgeProbeCycle(
         options.feedMmMin,
       ),
     );
-    const probe = await waitForProbe(client, timeoutMs);
+    const probe = await probeWait;
     await client.sendLine("G90");
     await client.sendLine(workZeroCommand);
     await client.requestStatus();
@@ -273,10 +274,11 @@ export async function runToolLengthProbeCycle(
 
   try {
     await client.sendLine("G91");
+    const probeWait = beginProbeWait(client, timeoutMs);
     await client.sendLine(
       buildZProbeSeekCommand(options.seekMm, options.feedMmMin),
     );
-    const probe = await waitForProbe(client, timeoutMs);
+    const probe = await probeWait;
     await client.sendLine("G90");
     await client.sendLine(workZeroCommand);
     await client.requestStatus();

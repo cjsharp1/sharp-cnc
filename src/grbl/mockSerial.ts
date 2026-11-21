@@ -123,8 +123,8 @@ export function createMockTransport(): SerialTransport {
     if (withWco) {
       body += `|WCO:${wco.x.toFixed(3)},${wco.y.toFixed(3)},${wco.z.toFixed(3)}`;
     }
-    // Periodically include Ov: like GRBL (feed, rapid, spindle).
-    if (wcoReportCounter % 5 === 0) {
+    // Include Ov: often enough for live override strip (and after forced WCO).
+    if (wcoReportCounter % 5 === 1 || withWco) {
       body += `|Ov:${feedOverridePct},${rapidOverridePct},${spindleOverridePct}`;
     }
     // Match GRBL: only include Pn: while pins are active.
@@ -260,12 +260,19 @@ export function createMockTransport(): SerialTransport {
     animateTo(target, feed, "Jog", finishCommand);
   };
 
+  /** Force the next status report to include WCO (matches GRBL after offset changes). */
+  const forceWcoReport = () => {
+    // emitStatus does `+= 1` then `% 7 === 0` — leave counter at 6 so next is 7.
+    wcoReportCounter = 6;
+  };
+
   const applyG10L20 = (cmd: string) => {
     const values = parseAxisValues(cmd);
     if (values.x !== undefined) wco.x = machine.x - values.x;
     if (values.y !== undefined) wco.y = machine.y - values.y;
     if (values.z !== undefined) wco.z = machine.z - values.z;
     wcsOffsets.set(activeWcsP, { ...wco });
+    forceWcoReport();
     emitLine("ok");
   };
 
@@ -279,6 +286,7 @@ export function createMockTransport(): SerialTransport {
     if (values.z !== undefined) next.z = values.z;
     wcsOffsets.set(p, next);
     if (p === activeWcsP) wco = { ...next };
+    forceWcoReport();
     emitLine("ok");
   };
 
@@ -290,6 +298,7 @@ export function createMockTransport(): SerialTransport {
     }
     activeWcsP = Number(m[1]) - 3; // G54 → 1 … G59 → 6
     wco = { ...(wcsOffsets.get(activeWcsP) ?? wco) };
+    forceWcoReport();
     emitLine("ok");
   };
 
@@ -537,11 +546,15 @@ export function createMockTransport(): SerialTransport {
     if (trimmed.length > 0) emitLine("ok");
   };
 
+  // Drain immediate-ack lines (G91/G90/G10/…) in one turn so a follow-up
+  // motion/probe queued while busy (e.g. corner retract → G91 → G38.2) is not
+  // left stranded until the next write.
   const pump = () => {
-    if (busy || state === "Hold") return;
-    const next = queue.shift();
-    if (!next) return;
-    handleQueuedLine(next);
+    while (!busy && state !== "Hold") {
+      const next = queue.shift();
+      if (!next) return;
+      handleQueuedLine(next);
+    }
   };
 
   const softReset = () => {
