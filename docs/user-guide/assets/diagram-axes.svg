@@ -31,13 +31,13 @@
   <rect class="bed" x="100" y="84" width="300" height="300" rx="8"/>
   <path class="grid" d="M100 159 H400 M100 234 H400 M100 309 H400 M175 84 V384 M250 84 V384 M325 84 V384"/>
 
-  <!-- Axes from origin -->
+  <!-- Axes from origin — labels sit clear of shafts -->
   <line class="axis" x1="124" y1="360" x2="360" y2="360"/>
   <line class="axis" x1="124" y1="360" x2="124" y2="118"/>
   <circle class="home" cx="124" cy="360" r="9"/>
 
-  <text class="big" x="318" y="344">X+</text>
-  <text class="big" x="140" y="136">Y+</text>
+  <text class="big" x="300" y="330">X+</text>
+  <text class="big" x="148" y="148">Y+</text>
 
   <!-- Labels outside bed, clear of strokes -->
   <text class="lab" x="100" y="420" font-weight="700">Home / zero corner</text>

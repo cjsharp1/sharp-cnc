@@ -23,12 +23,12 @@
   <text class="lab big" x="100" y="50">Soft travel</text>
   <text class="lab act" x="100" y="84">Measure bed → enter max mm → Save</text>
 
-  <rect class="bed" x="90" y="150" width="320" height="280" rx="10"/>
-  <rect class="soft" x="120" y="180" width="250" height="210" rx="6"/>
-  <text class="tiny" x="245" y="210" text-anchor="middle">Safe envelope</text>
-  <text class="lab" x="245" y="300" text-anchor="middle" font-weight="700">$130 / $101</text>
-  <text class="tiny" x="245" y="325" text-anchor="middle">X max · Y max</text>
-  <text class="tiny" x="245" y="400" text-anchor="middle">Far rails = software only</text>
+  <rect class="bed" x="90" y="140" width="340" height="300" rx="10"/>
+  <text class="tiny" x="110" y="168">Safe envelope</text>
+  <rect class="soft" x="130" y="190" width="260" height="180" rx="6"/>
+  <text class="lab" x="260" y="270" text-anchor="middle" font-weight="700">$130 / $131</text>
+  <text class="tiny" x="260" y="298" text-anchor="middle">X max · Y max</text>
+  <text class="tiny" x="260" y="400" text-anchor="middle">Far rails = software only</text>
 
   <rect class="card" x="480" y="150" width="400" height="280" rx="14"/>
   <text class="lab" x="680" y="195" text-anchor="middle" font-weight="700">Enter max travel</text>

@@ -26,20 +26,21 @@
   <text class="lab big" x="100" y="50">Stock</text>
   <text class="lab act" x="100" y="84">Enter width × length × thickness → Finish</text>
 
-  <rect class="bed" x="90" y="150" width="380" height="300" rx="10"/>
+  <rect class="bed" x="90" y="150" width="360" height="300" rx="10"/>
   <text class="tiny" x="110" y="178">Bed</text>
-  <rect class="stock" x="150" y="220" width="220" height="160" rx="6"/>
-  <text class="lab" x="260" y="300" text-anchor="middle" font-weight="700" fill="#1f6a4a">STOCK</text>
-  <line class="dim" x1="150" y1="200" x2="370" y2="200"/>
-  <text class="tiny" x="260" y="192" text-anchor="middle">width X</text>
-  <line class="dim" x1="400" y1="220" x2="400" y2="380"/>
-  <text class="tiny" x="430" y="305">length Y</text>
+  <rect class="stock" x="140" y="230" width="200" height="150" rx="6"/>
+  <text class="lab" x="240" y="310" text-anchor="middle" font-weight="700" fill="#1f6a4a">STOCK</text>
+  <!-- dimension labels sit beside strokes, not on them -->
+  <line class="dim" x1="140" y1="210" x2="340" y2="210"/>
+  <text class="tiny" x="240" y="198" text-anchor="middle">width X</text>
+  <line class="dim" x1="370" y1="230" x2="370" y2="380"/>
+  <text class="tiny" x="385" y="310">length Y</text>
 
-  <rect class="card" x="540" y="170" width="340" height="260" rx="14"/>
-  <text class="lab" x="710" y="220" text-anchor="middle" font-weight="700">Workpiece size</text>
-  <text class="lab" x="710" y="270" text-anchor="middle" font-size="16">Width X mm</text>
-  <text class="lab" x="710" y="305" text-anchor="middle" font-size="16">Length Y mm</text>
-  <text class="lab" x="710" y="340" text-anchor="middle" font-size="16">Thickness mm</text>
-  <rect class="btn" x="600" y="370" width="220" height="40" rx="8"/>
-  <text class="w" x="710" y="397" text-anchor="middle" font-size="16">Finish setup</text>
+  <rect class="card" x="520" y="170" width="360" height="260" rx="14"/>
+  <text class="lab" x="700" y="220" text-anchor="middle" font-weight="700">Workpiece size</text>
+  <text class="lab" x="700" y="270" text-anchor="middle" font-size="16">Width X mm</text>
+  <text class="lab" x="700" y="305" text-anchor="middle" font-size="16">Length Y mm</text>
+  <text class="lab" x="700" y="340" text-anchor="middle" font-size="16">Thickness mm</text>
+  <rect class="btn" x="590" y="370" width="220" height="40" rx="8"/>
+  <text class="w" x="700" y="397" text-anchor="middle" font-size="16">Finish setup</text>
 </svg>
