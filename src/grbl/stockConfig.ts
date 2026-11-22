@@ -203,8 +203,11 @@ export function roundStockMm(v: number): number {
 
 /**
  * Soft bed clamp for optional drag/resize fine-tune.
- * Allows negative offsets (work-origin corners like SE at 0,0) but refuses to
- * drag the blank completely off the soft-travel rectangle [0,bed]×[0,bed].
+ * Keeps the full stock rectangle inside soft-travel [0,bedW]×[0,bedD]
+ * (no negative / off-bed placement while dragging or resizing).
+ * Work-origin corner placement (`stockOffsetForWorkOriginCorner`) is separate
+ * and may still sit a corner at work (0,0) with stock extending into −X/−Y
+ * until the blank is fine-tuned.
  */
 export function clampStockToBed(
   stock: StockConfig,
@@ -213,12 +216,23 @@ export function clampStockToBed(
 ): StockConfig {
   const bedW = Math.max(MIN_STOCK_XY_MM, bedWidth);
   const bedD = Math.max(MIN_STOCK_XY_MM, bedDepth);
-  const widthMm = Math.max(MIN_STOCK_XY_MM, stock.widthMm);
-  const lengthMm = Math.max(MIN_STOCK_XY_MM, stock.lengthMm);
+  const widthMm = Math.min(
+    bedW,
+    Math.max(MIN_STOCK_XY_MM, stock.widthMm),
+  );
+  const lengthMm = Math.min(
+    bedD,
+    Math.max(MIN_STOCK_XY_MM, stock.lengthMm),
+  );
 
-  // Keep at least a touching overlap with the bed (corner-at-origin OK).
-  const offsetXMm = Math.min(bedW, Math.max(-widthMm, stock.offsetXMm));
-  const offsetYMm = Math.min(bedD, Math.max(-lengthMm, stock.offsetYMm));
+  const offsetXMm = Math.min(
+    bedW - widthMm,
+    Math.max(0, stock.offsetXMm),
+  );
+  const offsetYMm = Math.min(
+    bedD - lengthMm,
+    Math.max(0, stock.offsetYMm),
+  );
 
   return {
     ...stock,
@@ -253,7 +267,7 @@ export function moveStockBy(
 
 /**
  * Optional fine-tune: resize stock from a handle (work-mm pointer).
- * Does not force edges onto the bed — use numeric W/L for accuracy.
+ * Edges stay inside soft-travel [0,bed]×[0,bed]; use numeric W/L for accuracy.
  * Cleared originCorner (drag broke the work-origin anchor).
  */
 export function resizeStockFromHandle(
@@ -263,6 +277,9 @@ export function resizeStockFromHandle(
   bedWidth: number,
   bedDepth: number,
 ): StockConfig {
+  const bedW = Math.max(MIN_STOCK_XY_MM, bedWidth);
+  const bedD = Math.max(MIN_STOCK_XY_MM, bedDepth);
+
   let x0 = stock.offsetXMm;
   let y0 = stock.offsetYMm;
   let x1 = stock.offsetXMm + stock.widthMm;
@@ -276,18 +293,24 @@ export function resizeStockFromHandle(
   if (handle === "s" || handle === "sw" || handle === "se") y0 = py;
   if (handle === "n" || handle === "nw" || handle === "ne") y1 = py;
 
+  // Keep moving edges on the soft bed so the opposite edge stays fixed.
+  x0 = Math.min(bedW, Math.max(0, x0));
+  x1 = Math.min(bedW, Math.max(0, x1));
+  y0 = Math.min(bedD, Math.max(0, y0));
+  y1 = Math.min(bedD, Math.max(0, y1));
+
   if (x1 - x0 < MIN_STOCK_XY_MM) {
     if (handle === "w" || handle === "nw" || handle === "sw") {
-      x0 = x1 - MIN_STOCK_XY_MM;
+      x0 = Math.max(0, x1 - MIN_STOCK_XY_MM);
     } else {
-      x1 = x0 + MIN_STOCK_XY_MM;
+      x1 = Math.min(bedW, x0 + MIN_STOCK_XY_MM);
     }
   }
   if (y1 - y0 < MIN_STOCK_XY_MM) {
     if (handle === "s" || handle === "sw" || handle === "se") {
-      y0 = y1 - MIN_STOCK_XY_MM;
+      y0 = Math.max(0, y1 - MIN_STOCK_XY_MM);
     } else {
-      y1 = y0 + MIN_STOCK_XY_MM;
+      y1 = Math.min(bedD, y0 + MIN_STOCK_XY_MM);
     }
   }
 
