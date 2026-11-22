@@ -23,29 +23,13 @@
   </head>
   <body>
     <div class="site-shell">
-      <header class="site-header">
-        <a class="site-brand" href="index.html">
-          <span class="site-brand__mark">SharpCNC</span>
-          <span class="site-brand__tag">Docs</span>
-        </a>
-        <nav class="site-nav" aria-label="Primary">
-          <a href="index.html">Home</a>
-          <a href="setup-visual/index.html">Visual setup</a>
-          <a href="guide.html" aria-current="page">User guide</a>
-          <a class="site-nav__defer" href="index.html#getting-started"
-            >Getting started</a
-          >
-          <a
-            href="https://github.com/cjsharp1/sharp-cnc"
-            target="_blank"
-            rel="noopener noreferrer"
-            >GitHub</a
-          >
-        </nav>
-        <button type="button" class="theme-toggle" id="theme-toggle">
-          Light
-        </button>
-      </header>
+      <header
+        class="site-header"
+        data-site-chrome
+        data-page="guide"
+        data-base=""
+      ></header>
+      <script src="js/site-chrome.js"></script>
 
       <div class="guide-layout">
         <aside class="guide-sidebar" aria-label="Guide chapters">
