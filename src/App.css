@@ -328,6 +328,16 @@ button {
   border: 1px solid var(--line);
   background: var(--machine-frame-bg);
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* SVG host — grows above the dedicated HUD strip so gutters never sit under status text. */
+.machine__stage {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
 }
 
 .machine__svg {
@@ -445,27 +455,22 @@ button {
 }
 
 .machine__hud {
-  position: absolute;
-  left: 0.85rem;
-  right: 0.85rem;
-  bottom: 0.75rem;
+  position: relative;
   z-index: 2;
+  flex: 0 0 auto;
   margin: 0;
-  padding: 0.4rem 0.55rem;
+  padding: 0.5rem 0.85rem 0.6rem;
+  border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   color: var(--viz-hud);
   font-family: var(--font-mono);
   font-size: var(--text-xs);
   letter-spacing: 0.02em;
+  line-height: 1.35;
   pointer-events: none;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: linear-gradient(
-    180deg,
-    transparent 0%,
-    color-mix(in srgb, var(--machine-frame-bg) 88%, transparent) 45%,
-    var(--machine-frame-bg) 100%
-  );
+  background: color-mix(in srgb, var(--machine-frame-bg) 92%, #000 8%);
 }
 
 .machine__tool {
@@ -518,7 +523,7 @@ button {
 .machine__overlay {
   position: absolute;
   left: 0.85rem;
-  bottom: 2.65rem;
+  bottom: 0.75rem;
   z-index: 2;
   max-width: min(18.5rem, calc(100% - 1.7rem));
 }
