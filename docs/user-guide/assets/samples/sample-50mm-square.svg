@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="50mm"
+     height="50mm"
+     viewBox="0 0 50 50"
+     role="img"
+     aria-labelledby="title desc">
+  <!--
+    SharpCNC cut-size sample — true 50 × 50 mm square.
+    width/height use mm; viewBox is 0 0 50 50 so 1 user unit = 1 mm.
+  -->
+  <title id="title">SharpCNC 50×50 mm square</title>
+  <desc id="desc">Closed 50 mm square for a quick mid-size cut check.</desc>
+  <rect x="0" y="0" width="50" height="50"
+        fill="none" stroke="#111" stroke-width="0.25"/>
+</svg>

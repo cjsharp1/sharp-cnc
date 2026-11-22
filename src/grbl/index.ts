@@ -327,6 +327,13 @@ export {
   polylinesToPreview,
 } from "./svgImport";
 
+export type { SampleSvgSpec } from "./sampleSvgs";
+export {
+  SAMPLE_SVGS,
+  fetchSampleSvg,
+  sampleSvgUrl,
+} from "./sampleSvgs";
+
 export type { SvgCutMode, SvgToolpathParams } from "./svgToolpath";
 export {
   DEFAULT_SVG_TOOLPATH,

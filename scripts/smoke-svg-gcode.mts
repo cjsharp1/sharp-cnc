@@ -2,6 +2,9 @@
  * Smoke: SVG path parse, import normalize, G-code generate + job handoff.
  * Run: npx --yes tsx scripts/smoke-svg-gcode.mts
  */
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { extractToolpath, loadJobFromText } from "../src/grbl/gcode.ts";
 import {
   extractSvgPolylines,
@@ -97,5 +100,43 @@ assert(path.length === outlineJob.path.length, "path extract matches job");
 
 const b = boundsOfPolylines(imported.polylines);
 assert(b && b.maxX > 50 && b.maxY > 30, "sample size ~70×40");
+
+// Built-in cut-size samples: real mm (width/viewBox consistent → 100 mm = 100 mm).
+const root = join(dirname(fileURLToPath(import.meta.url)), "..");
+const square100Text = readFileSync(
+  join(root, "public/samples/sample-100mm-square.svg"),
+  "utf8",
+);
+const square100 = importSvg("sample-100mm-square.svg", square100Text);
+assert(square100.bounds !== null, "100mm square bounds");
+assert(
+  Math.abs(square100.bounds!.maxX - 100) < 1e-6 &&
+    Math.abs(square100.bounds!.maxY - 100) < 1e-6,
+  `100mm square must be 100×100, got ${square100.bounds!.maxX}×${square100.bounds!.maxY}`,
+);
+assert(
+  extractSvgPolylines(square100Text).unitScale === 1,
+  "100mm square unitScale 1",
+);
+
+const square50 = importSvg(
+  "sample-50mm-square.svg",
+  readFileSync(join(root, "public/samples/sample-50mm-square.svg"), "utf8"),
+);
+assert(
+  square50.bounds !== null &&
+    Math.abs(square50.bounds.maxX - 50) < 1e-6 &&
+    Math.abs(square50.bounds.maxY - 50) < 1e-6,
+  "50mm square must be 50×50",
+);
+
+const line100 = importSvg(
+  "sample-100mm-line.svg",
+  readFileSync(join(root, "public/samples/sample-100mm-line.svg"), "utf8"),
+);
+assert(
+  line100.bounds !== null && Math.abs(line100.bounds.maxX - 100) < 1e-6,
+  "100mm line span must be 100 mm in X",
+);
 
 console.log("smoke-svg-gcode: ok");

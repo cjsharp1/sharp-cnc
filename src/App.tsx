@@ -3304,6 +3304,10 @@ export default function App() {
                     feeds={feeds}
                     feedsApplyToken={feedsApplyToken}
                     onLoadSvg={handleLoadSvg}
+                    onLoadSvgText={(name, text) => {
+                      if (streaming) return;
+                      applySvgText(name, text);
+                    }}
                     onClear={handleClearSvg}
                     onGenerate={handleGenerateFromSvg}
                   />

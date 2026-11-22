@@ -26,7 +26,7 @@ Under **Job**:
 
 SharpCNC is **not** full CAM. For simple 2D engraving / outline:
 
-1. **Load SVG** (or drop `.svg`). Paths preview on the bed.  
+1. **Load SVG** (or drop `.svg`), or tap a built-in **Sample**. Paths preview on the bed.  
 2. Set **Mode**: Engrave (follow path) or Outline (closed contour).  
 3. Set **Feed**, **Plunge**, **Depth**, **Safe Z**, and **Spindle RPM**. Bit Ø comes from Material & tool; use **Apply to SVG** there to pull material presets.  
 4. **Generate → Job** hands the G-code to the job runner (one job at a time). Generated jobs include `M3 S…` before cuts and `M5` before program end (omit spindle words if RPM is 0).
@@ -34,6 +34,27 @@ SharpCNC is **not** full CAM. For simple 2D engraving / outline:
 **ELI5:** SVG is a picture. Generate turns that picture into cutting steps. Always check it on the stock before Start.
 
 Always simulate after generate. Depth is into the material — double-check sign/convention and stock thickness before Start.
+
+## Cut-size samples
+
+SharpCNC ships **real-mm** sample SVGs so you can load → place on stock → cut → measure without guessing units. Each file sets `width`/`height` in `mm` and a matching `viewBox`, so **100 mm in the SVG is 100 mm in the app**.
+
+| Sample | In app | File |
+|--------|--------|------|
+| **100×100 mm square** (primary) | Job → SVG → **Samples → 100×100 mm** | [sample-100mm-square.svg](assets/samples/sample-100mm-square.svg) |
+| 50×50 mm square | **Samples → 50×50 mm** | [sample-50mm-square.svg](assets/samples/sample-50mm-square.svg) |
+| 100 mm line (+ end ticks) | **Samples → 100 mm line** | [sample-100mm-line.svg](assets/samples/sample-100mm-line.svg) |
+
+**How to use**
+
+1. Finish [calibration](05-calibration.md) (especially steps/mm) if the machine is new or changed.  
+2. Job tab → **SVG** → pick a **Sample** (or open the file from `assets/samples/`). Confirm the size chip (e.g. `100.0×100.0 mm`).  
+3. Choose **Engrave** or **Outline**, set a shallow depth, **Generate → Job**.  
+4. **Prepare…** (stock, XY, Z) so the path sits on the scrap you will cut.  
+5. **Simulate**, then **Start** (or spindle-off dry run first).  
+6. Measure the cut with a ruler/calipers. If the square is not 100 mm, revisit steps/mm — do not “scale the SVG.”
+
+Repo copies also live under `public/samples/` for the desktop/web build.
 
 ## Simulate (preview only)
 

@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import {
   DEFAULT_SVG_TOOLPATH,
+  SAMPLE_SVGS,
+  fetchSampleSvg,
   isSvgFileName,
   type FeedsSpeedsSelection,
+  type SampleSvgSpec,
   type SvgCutMode,
   type SvgImportResult,
   type SvgToolpathParams,
@@ -19,6 +22,8 @@ interface SvgJobPanelProps {
   /** Bumps when user clicks Apply to SVG — sync fields from feeds. */
   feedsApplyToken: number;
   onLoadSvg: (file: File) => void;
+  /** Load SVG markup by name (built-in samples). */
+  onLoadSvgText: (name: string, text: string) => void;
   onClear: () => void;
   onGenerate: (params: SvgToolpathParams) => void;
 }
@@ -30,12 +35,14 @@ export function SvgJobPanel({
   feeds,
   feedsApplyToken,
   onLoadSvg,
+  onLoadSvgText,
   onClear,
   onGenerate,
 }: SvgJobPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [sampleLoadingId, setSampleLoadingId] = useState<string | null>(null);
 
   const [mode, setMode] = useState<SvgCutMode>(DEFAULT_SVG_TOOLPATH.mode);
   const [feedMmMin, setFeedMmMin] = useState(
@@ -79,6 +86,21 @@ export function SvgJobPanel({
     }
     setLoadError(null);
     onLoadSvg(file);
+  };
+
+  const loadSample = async (spec: SampleSvgSpec) => {
+    if (busy || sampleLoadingId) return;
+    setSampleLoadingId(spec.id);
+    setLoadError(null);
+    try {
+      const text = await fetchSampleSvg(spec);
+      onLoadSvgText(spec.fileName, text);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setLoadError(message);
+    } finally {
+      setSampleLoadingId(null);
+    }
   };
 
   const onDrop = (event: DragEvent) => {
@@ -164,6 +186,27 @@ export function SvgJobPanel({
           {draft
             ? `${pathCount} path${pathCount === 1 ? "" : "s"}${boundsText ? ` · ${boundsText}` : ""} · simple 2D (not full CAM)`
             : "Drop or pick .svg → preview → generate G-code"}
+        </p>
+      </div>
+
+      <div className="svgjob__samples" aria-label="SharpCNC cut-size samples">
+        <span className="svgjob__samples-label">Samples</span>
+        <div className="svgjob__samples-btns">
+          {SAMPLE_SVGS.map((spec) => (
+            <button
+              key={spec.id}
+              type="button"
+              className="svgjob__btn svgjob__btn--ghost svgjob__btn--sample"
+              disabled={busy || sampleLoadingId !== null}
+              title={spec.hint}
+              onClick={() => void loadSample(spec)}
+            >
+              {sampleLoadingId === spec.id ? "…" : spec.label}
+            </button>
+          ))}
+        </div>
+        <p className="svgjob__samples-hint">
+          Real mm units — load, place on stock, cut, measure (esp. 100×100 mm).
         </p>
       </div>
 
