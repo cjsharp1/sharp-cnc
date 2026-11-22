@@ -13,12 +13,12 @@ Fresh install opens **First-run setup** — a bootstrap that gets you **Linked**
 ## Connect (checklist)
 
 1. Open SharpCNC (desktop).
-2. **Refresh** ports → pick COM → **Connect**.
-3. Wait for **Linked** + live Work / Machine.
+2. In the **header connection chip**, **Refresh** ports → pick COM → **Connect**.
+3. Wait for **Linked** + live Work / Machine in the Position box.
 
 On connect: soft reset (`Ctrl-X`).
 
-![Connected essentials strip](assets/usb-connected.png)
+![Connected header chip](assets/usb-connected.png)
 
 ## If it fails
 

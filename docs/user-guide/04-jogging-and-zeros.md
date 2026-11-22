@@ -86,6 +86,6 @@ Below jog / zero:
 - **Spindle RPM** — **On (M3)** sends `M3 S…`; **Off (M5)** stops PWM spindle.  
 - **Feed override** / **Spindle override** — GRBL 1.1 realtime percent steps (−10 / −1 / 100% / +1 / +10). Work during a running job; soft limits unchanged.
 
-While a job runs, the essentials strip also shows **Feed / Rapid / Spindle %** (rapid is 100 / 50 / 25). Soft reset returns tracked overrides to 100%.
+While a job runs, a strip under Position / Safety also shows **Feed / Rapid / Spindle %** (rapid is 100 / 50 / 25). Soft reset returns tracked overrides to 100%.
 
 Next: [Calibration wizard](05-calibration.md).

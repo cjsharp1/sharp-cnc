@@ -6,7 +6,7 @@ SharpCNC helps you see position and refuse some bad moves, but **you** are still
 
 ![After E-Stop](assets/estop.webp)
 
-## Controls in the essentials strip
+## Controls in the Safety box (above the visualizer)
 
 | Control | Use when |
 |---------|----------|

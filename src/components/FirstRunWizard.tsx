@@ -179,7 +179,7 @@ export function FirstRunWizard({
             <p>
               Power the Demon Shield / Arduino safely, plug USB, refresh ports,
               then Connect at <strong>115200</strong> baud. Wait for{" "}
-              <strong>Linked</strong> in the essentials strip.
+              <strong>Linked</strong> in the header connection chip.
             </p>
             <div className="firstrun__actions">
               <button

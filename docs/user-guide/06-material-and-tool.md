@@ -57,7 +57,7 @@ Pick a **material** (softwood, hardwood, acrylic, MDF) and **cut style** (engrav
 
 ![Presets to F/S](assets/diagram-feeds-speeds.svg)
 
-These are hobby starting points — always test on scrap. Runtime feed / rapid / spindle **override percents** persist across relaunch and live on the essentials strip while a job runs (and on the **Move** spindle panel).
+These are hobby starting points — always test on scrap. Runtime feed / rapid / spindle **override percents** persist across relaunch and appear under Position / Safety while a job runs (and on the **Move** spindle panel).
 
 ## Checklist before a job
 
