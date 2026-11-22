@@ -58,11 +58,18 @@ Run [demon-shield-soak-playbook.md](demon-shield-soak-playbook.md) sign-off:
 
 ```bash
 # example
-git tag -a v0.1.0 -m "SharpCNC v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "SharpCNC v0.2.0"
+git push origin v0.2.0
 ```
 
-Tag `v*` triggers the Windows installer workflow and attaches artifacts.
+Tag `v*` triggers the Windows installer workflow. That job builds NSIS/MSI, attaches them to a **draft** Release, then **publishes (undrafts) only after** the `.exe` is on the Release.
+
+**Do not** `gh release create` (or publish) a source-only Release before CI finishes. Prefer either:
+
+1. Push the tag and let Actions create + publish the Release with assets, **or**
+2. `gh release create vX.Y.Z --draft --notes-file …` early for notes, then wait for CI to attach installers and undraft (or undraft yourself once the `.exe` is present).
+
+Never leave `/releases` or `/releases/latest` pointing at a published cut with no installer — Chris’s in-app updater would offer a useless update.
 
 ### Release notes template
 

@@ -151,10 +151,12 @@ Checklist + notes template: [RELEASE.md](RELEASE.md)
 Draft notes for first tagged cut: [RELEASE-NOTES-v0.1.0-DRAFT.md](RELEASE-NOTES-v0.1.0-DRAFT.md)
 
 ```bash
-# after version bump in package.json + src-tauri/tauri.conf.json
-git tag -a v0.1.0 -m "SharpCNC v0.1.0"
-git push origin v0.1.0
+# after version bump in package.json + tauri.conf.json + Cargo.toml
+git tag -a v0.2.0 -m "SharpCNC v0.2.0"
+git push origin v0.2.0
 ```
+
+Wait for Actions **Windows installer** to attach the NSIS `.exe` before treating the Release as published (workflow keeps it draft until assets land). Do not hand-publish a source-only Release — the in-app updater would offer it with nothing to download.
 
 ---
 
