@@ -20,7 +20,7 @@
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
   <circle class="num" cx="56" cy="56" r="28"/>
-  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">1</text>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">1</text>
   <text class="lab big" x="100" y="50">Zero context</text>
   <text class="lab act" x="100" y="84">Check Work / Machine → Zero if needed → Next</text>
 
@@ -39,5 +39,5 @@
   <text class="tiny" x="680" y="375" text-anchor="middle">After Home: near 0,0,0</text>
 
   <rect class="btn" x="280" y="440" width="400" height="50" rx="10"/>
-  <text class="w" x="480" y="473" text-anchor="middle" font-size="18">Zeros look good — Next</text>
+  <text class="w" x="480" y="465" text-anchor="middle" dominant-baseline="central" font-size="18">Zeros look good — Next</text>
 </svg>

@@ -32,26 +32,26 @@
 
   <g transform="translate(48,168)">
     <rect class="chip" width="78" height="36" rx="8"/>
-    <text class="w" x="39" y="23" text-anchor="middle" font-size="12">$3 dir</text>
+    <text class="w" x="39" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">$3 dir</text>
   </g>
   <g transform="translate(140,168)">
     <rect class="chip" width="96" height="36" rx="8"/>
-    <text class="w" x="48" y="23" text-anchor="middle" font-size="12">Steps/mm</text>
+    <text class="w" x="48" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Steps/mm</text>
   </g>
   <g transform="translate(250,168)">
     <rect class="chip" width="100" height="36" rx="8"/>
-    <text class="w" x="50" y="23" text-anchor="middle" font-size="12">Soft travel</text>
+    <text class="w" x="50" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Soft travel</text>
   </g>
   <g transform="translate(364,168)">
     <rect class="chip" width="60" height="36" rx="8"/>
-    <text class="w" x="30" y="23" text-anchor="middle" font-size="12">Bed?</text>
+    <text class="w" x="30" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Bed?</text>
   </g>
   <text class="tiny" x="48" y="236">Menu → Calibration… · optional Bed travel test</text>
   <text class="tiny" x="48" y="258">Do this before trusting soft limits or cuts</text>
 
   <path class="arrow" d="M460 184 H500"/>
 
-  <!-- Phase B -->
+  <!-- Phase B — #65 load-job chips + centered labels -->
   <rect class="phase" x="512" y="84" width="420" height="200" rx="12"/>
   <rect class="job" x="512" y="84" width="420" height="36" rx="12"/>
   <rect class="job" x="512" y="108" width="420" height="12"/>
@@ -60,23 +60,23 @@
 
   <g transform="translate(532,168)">
     <rect class="chip" width="64" height="36" rx="8"/>
-    <text class="w" x="32" y="23" text-anchor="middle" font-size="12">Load</text>
+    <text class="w" x="32" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Load</text>
   </g>
   <g transform="translate(608,168)">
     <rect class="chip" width="64" height="36" rx="8"/>
-    <text class="w" x="32" y="23" text-anchor="middle" font-size="12">Stock</text>
+    <text class="w" x="32" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Stock</text>
   </g>
   <g transform="translate(684,168)">
     <rect class="chip" width="56" height="36" rx="8"/>
-    <text class="w" x="28" y="23" text-anchor="middle" font-size="12">XY</text>
+    <text class="w" x="28" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">XY</text>
   </g>
   <g transform="translate(752,168)">
     <rect class="chip" width="56" height="36" rx="8"/>
-    <text class="w" x="28" y="23" text-anchor="middle" font-size="12">Z</text>
+    <text class="w" x="28" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Z</text>
   </g>
   <g transform="translate(820,168)">
     <rect class="chip" width="88" height="36" rx="8"/>
-    <text class="w" x="44" y="23" text-anchor="middle" font-size="11">Sim · Cut</text>
+    <text class="w" x="44" y="18" text-anchor="middle" dominant-baseline="central" font-size="11">Sim · Cut</text>
   </g>
   <text class="tiny" x="532" y="236">Load G-code/SVG · Prepare… · then Simulate</text>
   <text class="tiny" x="532" y="258">Not a substitute for calibration</text>

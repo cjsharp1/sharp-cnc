@@ -22,7 +22,7 @@
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
   <circle class="num" cx="56" cy="56" r="28"/>
-  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">1</text>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">1</text>
   <text class="lab big" x="100" y="50">Connect</text>
   <text class="lab act" x="100" y="84">Plug USB → Refresh → Connect → Linked</text>
 

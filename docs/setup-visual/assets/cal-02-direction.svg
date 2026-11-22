@@ -24,31 +24,31 @@
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
   <circle class="num" cx="56" cy="56" r="28"/>
-  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">2</text>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">2</text>
   <text class="lab big" x="100" y="50">Direction ($3)</text>
   <text class="lab act" x="100" y="84">Toggle invert → Write $3 → Test ±5 mm</text>
 
   <rect class="card" x="80" y="140" width="420" height="300" rx="14"/>
   <text class="lab" x="290" y="185" text-anchor="middle" font-weight="700">Bitmask</text>
   <rect class="bit" x="110" y="220" width="100" height="80" rx="10"/>
-  <text class="lab" x="160" y="255" text-anchor="middle" font-weight="700">X</text>
-  <text class="mono" x="160" y="285" text-anchor="middle">= 1</text>
+  <text class="lab" x="160" y="248" text-anchor="middle" dominant-baseline="central" font-weight="700">X</text>
+  <text class="mono" x="160" y="272" text-anchor="middle" dominant-baseline="central">= 1</text>
   <rect class="bit" x="240" y="220" width="100" height="80" rx="10"/>
-  <text class="lab" x="290" y="255" text-anchor="middle" font-weight="700">Y</text>
-  <text class="mono" x="290" y="285" text-anchor="middle">= 2</text>
+  <text class="lab" x="290" y="248" text-anchor="middle" dominant-baseline="central" font-weight="700">Y</text>
+  <text class="mono" x="290" y="272" text-anchor="middle" dominant-baseline="central">= 2</text>
   <rect class="bit" x="370" y="220" width="100" height="80" rx="10"/>
-  <text class="lab" x="420" y="255" text-anchor="middle" font-weight="700">Z</text>
-  <text class="mono" x="420" y="285" text-anchor="middle">= 4</text>
+  <text class="lab" x="420" y="248" text-anchor="middle" dominant-baseline="central" font-weight="700">Z</text>
+  <text class="mono" x="420" y="272" text-anchor="middle" dominant-baseline="central">= 4</text>
   <text class="tiny" x="290" y="350" text-anchor="middle">Sum bits to invert · e.g. X+Z = 5</text>
   <rect class="btn" x="160" y="380" width="260" height="40" rx="8"/>
-  <text class="w" x="290" y="407" text-anchor="middle" font-size="16">Write $3=…</text>
+  <text class="w" x="290" y="400" text-anchor="middle" dominant-baseline="central" font-size="16">Write $3=…</text>
 
   <rect class="card" x="540" y="140" width="340" height="300" rx="14"/>
   <text class="lab" x="710" y="185" text-anchor="middle" font-weight="700">Expect</text>
-  <!-- Top-down bed view: work +Y (back) points up on screen — same as MachineView -->
+  <!-- Top-down bed view: work +Y (back) points up on screen — same as MachineView (#62) -->
   <path class="arrow" d="M600 360 H800"/>
-  <text class="lab" x="700" y="345" text-anchor="middle" font-weight="700">+X right</text>
+  <text class="lab" x="700" y="345" text-anchor="middle" dominant-baseline="central" font-weight="700">+X right</text>
   <path class="arrow" d="M620 380 V220"/>
-  <text class="lab" x="640" y="250" font-weight="700">+Y back</text>
+  <text class="lab" x="640" y="250" dominant-baseline="central" font-weight="700">+Y back</text>
   <text class="tiny" x="710" y="420" text-anchor="middle">+Z up · wrong way → flip bit</text>
 </svg>

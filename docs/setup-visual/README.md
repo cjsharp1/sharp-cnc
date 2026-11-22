@@ -17,4 +17,10 @@ Hub: [setup-visual/index.html](index.html) · overview art: [order-of-ops.svg](a
 
 **Diagram type:** SVG guides set the SharpCNC UI stack (`"Sora", system-ui, "Segoe UI", sans-serif`) on `text, tspan` so secondary labels (`.tiny`, etc.) never fall back to the browser’s Times-like SVG default. Mono callouts use `"IBM Plex Mono", … monospace`; UI-map brand uses Oswald. Same convention applies to `docs/user-guide/assets/diagram-*.svg`.
 
+**Diagram text alignment:**
+- **Centered controls** (buttons, tabs, chips, badges, short labels on boxes/markers): `text-anchor="middle"` at the shape’s center `x`, plus `dominant-baseline="central"` at center `y` for single-line labels.
+- **Stacked button captions** (e.g. Z+ / raise tool): both lines middle-anchored on the same center `x`, with primary slightly above and caption slightly below the vertical midpoint.
+- **Panel body copy / titles / lists**: left-aligned with a consistent inset (~16–24px from the panel edge).
+- **Labels beside axes or leaders**: stay start-anchored next to the stroke (not forced to the parent box center).
+
 Text appendices: [Calibration](../user-guide/05-calibration.md) · [Prepare & Z probe](../user-guide/07-prepare-and-z-probe.md)
