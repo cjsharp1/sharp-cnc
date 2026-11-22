@@ -32,18 +32,28 @@ import { DEFAULT_BAUD } from "./transport";
 import type { DesktopPortInfo } from "./desktopSerial";
 import type { Position3 } from "./types";
 
+/** Stable path id for the in-app Virtual CNC (appears in the Connect port list). */
+export const VIRTUAL_CNC_PATH = "MOCK://grbl-demo";
+
 const MOCK_PORTS: DesktopPortInfo[] = [
-  { path: "MOCK://grbl-demo", portType: "Simulated GRBL" },
+  { path: VIRTUAL_CNC_PATH, portType: "Virtual CNC" },
 ];
 
 const SOFT_RESET_BYTE = 0x18;
 
+/** True for the Virtual CNC simulator path (and any `MOCK://` smoke alias). */
+export function isVirtualCncPath(path: string | null | undefined): boolean {
+  if (!path) return false;
+  return path === VIRTUAL_CNC_PATH || path.startsWith("MOCK://");
+}
+
 type MockState = "Idle" | "Jog" | "Run" | "Hold" | "Alarm" | "Home";
 
 /**
- * In-browser / cloud-VM mock transport so connect + live position UX can be
- * exercised without a real Demon Shield. Simulates jog (`$J=`), work zero
- * (`G10 L20`), job motion (G0/G1), feed hold / resume, and status reports.
+ * Virtual CNC — in-app GRBL simulator (no Demon Shield USB). Selected from the
+ * Connect port list like a COM port. Simulates status (MPos/WPos via WCO),
+ * jog (`$J=`), work zero (`G10 L20`), job motion (G0/G1), soft-reset, homing
+ * stub (`$H`), feed hold / resume, and status reports.
  *
  * Program lines are queued and acknowledged in order so the character-counting
  * streamer behaves like GRBL's RX buffer.
@@ -239,6 +249,8 @@ export function createMockTransport(): SerialTransport {
     pump();
   };
 
+  const softLimitsOn = () => (settings.get(20) ?? 0) >= 1;
+
   const applyJog = (cmd: string) => {
     const jogAbsolute = /\bG90\b/i.test(cmd);
     const values = parseAxisValues(cmd);
@@ -254,6 +266,26 @@ export function createMockTransport(): SerialTransport {
       if (values.x !== undefined) target.x = machine.x + values.x;
       if (values.y !== undefined) target.y = machine.y + values.y;
       if (values.z !== undefined) target.z = machine.z + values.z;
+    }
+
+    if (softLimitsOn()) {
+      const maxX = settings.get(130) ?? Infinity;
+      const maxY = settings.get(131) ?? Infinity;
+      const maxZ = settings.get(132) ?? Infinity;
+      if (
+        target.x < 0 ||
+        target.y < 0 ||
+        target.z < -maxZ ||
+        target.x > maxX ||
+        target.y > maxY ||
+        target.z > 0
+      ) {
+        clearMotion();
+        busy = false;
+        state = "Alarm";
+        emitLine("ALARM:2");
+        return;
+      }
     }
 
     busy = true;

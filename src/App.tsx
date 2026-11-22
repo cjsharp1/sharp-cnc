@@ -89,14 +89,18 @@ import {
   estimateJobTimeFromJob,
   feedOverrideByte,
   fetchGrblSettings,
+  firstConnectedGamepad,
   formatVersionLabel,
   guideForAlarm,
   importSvg,
   isDesktopShell,
   isGrblResetBanner,
   isIncompleteRecovery,
+  isVirtualCncPath,
   jogDeltaFromAxes,
   listAvailablePorts,
+  mapGamepadToJog,
+  pressedButtonSet,
   loadDebugMode,
   loadDriveConfig,
   loadFeedsSpeedsSelection,
@@ -228,6 +232,13 @@ export default function App() {
   const [alarmCode, setAlarmCode] = useState<number | null>(null);
 
   const [jogMode, setJogMode] = useState<JogMode>("incremental");
+  const [gamepadStatus, setGamepadStatus] = useState<string | null>(null);
+  const gamepadPrevButtonsRef = useRef<Set<number>>(new Set());
+  const gamepadHoldRef = useRef(false);
+  const sendJogDeltaRef = useRef<
+    (axes: JogAxisMap, continuous: boolean) => Promise<void>
+  >(async () => undefined);
+  const stopContinuousJogRef = useRef<() => Promise<void>>(async () => undefined);
   const [stepMm, setStepMm] = useState<number>(JOG_STEP_OPTIONS_MM[1]);
   const [feedMmMin, setFeedMmMin] = useState(DEFAULT_JOG_FEED_MM_MIN);
   const [softLimitHint, setSoftLimitHint] = useState<string | null>(null);
@@ -382,7 +393,9 @@ export default function App() {
     applyUiTheme(next);
   };
 
-  const usingMock = !isDesktopShell();
+  /** Simulator timeouts + mock alarm UI when Virtual CNC is selected (desktop or browser). */
+  const usingMock = isVirtualCncPath(selectedPath) || !isDesktopShell();
+  const usingVirtualCnc = isVirtualCncPath(selectedPath);
   const connected = phase === "connected";
   const bedMm = bedSizeFromLimits(softTravel);
 
@@ -1759,6 +1772,68 @@ export default function App() {
     void stopContinuousJog();
   };
 
+  sendJogDeltaRef.current = sendJogDelta;
+  stopContinuousJogRef.current = stopContinuousJog;
+
+  // Xbox / gamepad jog via Browser Gamepad API (works in Vite + Tauri WebView).
+  useEffect(() => {
+    let raf = 0;
+    let lastBurst = 0;
+    let lastLabel = "";
+
+    const tick = (ts: number) => {
+      const list =
+        typeof navigator !== "undefined" && navigator.getGamepads
+          ? navigator.getGamepads()
+          : null;
+      const pad = firstConnectedGamepad(list ? Array.from(list) : null);
+      const sample = pad
+        ? { axes: Array.from(pad.axes), buttons: pad.buttons }
+        : null;
+      const frame = mapGamepadToJog(sample, gamepadPrevButtonsRef.current);
+      gamepadPrevButtonsRef.current = pressedButtonSet(sample);
+
+      const label = pad
+        ? `${pad.id.split("(")[0]?.trim() || "Gamepad"} · ${frame.statusLabel}`
+        : "No gamepad";
+      if (label !== lastLabel) {
+        lastLabel = label;
+        setGamepadStatus(label);
+      }
+
+      const clientOpen = Boolean(clientRef.current?.transport.isOpen);
+      if (!clientOpen || streamPhaseRef.current === "running") {
+        if (gamepadHoldRef.current) {
+          gamepadHoldRef.current = false;
+          void stopContinuousJogRef.current();
+        }
+        raf = requestAnimationFrame(tick);
+        return;
+      }
+
+      if (frame.cancel) {
+        gamepadHoldRef.current = false;
+        void stopContinuousJogRef.current();
+      } else if (frame.step) {
+        void sendJogDeltaRef.current(frame.step, false);
+      } else if (frame.continuous) {
+        gamepadHoldRef.current = true;
+        if (ts - lastBurst >= CONTINUOUS_JOG_MS) {
+          lastBurst = ts;
+          void sendJogDeltaRef.current(frame.continuous, true);
+        }
+      } else if (gamepadHoldRef.current) {
+        gamepadHoldRef.current = false;
+        void stopContinuousJogRef.current();
+      }
+
+      raf = requestAnimationFrame(tick);
+    };
+
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, []);
+
   const handleZero = async (axes: ZeroAxisSelection) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
@@ -2363,10 +2438,14 @@ export default function App() {
 
   const portLabel =
     phase === "connected"
-      ? selectedPath || "Connected"
+      ? usingVirtualCnc
+        ? "Virtual CNC"
+        : selectedPath || "Connected"
       : phase === "connecting"
         ? "Opening…"
-        : selectedPath || "No port";
+        : usingVirtualCnc
+          ? "Virtual CNC"
+          : selectedPath || "No port";
 
   const jogGate = canJogOrZero(status.state, connected, streaming);
   const jogEnabled = jogGate.ok;
@@ -2896,7 +2975,7 @@ export default function App() {
             selectedPath={selectedPath}
             portLabel={portLabel}
             errorMessage={errorMessage}
-            usingMock={usingMock}
+            usingVirtualCnc={usingVirtualCnc}
             onSelectPath={setSelectedPath}
             onRefreshPorts={() => {
               void refreshPorts();
@@ -3096,6 +3175,7 @@ export default function App() {
                       softLimitHint ??
                       (!jogGate.ok && connected ? jogGate.reason : null)
                     }
+                    gamepadStatus={gamepadStatus}
                     onModeChange={setJogMode}
                     onStepChange={setStepMm}
                     onFeedChange={setFeedMmMin}

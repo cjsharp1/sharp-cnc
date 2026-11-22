@@ -1,5 +1,5 @@
 import type { DesktopPortInfo } from "../grbl";
-import { DEFAULT_BAUD } from "../grbl";
+import { DEFAULT_BAUD, isVirtualCncPath } from "../grbl";
 
 export type ConnectionPhase =
   | "disconnected"
@@ -13,7 +13,8 @@ interface ConnectPanelProps {
   selectedPath: string;
   portLabel: string;
   errorMessage?: string | null;
-  usingMock?: boolean;
+  /** True when the active / selected path is Virtual CNC (simulator). */
+  usingVirtualCnc?: boolean;
   onSelectPath: (path: string) => void;
   onRefreshPorts: () => void;
   onConnect: () => void;
@@ -24,8 +25,16 @@ interface ConnectPanelProps {
 function shortPortLabel(label: string): string {
   const trimmed = label.trim();
   if (!trimmed) return "No port";
+  if (isVirtualCncPath(trimmed)) return "Virtual CNC";
   const parts = trimmed.split(/[/\\]/);
   return parts[parts.length - 1] || trimmed;
+}
+
+function optionLabel(port: DesktopPortInfo): string {
+  if (isVirtualCncPath(port.path)) {
+    return "Virtual CNC · in-app simulator (no USB)";
+  }
+  return `${port.path}${port.portType ? ` · ${port.portType}` : ""}`;
 }
 
 export function ConnectPanel({
@@ -34,7 +43,7 @@ export function ConnectPanel({
   selectedPath,
   portLabel,
   errorMessage,
-  usingMock = false,
+  usingVirtualCnc = false,
   onSelectPath,
   onRefreshPorts,
   onConnect,
@@ -48,24 +57,28 @@ export function ConnectPanel({
     phase === "connecting"
       ? "Connecting"
       : connected
-        ? "Linked"
+        ? usingVirtualCnc
+          ? "Virtual"
+          : "Linked"
         : phase === "error"
           ? "Fault"
           : "Offline";
   const portShort = shortPortLabel(portLabel);
   const metaTitle = `${DEFAULT_BAUD.toLocaleString()} baud · ${
-    usingMock ? "mock GRBL (no USB in this shell)" : "USB serial"
+    usingVirtualCnc
+      ? "Virtual CNC — simulated GRBL (no Demon Shield USB)"
+      : "USB serial"
   }`;
 
   return (
     <section
-      className={`connect connect--header${connected ? " is-live" : ""}${phase === "error" ? " is-error" : ""}`}
+      className={`connect connect--header${connected ? " is-live" : ""}${usingVirtualCnc && connected ? " is-virtual" : ""}${phase === "error" ? " is-error" : ""}`}
       aria-label="Machine connection"
       title={metaTitle}
     >
       <div className="connect__status">
         <span
-          className={`connect__dot ${connected ? "is-live" : ""} ${phase === "error" ? "is-error" : ""}`}
+          className={`connect__dot ${connected ? "is-live" : ""} ${usingVirtualCnc && connected ? "is-virtual" : ""} ${phase === "error" ? "is-error" : ""}`}
           aria-hidden
         />
         <span className="connect__label" aria-live="polite">
@@ -87,15 +100,14 @@ export function ConnectPanel({
               value={selectedPath}
               disabled={busy}
               onChange={(e) => onSelectPath(e.target.value)}
-              aria-label="Serial port"
+              aria-label="Serial port or Virtual CNC"
             >
               <option value="">
                 {ports.length === 0 ? "No ports" : "Port…"}
               </option>
               {ports.map((port) => (
                 <option key={port.path} value={port.path}>
-                  {port.path}
-                  {port.portType ? ` · ${port.portType}` : ""}
+                  {optionLabel(port)}
                 </option>
               ))}
             </select>
