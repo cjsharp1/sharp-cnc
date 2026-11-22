@@ -41,7 +41,9 @@ Workflow: [`.github/workflows/windows-installer.yml`](../.github/workflows/windo
 Triggers:
 
 - **Manual:** Actions → *Windows installer* → Run workflow
-- **Version tags:** push `v*` (e.g. `v0.1.0`) → builds and attaches artifacts to a GitHub Release
+- **Version tags:** push `v*` (e.g. `v0.2.0`) → builds installers, attaches them to a **draft** GitHub Release, then publishes only after the NSIS `.exe` is present
+
+Do **not** publish a source-only Release by hand before that job finishes — the in-app updater would see a newer tag with nothing to download. If you need notes early, create a **draft** Release (`gh release create … --draft`) and let CI attach + undraft.
 
 Download the `windows-installer` artifact (or Release assets) and put the link on the [docs download section](../docs/index.html#download).
 

@@ -1,5 +1,7 @@
 # Build SharpCNC Windows NSIS (+ MSI) installers on a Windows runner.
-# Manual dispatch always; tags v* also publish a GitHub Release with the artifacts.
+# Manual dispatch always; tags v* create a draft GitHub Release with the
+# artifacts, then publish (undraft) only after the upload succeeds —
+# never leave a source-only published Release.
 name: Windows installer
 
 on:
@@ -57,11 +59,15 @@ jobs:
           path: dist-installer/*
           if-no-files-found: error
 
-      - name: Publish GitHub Release (tags only)
+      # Draft first so /releases never shows a source-only published cut.
+      # Softprops creates or updates the tag Release and attaches installers.
+      - name: Attach installers to draft GitHub Release (tags only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
+          draft: true
           files: dist-installer/*
+          fail_on_unmatched_files: true
           generate_release_notes: true
           body: |
             SharpCNC Windows desktop installer (Tauri).
@@ -72,3 +78,21 @@ jobs:
             - Getting started: https://cjsharp1.github.io/sharp-cnc/#download
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish Release after assets attached (tags only)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          TAG="${GITHUB_REF_NAME}"
+          # Require NSIS on the Release before undrafting.
+          ASSETS="$(gh release view "$TAG" --json assets --jq '[.assets[].name] | join(",")')"
+          echo "Release assets: $ASSETS"
+          echo "$ASSETS" | grep -qi '\.exe' || {
+            echo "Refusing to publish: no .exe asset on $TAG"
+            exit 1
+          }
+          gh release edit "$TAG" --draft=false
+          echo "Published $TAG"
