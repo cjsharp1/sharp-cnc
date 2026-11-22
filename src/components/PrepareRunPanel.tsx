@@ -40,11 +40,12 @@ const WIZARD_STEPS: {
   { id: "ready", label: "Ready", short: "6 · Ready" },
 ];
 
+/** Map layout: north on top (NW/NE), south on bottom (SW/SE). */
 const CORNERS: { id: StockCorner; label: string; title: string }[] = [
-  { id: "sw", label: "SW", title: "Front-left (min X/Y)" },
-  { id: "se", label: "SE", title: "Front-right" },
   { id: "nw", label: "NW", title: "Back-left" },
   { id: "ne", label: "NE", title: "Back-right" },
+  { id: "sw", label: "SW", title: "Front-left (min X/Y)" },
+  { id: "se", label: "SE", title: "Front-right" },
 ];
 
 interface PrepareRunPanelProps {
