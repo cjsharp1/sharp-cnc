@@ -76,6 +76,40 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Plug USB → Refresh → pick COM → <strong>Connect</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Essentials strip shows <strong>Linked</strong>; Work / Machine
+                update live.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                If this session is not homed yet: clear the bed → Move /
+                Homing → <strong>Home ($H)</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Axes seek zero-side limits, then Idle / Homed. Soft travel still
+                protects the far rails — do not open Calibration unless hardware
+                changed.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Load the job file (.nc / .gcode / SVG) you will cut.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Job tab shows the file; Start stays locked until Prepare is
+                finished.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
             Machine already calibrated? Soft travel stays until hardware
             changes.
@@ -89,7 +123,7 @@
             <h2>Stock</h2>
             <p class="step-card__action">
               Job → <strong>Prepare…</strong> → confirm width × length ×
-              thickness + corner
+              thickness + corner · confirm tool
             </p>
             <p class="step-card__eli5">
               Stock = the board you’re cutting. Tell SharpCNC how big it is and
@@ -105,6 +139,43 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Job → <strong>Prepare…</strong> (or Menu →
+                <strong>Prepare to run…</strong>, or Start while not ready).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Prepare wizard opens on stock size / thickness / bed corner.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Enter width × length × thickness and which corner of the blank
+                sits on the bed. Confirm the stock step, then
+                <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Visualizer stock rectangle matches the blank; Next unlocks after
+                the confirm checkbox.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                On the tool step: set bit type and diameter Ø mm (tip angle for
+                V-bits). Check
+                <strong>Bit is tight and diameter matches</strong>, then
+                <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Tool marker on the work surface matches the diameter; wizard
+                advances to XY zero.
+              </p>
+            </li>
+          </ol>
           <a class="step-card__next" href="#p2">Next: XY zero →</a>
         </article>
 
@@ -113,9 +184,9 @@
             <span class="step-card__num" aria-hidden="true">2</span>
             <h2>XY work zero</h2>
             <p class="step-card__action">
-              Jog tip to job origin on stock → <strong>Set XY zero + stock</strong>
-              (no plate). Optional: <strong>Trace stock perimeter…</strong> to
-              walk the blank bounds at safe Z.
+              Jog tip to job origin on stock →
+              <strong>Set XY zero + stock</strong> (no plate). Optional:
+              <strong>Trace stock perimeter…</strong>
             </p>
             <p class="step-card__eli5">
               Stock corner / job origin = where X=0 and Y=0 for
@@ -131,6 +202,51 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Keep Z clear of clamps. Jog the bit tip to the stock corner that
+                is your job origin (usually SW). Pick that corner button.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Corner control highlights (e.g. SW). Tip sits above that corner
+                of the real blank.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap
+                <strong>Set XY zero + stock … at tip</strong> (preferred).
+                Fallback: <strong>Zero XY only</strong> if you only want work
+                origin without moving stock.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Status: <strong>XY zero set — Next unlocked</strong>. Work X/Y
+                read ~0; stock origin tracks the tip for the primary action.
+                Machine does not jog from this tap.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Optional: <strong>Trace stock perimeter…</strong> to walk the
+                blank bounds at safe Z (cancelable).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Toolhead traces the rectangle; if the path misses the wood,
+                re-check sizes / corner / zero.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">Tap <strong>Next</strong>.</p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Z probe (touch plate)</strong>.
+              </p>
+            </li>
+          </ol>
           <a class="step-card__next" href="#p3">Next: Z probe →</a>
         </article>
 
@@ -141,7 +257,7 @@
             <p class="step-card__action">
               Plate on <strong>stock top</strong> · enter thickness →
               <strong>Run Z probe</strong> → remove plate →
-              <strong>Mark ready</strong> → Simulate → Start
+              <strong>Mark ready &amp; close</strong> → Simulate → Start
             </p>
             <p class="step-card__eli5">
               Probe plate = a metal pad on top of the wood. The bit gently
@@ -157,6 +273,60 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Clip the probe lead on the bit. Place the conductive plate on
+                the <strong>stock top</strong> under the tip (not the bare bed).
+                Enter <strong>Plate thickness mm</strong> (~15–20 mm for
+                Chris’s plate). Confirm seek / feed if needed.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Idle, not Alarm; probe pin not already ON. Soft limits allow the
+                downward seek.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Run Z probe</strong> (or
+                <strong>Manual Zero Z</strong> paper-feel fallback).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                G38.2 seeks down, contacts, then work Z0 = stock face (plate
+                thickness offset). Status: <strong>Z zero set — Next
+                unlocked</strong>. Alarm 4 = no contact; Alarm 5 = already
+                contacting.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                <strong>Next</strong> → Safe Z: tap
+                <strong>Retract to Z…</strong> if you want, then
+                <strong>remove the plate and clip</strong>. Check
+                <strong>Plate removed · clamps clear · Z looks safe</strong> →
+                <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Tip clear of the plate; checklist items turn OK on the Ready
+                step.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Mark ready &amp; close</strong>. Prefer
+                <strong>Simulate</strong> once, then <strong>Start</strong>
+                (UI or Demon Shield start button).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Job tab shows <strong>Prepared</strong>; Start unlocks (Linked +
+                Idle + soft-limit OK). Spindle/path runs; stay at the machine.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
             Text detail:
             <a href="../guide.html#07">Prepare &amp; Z probe</a>

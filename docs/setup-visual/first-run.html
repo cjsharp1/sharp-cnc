@@ -81,6 +81,46 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Power the Demon Shield / Arduino safely, then plug USB from the
+                PC into the shield.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Windows may chirp for a new COM device; the board stays powered.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Open SharpCNC. If First-run is not open: Menu →
+                <strong>First-run setup…</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard shows <strong>1 · Connect</strong>.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Refresh ports</strong>, pick the COM port for the
+                Demon Shield, then tap <strong>Connect</strong> (115200 baud).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Essentials strip shows <strong>Linked</strong>; status reads
+                “Linked — Next unlocked.” Live Work / Machine numbers update.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">Tap <strong>Next</strong>.</p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>2 · Home</strong>.
+              </p>
+            </li>
+          </ol>
           <a class="step-card__next" href="#s2">Next: Home →</a>
         </article>
 
@@ -104,6 +144,41 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Clear the bed of stock, clamps, and tools. Keep E-Stop in reach.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Nothing in the gantry path toward the zero-side limit switches.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Home ($H)</strong> in the wizard.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Button shows <strong>Homing…</strong>; axes seek the zero-side
+                switches, then settle. Status becomes Idle / Homed (not Alarm).
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check the box
+                <strong
+                  >Bed was clear · homing finished — I completed this
+                  step</strong
+                >, then tap <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Next unlocks only after that confirm; wizard moves to
+                <strong>3 · Calibrate</strong>.
+              </p>
+            </li>
+          </ol>
           <a class="step-card__next" href="#s3">Next: Calibrate →</a>
         </article>
 
@@ -128,9 +203,44 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Open Calibration…</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Calibration modal opens (zeros → direction → steps/mm → travel).
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Complete Calibration through direction ($3) and steps/mm at
+                least — follow the
+                <a href="calibration.html">Calibration visual guide</a>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Jog +X / +Y / +Z match the bed; a commanded move matches a
+                ruler within your tolerance after Write.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Close Calibration, return to First-run, check
+                <strong
+                  >I reviewed calibration (or already tuned) — step
+                  complete</strong
+                >, then <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>4 · Soft travel</strong>.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
-            This is the <strong>once-per-machine</strong> phase.
-            Detail:
+            This is the <strong>once-per-machine</strong> phase. Detail:
             <a href="calibration.html">Calibration visual guide</a>
           </p>
           <a class="step-card__next" href="#s4">Next: Soft travel →</a>
@@ -158,6 +268,46 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Measure real bed travel (or jog carefully to each far end with a
+                margin). Enter <strong>X max mm</strong>,
+                <strong>Y max mm</strong>, and optional <strong>Z max mm</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Fields show numbers that match the physical envelope (~1000 ×
+                1000 mm X/Y default for this bed if that is your size).
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap
+                <strong>Save travel (local + GRBL if linked)</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Soft travel saves; if Linked, GRBL gets $130–$132 (and soft
+                limits when written from Calibration). Visualizer bed size
+                updates.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Measured and set soft travel — I completed this step</strong
+                >, then <strong>Next</strong>. Optional later:
+                <strong>Bed travel test…</strong> from Calibration / Menu.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard moves to <strong>5 · Stock seed</strong>. Soft fences
+                stay until hardware changes.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
             Machine calibration ends here. Soft limits stay until hardware
             changes.
@@ -170,8 +320,8 @@
             <span class="step-card__num" aria-hidden="true">5</span>
             <h2>Stock seed (first job only)</h2>
             <p class="step-card__action">
-              Optional starter sizes → <strong>Finish setup</strong> · later
-              jobs use Prepare
+              Optional starter sizes → <strong>Finish calibration</strong> ·
+              later jobs use Prepare
             </p>
             <p class="step-card__eli5">
               Stock = your wood (or other material). This first guess just fills
@@ -187,6 +337,44 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Enter starter <strong>Width X mm</strong>,
+                <strong>Length Y mm</strong>, and <strong>Thickness mm</strong>
+                for the first blank you plan to cut (rough is fine).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Stock rectangle on the work-surface view matches those sizes.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Stock size matches the workpiece — I completed this
+                  step</strong
+                >, then tap <strong>Finish calibration</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                First-run closes. Machine tune is done for this install.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                For the actual cut: load a job →
+                <a href="prepare.html">Prepare</a> (stock, XY zero, Z probe) →
+                Simulate → Start.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Job tab shows <strong>Prepared</strong>; Start unlocks only after
+                Mark ready.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
             Every new job: connect / home as needed →
             <a href="prepare.html">Prepare</a> (stock, XY zero, Z probe) → cut.

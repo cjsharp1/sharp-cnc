@@ -7,6 +7,8 @@
 
 **ELI5:** Calibration = teach the machine how far a millimeter is (once). Prepare = tell it where *this* piece of wood sits (every job). Each step card has a short plain-English “what / why” under the action line.
 
+**Operator steps:** Every section also lists numbered **do this** actions with an **Expect** outcome (what to click/jog/confirm and what you should see).
+
 Fresh-install bootstrap (connect → home → into calibration): [First-run wizard](first-run.html)
 
 Hub: [setup-visual/index.html](index.html) · overview art: [order-of-ops.svg](assets/order-of-ops.svg)
