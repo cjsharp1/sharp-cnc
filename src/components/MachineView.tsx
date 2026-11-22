@@ -660,6 +660,8 @@ export function MachineView({
   const majorYWork = gridTicks(0, bedMm.depth, spacing.major);
 
   const labelSize = 11 / vis.pxPerMm;
+  /** Axis numbers sit outside the bed square in left/bottom gutters. */
+  const labelGutter = labelSize * 1.35;
   const bedIsSquare = Math.abs(bedMm.width - bedMm.depth) < 0.05;
 
   const stockLabel = stock
@@ -721,7 +723,22 @@ export function MachineView({
             disabled={!canZoomIn}
             onClick={() => handleZoomButton(1)}
           >
-            Zoom in
+            <svg
+              className="machine__zoom-icon"
+              viewBox="0 0 16 16"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M8 3.25v9.5M3.25 8h9.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
           <button
             type="button"
@@ -731,7 +748,22 @@ export function MachineView({
             disabled={!canZoomOut}
             onClick={() => handleZoomButton(-1)}
           >
-            Zoom out
+            <svg
+              className="machine__zoom-icon"
+              viewBox="0 0 16 16"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M3.25 8h9.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+              />
+            </svg>
           </button>
           <button
             type="button"
@@ -740,7 +772,23 @@ export function MachineView({
             title="Fit bed (Home view)"
             onClick={handleFit}
           >
-            Fit
+            <svg
+              className="machine__zoom-icon"
+              viewBox="0 0 16 16"
+              width="16"
+              height="16"
+              aria-hidden="true"
+              focusable="false"
+            >
+              <path
+                d="M2.5 5.5V2.5h3M10.5 2.5h3v3M13.5 10.5v3h-3M5.5 13.5h-3v-3"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.75"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
           </button>
           <span className="machine__zoom-readout" aria-live="polite">
             {zoomPct}%
@@ -891,18 +939,24 @@ export function MachineView({
             })}
           </g>
 
-          {/* Axis labels on major ticks (helpful, clipped to bed). */}
+          {/* Axis labels on major ticks — outside the bed in left/bottom gutters. */}
           <g className="machine__grid-labels" aria-hidden>
             {majorX
-              .filter((x) => x >= vb.x && x <= vb.x + vb.w)
+              .filter(
+                (x) =>
+                  x >= vb.x - labelSize &&
+                  x <= vb.x + vb.w + labelSize &&
+                  // Bottom gutter must be in view (labels sit below the bed edge).
+                  bedMm.depth + labelGutter >= vb.y &&
+                  bedMm.depth <= vb.y + vb.h + labelGutter,
+              )
               .map((x) => (
                 <text
                   key={`lx-${x}`}
-                  x={x + labelSize * 0.2}
-                  y={Math.min(
-                    bedMm.depth - labelSize * 0.35,
-                    vb.y + vb.h - labelSize * 0.4,
-                  )}
+                  x={x}
+                  y={bedMm.depth + labelGutter}
+                  textAnchor="middle"
+                  dominantBaseline="hanging"
                   fill="var(--viz-label)"
                   fontSize={labelSize}
                   style={{ fontFamily: "var(--font-mono, monospace)" }}
@@ -911,14 +965,23 @@ export function MachineView({
                 </text>
               ))}
             {majorYWork
-              .filter((y) => y >= workYMin && y <= workYMax)
+              .filter(
+                (y) =>
+                  y >= workYMin - labelSize &&
+                  y <= workYMax + labelSize &&
+                  // Left gutter must be in view (labels sit left of the bed edge).
+                  -labelGutter <= vb.x + vb.w &&
+                  0 >= vb.x - labelGutter,
+              )
               .map((yWork) => {
                 const y = bedMm.depth - yWork;
                 return (
                   <text
                     key={`ly-${yWork}`}
-                    x={Math.max(0, vb.x) + labelSize * 0.25}
-                    y={y - labelSize * 0.25}
+                    x={-labelGutter * 0.35}
+                    y={y}
+                    textAnchor="end"
+                    dominantBaseline="middle"
                     fill="var(--viz-label)"
                     fontSize={labelSize}
                     style={{ fontFamily: "var(--font-mono, monospace)" }}

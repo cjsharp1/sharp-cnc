@@ -3,8 +3,8 @@
 export const MIN_ZOOM = 1;
 export const MAX_ZOOM = 64;
 export const ZOOM_STEP = 1.35;
-/** Extra margin around the bed at fit-all (1.12 ≈ 12%). */
-export const FIT_PADDING = 1.12;
+/** Extra margin around the bed at fit-all (1.2 ≈ 20% for axis gutters). */
+export const FIT_PADDING = 1.2;
 
 export interface BedSizeMm {
   width: number;
