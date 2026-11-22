@@ -84,6 +84,8 @@ interface PrepareRunPanelProps {
   onManualZZero: () => void;
   onRetract: () => void;
   onConfirmReady: () => void;
+  /** Optional: open stock perimeter boundary check after XY/stock are set. */
+  onOpenStockPerimeter?: () => void;
   onClose?: () => void;
 }
 
@@ -136,6 +138,7 @@ export function PrepareRunPanel({
   onManualZZero,
   onRetract,
   onConfirmReady,
+  onOpenStockPerimeter,
   onClose,
 }: PrepareRunPanelProps) {
   const {
@@ -545,6 +548,22 @@ export function PrepareRunPanel({
               </span>
             )}
           </div>
+          {onOpenStockPerimeter ? (
+            <div className="cal__actions">
+              <button
+                type="button"
+                className="cal__btn cal__btn--ghost"
+                disabled={!canAct}
+                onClick={onOpenStockPerimeter}
+                title="Safe Z retract, then cancelable XY jogs around the stock blank"
+              >
+                Trace stock perimeter…
+              </button>
+              <span className="cal__meta">
+                Optional — verify the blank bounds before Z probe
+              </span>
+            </div>
+          ) : null}
           <div className="prep__jog">
             <JogPanel
               enabled={jogEnabled && canAct}

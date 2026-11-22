@@ -143,6 +143,27 @@ export {
   distanceToSoftEdgeMm,
   planBedTravelTest,
 } from "./bedTravelTest";
+export type {
+  PlanStockPerimeterOptions,
+  StockPerimeterCornerId,
+  StockPerimeterGate,
+  StockPerimeterPlan,
+  StockPerimeterSegment,
+  StockPerimeterSegmentPhase,
+} from "./stockPerimeterTest";
+export {
+  STOCK_PERIMETER_APPROACH_FEED_MM_MIN,
+  STOCK_PERIMETER_APPROACH_MM,
+  STOCK_PERIMETER_CRUISE_FEED_MM_MIN,
+  STOCK_PERIMETER_PROXIMITY_MM,
+  STOCK_PERIMETER_SAFE_Z_LIFT_MM,
+  STOCK_PERIMETER_Z_MARGIN_MM,
+  canStartStockPerimeterTest,
+  describeStockPerimeterProgress,
+  planStockPerimeterTest,
+  stockCornerMachine,
+  stockCornerWork,
+} from "./stockPerimeterTest";
 export { playProximityBeep } from "./proximityBeep";
 
 export type { GoToWorkZeroOptions, GoToWorkZeroPlan, ZeroAxisSelection } from "./workZero";

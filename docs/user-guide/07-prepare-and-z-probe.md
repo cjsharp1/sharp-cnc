@@ -26,12 +26,16 @@ Prepare is **required before Start** until you finish **Mark ready** for the cur
 |------|------|
 | 1 · Stock | Confirm size / thickness / bed corner (same settings as Material & tool) |
 | 2 · Tool | Confirm bit type and diameter |
-| 3 · XY zero | Jog tip to a stock corner → **Set XY zero + stock … at tip** (`G10 L20` + stock origin). **Zero XY only** is available as a fallback |
+| 3 · XY zero | Jog tip to a stock corner → **Set XY zero + stock … at tip** (`G10 L20` + stock origin). **Zero XY only** is available as a fallback. Optional: **Trace stock perimeter…** (safe-Z XY jog around the blank) |
 | 4 · Z probe | Touch plate on **stock top** (or **Manual Zero Z** paper-feel) |
 | 5 · Safe Z | Retract; **remove plate** before cut; confirm clear |
 | 6 · Ready | **Mark ready & close** → Start unlocks |
 
 Footer **Next** stays disabled until that step’s confirmations are done (checkboxes, zeros, probe).
+
+### Optional: Trace stock perimeter
+
+After stock size + XY origin are set, **Trace stock perimeter…** (Prepare → XY, Material & tool, or **Menu**) walks the toolhead around the blank rectangle: safe Z retract, then cancelable `$J=` cruise/approach at the four corners. Confirmation gate required (path clear, plate removed, spindle off recommended). XY only — does not cut. Use Stop / Abort / Hold like the bed travel test. Soft limits must still contain the blank.
 
 **Homing is separate:** `$H` uses zero-side limit switches. The touch plate is only for Z (and optional XY edge probe) — never for home.
 

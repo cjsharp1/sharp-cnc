@@ -6,6 +6,10 @@ import {
   BedTravelTestPanel,
   type BedTravelRunPhase,
 } from "./components/BedTravelTestPanel";
+import {
+  StockPerimeterTestPanel,
+  type StockPerimeterRunPhase,
+} from "./components/StockPerimeterTestPanel";
 import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
 import { ConsolePanel } from "./components/ConsolePanel";
@@ -177,6 +181,7 @@ import {
   type RecentJobEntry,
   type SimSpeedRate,
   type BedTravelPlan,
+  type StockPerimeterPlan,
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
@@ -315,6 +320,19 @@ export default function App() {
   const [bedTravelSound, setBedTravelSound] = useState(true);
   const bedTravelAbortRef = useRef(false);
   const bedTravelRunningRef = useRef(false);
+  const [stockPerimeterOpen, setStockPerimeterOpen] = useState(false);
+  const [stockPerimeterPhase, setStockPerimeterPhase] =
+    useState<StockPerimeterRunPhase>("idle");
+  const [stockPerimeterPlan, setStockPerimeterPlan] =
+    useState<StockPerimeterPlan | null>(null);
+  const [stockPerimeterSegmentIndex, setStockPerimeterSegmentIndex] =
+    useState(0);
+  const [stockPerimeterMessage, setStockPerimeterMessage] = useState<
+    string | null
+  >(null);
+  const [stockPerimeterSound, setStockPerimeterSound] = useState(true);
+  const stockPerimeterAbortRef = useRef(false);
+  const stockPerimeterRunningRef = useRef(false);
   const [prepareOpen, setPrepareOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
   const [appVersion, setAppVersion] = useState(() =>
@@ -787,6 +805,23 @@ export default function App() {
   }, [bedTravelOpen, bedTravelPhase]);
 
   useEffect(() => {
+    if (!stockPerimeterOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (
+          stockPerimeterPhase === "running" ||
+          stockPerimeterPhase === "paused"
+        ) {
+          return;
+        }
+        setStockPerimeterOpen(false);
+      }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [stockPerimeterOpen, stockPerimeterPhase]);
+
+  useEffect(() => {
     if (!prepareOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setPrepareOpen(false);
@@ -988,6 +1023,7 @@ export default function App() {
 
   const handleSoftReset = async () => {
     bedTravelAbortRef.current = true;
+    stockPerimeterAbortRef.current = true;
     await stopContinuousJog();
     externalControlsRef.current.noteSoftwareAction("abort");
     if (streaming) {
@@ -1007,6 +1043,11 @@ export default function App() {
         bedTravelRunningRef.current = false;
         setBedTravelPhase("aborted");
         setBedTravelMessage("Aborted by soft reset / E-Stop.");
+      }
+      if (stockPerimeterRunningRef.current) {
+        stockPerimeterRunningRef.current = false;
+        setStockPerimeterPhase("aborted");
+        setStockPerimeterMessage("Aborted by soft reset / E-Stop.");
       }
       activityLog.append("event", "Soft reset");
     } catch (err) {
@@ -2502,6 +2543,179 @@ export default function App() {
     setBedTravelMessage("Aborted. Unlock / re-home if needed, then re-confirm.");
   };
 
+  const openStockPerimeterTest = () => {
+    setPrepareOpen(false);
+    setCalOpen(false);
+    setBedTravelOpen(false);
+    setStockPerimeterOpen(true);
+    setStockPerimeterMessage(null);
+    if (
+      stockPerimeterPhase === "done" ||
+      stockPerimeterPhase === "aborted"
+    ) {
+      setStockPerimeterPhase("idle");
+      setStockPerimeterPlan(null);
+      setStockPerimeterSegmentIndex(0);
+    }
+    if (connected && settingsGate.ok) {
+      void handleRefreshSettings();
+    }
+  };
+
+  const waitStockPerimeterIdle = async (client: GrblClient) => {
+    const deadline = Date.now() + (usingMock ? 8000 : 180_000);
+    await new Promise((r) => setTimeout(r, usingMock ? 40 : 80));
+    while (Date.now() < deadline) {
+      if (stockPerimeterAbortRef.current) return;
+      await client.requestStatus().catch(() => undefined);
+      const st = statusRef.current.state;
+      if (st === "Alarm") {
+        throw new Error(alarmMessage ?? "Alarm during stock perimeter");
+      }
+      if (st === "Hold") {
+        await new Promise((r) => setTimeout(r, usingMock ? 80 : 200));
+        continue;
+      }
+      if (st === "Idle" || st === "Check") return;
+      await new Promise((r) => setTimeout(r, usingMock ? 50 : 120));
+    }
+  };
+
+  const handleStockPerimeterStart = async (plan: StockPerimeterPlan) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen || streaming) return;
+    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setStockPerimeterMessage(gate.reason ?? "Cannot start stock perimeter");
+      return;
+    }
+    if (!plan.ok || plan.segments.length === 0) {
+      setStockPerimeterMessage(plan.blocked ?? "No stock perimeter plan");
+      return;
+    }
+
+    stockPerimeterAbortRef.current = false;
+    stockPerimeterRunningRef.current = true;
+    setStockPerimeterPlan(plan);
+    setStockPerimeterSegmentIndex(0);
+    setStockPerimeterPhase("running");
+    setStockPerimeterMessage(
+      plan.warnings.length
+        ? `Running… ${plan.warnings.join(" ")}`
+        : "Tracing stock perimeter…",
+    );
+    activityLog.append(
+      "event",
+      `Stock perimeter start (${plan.segments.length} segments)`,
+    );
+
+    try {
+      await stopContinuousJog();
+      for (let i = 0; i < plan.segments.length; i++) {
+        if (
+          stockPerimeterAbortRef.current ||
+          !stockPerimeterRunningRef.current
+        ) {
+          break;
+        }
+        const seg = plan.segments[i]!;
+        setStockPerimeterSegmentIndex(i);
+        if (stockPerimeterSound && seg.proximityPulse) {
+          playProximityBeep();
+        }
+        const check = checkSoftLimits(
+          statusRef.current.machine,
+          seg.delta,
+          softTravel,
+        );
+        if (!check.ok) {
+          throw new Error(check.reason ?? "Soft-limit gate blocked segment");
+        }
+        await client.sendLine(seg.command);
+        activityLog.append(
+          "event",
+          `Stock perimeter ${seg.label} (${seg.phase} F${seg.feedMmMin})`,
+        );
+        await waitStockPerimeterIdle(client);
+        if (
+          stockPerimeterAbortRef.current ||
+          !stockPerimeterRunningRef.current
+        ) {
+          break;
+        }
+        if (statusRef.current.state === "Alarm") {
+          throw new Error(alarmMessage ?? "Alarm during stock perimeter");
+        }
+      }
+
+      if (
+        stockPerimeterAbortRef.current ||
+        !stockPerimeterRunningRef.current
+      ) {
+        setStockPerimeterPhase("aborted");
+        setStockPerimeterMessage("Stock perimeter aborted.");
+        activityLog.append("event", "Stock perimeter aborted");
+      } else {
+        setStockPerimeterSegmentIndex(plan.segments.length);
+        setStockPerimeterPhase("done");
+        setStockPerimeterMessage(
+          "Stock perimeter complete — all blank corners visited.",
+        );
+        activityLog.append("event", "Stock perimeter complete");
+      }
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setStockPerimeterPhase("aborted");
+      setStockPerimeterMessage(message);
+      setErrorMessage(message);
+      activityLog.append("event", `Stock perimeter failed: ${message}`);
+      try {
+        await client.cancelJog();
+      } catch {
+        /* ignore */
+      }
+    } finally {
+      stockPerimeterRunningRef.current = false;
+    }
+  };
+
+  const handleStockPerimeterStop = async () => {
+    stockPerimeterAbortRef.current = true;
+    stockPerimeterRunningRef.current = false;
+    setStockPerimeterPhase("paused");
+    setStockPerimeterMessage("Stop — canceling jog…");
+    activityLog.append("event", "Stock perimeter stop (cancel jog)");
+    externalControlsRef.current.noteSoftwareAction("hold");
+    await stopContinuousJog();
+    const client = clientRef.current;
+    if (client?.transport.isOpen) {
+      try {
+        await client.feedHold();
+      } catch {
+        /* ignore */
+      }
+      try {
+        await client.cancelJog();
+      } catch {
+        /* ignore */
+      }
+    }
+    setStockPerimeterPhase("aborted");
+    setStockPerimeterMessage("Stopped — jog canceled. Re-confirm to restart.");
+  };
+
+  const handleStockPerimeterAbort = async () => {
+    stockPerimeterAbortRef.current = true;
+    stockPerimeterRunningRef.current = false;
+    setStockPerimeterPhase("aborted");
+    setStockPerimeterMessage("Abort — soft reset…");
+    activityLog.append("event", "Stock perimeter abort");
+    await handleEstop();
+    setStockPerimeterMessage(
+      "Aborted. Unlock / re-home if needed, then re-confirm.",
+    );
+  };
+
   const openFirstRun = () => {
     setFirstRunStep("connect");
     setFirstRunMessage(null);
@@ -2695,6 +2909,7 @@ export default function App() {
           <AppMenu
             onOpenCalibration={openCalibration}
             onOpenBedTravelTest={openBedTravelTest}
+            onOpenStockPerimeter={openStockPerimeterTest}
             onOpenPrepareRun={openPrepareRun}
             onOpenMaterialTool={openMaterialTool}
             onOpenExternalJobs={openExternalJobs}
@@ -3061,6 +3276,7 @@ export default function App() {
                       onSetCornerFromToolhead={(corner) => {
                         void handleSetStockCornerFromToolhead(corner);
                       }}
+                      onOpenStockPerimeter={openStockPerimeterTest}
                       onFeedsChange={handleFeedsChange}
                       onApplyToSvg={handleApplyFeedsToSvg}
                     />
@@ -3404,6 +3620,89 @@ export default function App() {
         </div>
       )}
 
+      {stockPerimeterOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Trace stock perimeter"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close stock perimeter"
+            disabled={
+              stockPerimeterPhase === "running" ||
+              stockPerimeterPhase === "paused"
+            }
+            onClick={() => {
+              if (
+                stockPerimeterPhase === "running" ||
+                stockPerimeterPhase === "paused"
+              ) {
+                return;
+              }
+              setStockPerimeterOpen(false);
+            }}
+          />
+          <div className="cal-modal__sheet cal-modal__sheet--wide">
+            <header className="cal-modal__head">
+              <div>
+                <p className="cal-modal__eyebrow">After stock setup</p>
+                <h2 className="cal-modal__title">Trace stock perimeter</h2>
+              </div>
+              <button
+                type="button"
+                className="cal-modal__close"
+                disabled={
+                  stockPerimeterPhase === "running" ||
+                  stockPerimeterPhase === "paused"
+                }
+                onClick={() => setStockPerimeterOpen(false)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="cal-modal__body">
+              <StockPerimeterTestPanel
+                enabled={jogEnabled && !streaming}
+                blockedReason={
+                  !connected
+                    ? "Connect first."
+                    : streaming
+                      ? "Stop the job first."
+                      : !jogGate.ok
+                        ? (jogGate.reason ?? "Motion locked")
+                        : null
+                }
+                softTravel={softTravel}
+                softLimitsOn={softLimitsOn}
+                stock={stock}
+                wco={currentWco}
+                status={status}
+                machinePos={status.machine}
+                runPhase={stockPerimeterPhase}
+                segmentIndex={stockPerimeterSegmentIndex}
+                plan={stockPerimeterPlan}
+                message={stockPerimeterMessage}
+                soundEnabled={stockPerimeterSound}
+                onSoundEnabledChange={setStockPerimeterSound}
+                onStart={(plan) => {
+                  void handleStockPerimeterStart(plan);
+                }}
+                onStop={() => {
+                  void handleStockPerimeterStop();
+                }}
+                onAbort={() => {
+                  void handleStockPerimeterAbort();
+                }}
+                onClose={() => setStockPerimeterOpen(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {prepareOpen && (
         <div
           className="cal-modal"
@@ -3499,6 +3798,7 @@ export default function App() {
                   );
                   activityLog.append("event", "Prepare ready — Start unlocked");
                 }}
+                onOpenStockPerimeter={openStockPerimeterTest}
                 onClose={() => setPrepareOpen(false)}
               />
             </div>

@@ -19,6 +19,8 @@ Open from **Menu → Material & tool…** or scroll the **Job** tab.
 
 That one action sets work XY zero (`G10 L20`) and stock origin together so the corner under the tip is work (0,0).
 
+Optional: **Trace stock perimeter…** jogs the toolhead around the blank (safe Z, XY only) so you can see SharpCNC knows the boundaries — same flow as in Prepare → XY. Confirm the path is clear before Start.
+
 ### Fields
 
 | Field | Meaning |
@@ -62,8 +64,9 @@ These are hobby starting points — always test on scrap. Runtime feed / rapid /
 1. Clamp stock; measure width / length / thickness.  
 2. Jog tip to the job corner; **Set XY zero + stock … at tip**.  
 3. Enter (or adjust) W / L / T — glance at the visualizer.  
-4. Install the bit; enter diameter (and tip angle if V-bit).  
-5. Pick material + cut style; apply suggested F/S to SVG if generating in-app.  
-6. Probe / set Z to the top face you intend in CAM or SVG.
+4. Optional: **Trace stock perimeter…** to verify the blank bounds.  
+5. Install the bit; enter diameter (and tip angle if V-bit).  
+6. Pick material + cut style; apply suggested F/S to SVG if generating in-app.  
+7. Probe / set Z to the top face you intend in CAM or SVG.
 
 Next: [Prepare to run & Z probe](07-prepare-and-z-probe.md).

@@ -16,7 +16,7 @@ npm run smoke:critical   # PR / CI gate
 npm run smoke            # full suite before tagging
 ```
 
-Both must exit **0**. Critical now covers calibration, **bed travel test**, overrides, first-run order, job recovery, plus the full mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop path (`smoke-app-safety`).
+Both must exit **0**. Critical now covers calibration, **bed travel test**, **stock perimeter**, overrides, first-run order, job recovery, plus the full mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop path (`smoke-app-safety`).
 
 If smokes fail: **do not cut**. Fix or roll back first.
 
@@ -94,6 +94,8 @@ On a fresh profile the app opens **SharpCNC · First run** to get you linked and
 Finish or **Skip for now** (you can re-open setup later). Do not skip Home + Travel before soft-limit soak.
 
 After soft travel is written (Calibration Done → **Bed travel test**, or **Menu → Bed travel test…**), run the full-bed corner walk once: clear the bed, confirm the gate, watch safe-Z retract then SW→SE→NE→NW with slow approach near each edge. Abort stays ready.
+
+After stock origin + size are set (Prepare → XY or Material & tool), optional **Trace stock perimeter…**: plate removed / path clear, confirm gate, safe-Z then rectangle corners of the blank. Stop / Abort cancel jogs like bed travel.
 
 ---
 
