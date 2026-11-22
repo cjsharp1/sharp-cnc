@@ -13,6 +13,17 @@ pub fn run() {
 
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
+        .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            // Official in-app updater (signed NSIS/MSI via latest.json on GitHub Releases).
+            #[cfg(any(target_os = "macos", windows, target_os = "linux"))]
+            {
+                app.handle()
+                    .plugin(tauri_plugin_updater::Builder::new().build())?;
+            }
+            let _ = app;
+            Ok(())
+        })
         .manage(serial_state)
         .manage(debug_bridge_state)
         .invoke_handler(tauri::generate_handler![

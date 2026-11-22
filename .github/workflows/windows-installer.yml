@@ -2,6 +2,11 @@
 # Manual dispatch always; tags v* create a draft GitHub Release with the
 # artifacts, then publish (undraft) only after the upload succeeds —
 # never leave a source-only published Release.
+#
+# In-app updater (tauri-plugin-updater) needs:
+# - repo secret TAURI_SIGNING_PRIVATE_KEY (minisign private key body)
+# - optional TAURI_SIGNING_PRIVATE_KEY_PASSWORD (empty if key has no password)
+# Release assets: SharpCNC_*_x64-setup.exe, .exe.sig, latest.json
 name: Windows installer
 
 on:
@@ -38,19 +43,75 @@ jobs:
       - name: Install frontend deps
         run: npm ci
 
-      - name: Build Tauri Windows bundles
-        run: npm run tauri -- build --bundles nsis,msi
+      - name: Require updater signing key on tags
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+        run: |
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "::error::Missing secret TAURI_SIGNING_PRIVATE_KEY — required to sign updater artifacts for in-app updates."
+            exit 1
+          fi
 
-      - name: Collect installer artifacts
+      - name: Build Tauri Windows bundles
+        shell: pwsh
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          if (-not $env:TAURI_SIGNING_PRIVATE_KEY) {
+            Write-Warning "TAURI_SIGNING_PRIVATE_KEY not set — build may fail because createUpdaterArtifacts is enabled. Add the repo secret for signed updates."
+          }
+          npm run tauri -- build --bundles nsis,msi
+
+      - name: Collect installer + updater artifacts
         shell: pwsh
         run: |
           New-Item -ItemType Directory -Force -Path dist-installer | Out-Null
-          $nsis = Get-ChildItem -Path "src-tauri/target/release/bundle/nsis" -Filter "*.exe" -ErrorAction SilentlyContinue
-          $msi = Get-ChildItem -Path "src-tauri/target/release/bundle/msi" -Filter "*.msi" -ErrorAction SilentlyContinue
+          $nsisDir = "src-tauri/target/release/bundle/nsis"
+          $msiDir = "src-tauri/target/release/bundle/msi"
+          $nsis = Get-ChildItem -Path $nsisDir -Filter "*-setup.exe" -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notlike "*.sig" } |
+            Select-Object -First 1
           if (-not $nsis) { throw "NSIS installer not found" }
           Copy-Item $nsis.FullName dist-installer/
-          if ($msi) { Copy-Item $msi.FullName dist-installer/ }
+          $sig = Get-Item -Path ($nsis.FullName + ".sig") -ErrorAction SilentlyContinue
+          if ($sig) { Copy-Item $sig.FullName dist-installer/ }
+          $msi = Get-ChildItem -Path $msiDir -Filter "*.msi" -ErrorAction SilentlyContinue |
+            Where-Object { $_.Name -notlike "*.sig" } |
+            Select-Object -First 1
+          if ($msi) {
+            Copy-Item $msi.FullName dist-installer/
+            $msiSig = Get-Item -Path ($msi.FullName + ".sig") -ErrorAction SilentlyContinue
+            if ($msiSig) { Copy-Item $msiSig.FullName dist-installer/ }
+          }
           Get-ChildItem dist-installer | Format-Table Name, Length
+
+      - name: Build latest.json updater manifest (tags)
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        env:
+          TAG: ${{ github.ref_name }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          version="${TAG#v}"
+          nsis="$(ls dist-installer/*-setup.exe | head -1)"
+          base="$(basename "$nsis")"
+          sig="dist-installer/${base}.sig"
+          if [ ! -f "$sig" ]; then
+            echo "::error::Missing ${base}.sig — signing key required for in-app updates"
+            exit 1
+          fi
+          url="https://github.com/${REPO}/releases/download/${TAG}/${base}"
+          node scripts/generate-updater-latest-json.mjs \
+            --version "$version" \
+            --nsis-url "$url" \
+            --sig-file "$sig" \
+            --notes "SharpCNC ${TAG}" \
+            --out dist-installer/latest.json
+          cat dist-installer/latest.json
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
@@ -60,7 +121,6 @@ jobs:
           if-no-files-found: error
 
       # Draft first so /releases never shows a source-only published cut.
-      # Softprops creates or updates the tag Release and attaches installers.
       - name: Attach installers to draft GitHub Release (tags only)
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
@@ -72,7 +132,9 @@ jobs:
           body: |
             SharpCNC Windows desktop installer (Tauri).
 
-            - Prefer the **NSIS** `.exe` setup for a normal install.
+            - Prefer **Menu → About & updates → Install update & relaunch** once you are already on a build that includes the in-app updater.
+            - Fresh PC / first hop: run the **NSIS** `.exe` setup (`SharpCNC_*_x64-setup.exe`).
+            - Updater assets: `latest.json` + `.exe.sig` (Tauri minisign — not Windows Authenticode).
             - MSI is optional for managed installs.
             - Unsigned personal builds may show a SmartScreen warning — use *More info → Run anyway* on machines you trust.
             - Getting started: https://cjsharp1.github.io/sharp-cnc/#download
@@ -87,11 +149,18 @@ jobs:
         run: |
           set -euo pipefail
           TAG="${GITHUB_REF_NAME}"
-          # Require NSIS on the Release before undrafting.
           ASSETS="$(gh release view "$TAG" --json assets --jq '[.assets[].name] | join(",")')"
           echo "Release assets: $ASSETS"
           echo "$ASSETS" | grep -qi '\.exe' || {
             echo "Refusing to publish: no .exe asset on $TAG"
+            exit 1
+          }
+          echo "$ASSETS" | grep -qi 'latest\.json' || {
+            echo "Refusing to publish: no latest.json (in-app updater) on $TAG"
+            exit 1
+          }
+          echo "$ASSETS" | grep -qi '\.sig' || {
+            echo "Refusing to publish: no .sig signature on $TAG"
             exit 1
           }
           gh release edit "$TAG" --draft=false

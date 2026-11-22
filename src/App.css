@@ -3476,6 +3476,19 @@ button {
   border-color: var(--brass-hot);
 }
 
+.about__progress {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+  color: var(--muted, #9aa3b2);
+}
+
+.about__install-error {
+  margin: 0.65rem 0 0;
+  font-size: 0.85rem;
+  color: var(--danger, #e36a6a);
+  line-height: 1.4;
+}
+
 .about__install-steps {
   margin: 0.85rem 0 0;
   padding-left: 1.15rem;

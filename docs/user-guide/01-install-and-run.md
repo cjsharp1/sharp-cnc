@@ -16,14 +16,13 @@ MSI packages are also published when available — use them for managed / IT ins
 
 ## Updating to a newer release
 
-SharpCNC never auto-installs. The header shows the installed version (e.g. `v0.1.0`); **Menu → About & updates…** checks [GitHub Releases](https://github.com/cjsharp1/sharp-cnc/releases/latest) and, when newer, shows What’s new plus download / open-release actions.
+SharpCNC never auto-installs without confirmation. The header shows the installed version (e.g. `v0.3.0`); **Menu → About & updates…** checks [GitHub Releases](https://github.com/cjsharp1/sharp-cnc/releases/latest) and, when newer, shows What’s new.
 
-1. Quit SharpCNC.
-2. Run the newer NSIS `SharpCNC_*_x64-setup.exe` **over the existing install** — you do **not** need to uninstall first.
-3. Launch SharpCNC and confirm the version chip.
-4. Uninstall first **only if** that in-place upgrade fails, then run the setup again.
+**Preferred (desktop app with the in-app updater):** click **Install update & relaunch**. SharpCNC downloads the signed NSIS package from the Release, applies it in place (passive progress — no uninstall step), and restarts. Confirm the version chip after relaunch.
 
-Offline or GitHub rate-limit: the About panel says so and still offers **Open latest release**. Browser builds show the version and open the release page only (no installer download button).
+**Fallback / first hop from an older build:** download `SharpCNC_*_x64-setup.exe`, quit, and run it **over the existing install**. Uninstall first only if that upgrade fails.
+
+Offline or GitHub rate-limit: the About panel says so and still offers **Open latest release**. Browser builds show the version and open the release page only (no in-app install).
 
 ## Option B — Build from source (dev PC)
 

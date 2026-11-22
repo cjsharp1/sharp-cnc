@@ -1,12 +1,13 @@
 /**
- * App version + GitHub Releases update check (SC-68).
+ * App version + GitHub Releases update check (SC-68 / SC-79).
  *
  * Current version comes from the Vite-injected package.json value (kept in sync
  * with `src-tauri/tauri.conf.json` / Cargo.toml by smoke). Desktop may also
  * read the Tauri bundle version via `@tauri-apps/api/app`.
  *
- * Updates are **manual**: we never auto-install. Desktop can open the NSIS
- * installer download; browser build only opens the release page.
+ * Discovery uses the GitHub Releases API (What’s new, open release). Applying an
+ * update on desktop uses the official Tauri updater (`desktopUpdater.ts`) when
+ * signed `latest.json` assets exist — never auto-install without confirmation.
  */
 
 import { getVersion } from "@tauri-apps/api/app";
