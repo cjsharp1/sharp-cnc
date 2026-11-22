@@ -57,7 +57,7 @@ Typical touch-off:
 
 ## Homing
 
-**Home ($H)** runs GRBL’s homing cycle (needs home switches and `$22=1`). SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
 
 ## Work offsets (G54–G59)
 

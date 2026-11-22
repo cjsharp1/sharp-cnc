@@ -87,10 +87,10 @@ Far-end protection is **software travel**. Measure the real bed; do not guess.
 
 ## 5. Z probe (`G38.2`)
 
-1. Place the conductive plate on stock (or table per your zero plan). Clip the bit.
+1. Place the conductive plate on the **stock top** (not bare bed for top-of-stock Z0). Clip the bit.
 2. Open **Prepare to run…** or use the probe path that runs `G38.2`.
-3. Confirm plate thickness in probe settings matches the physical plate.
-4. Run Z probe; watch seek → contact → retract.
+3. Confirm plate thickness in probe settings matches the physical plate (~15–20 mm for Chris’s plate).
+4. Run Z probe; watch seek → contact → retract. **Remove the plate before cutting.**
 5. Confirm Work Z is correct for stock top (or your chosen Z0).
 6. Remove the plate before any cutting move.
 

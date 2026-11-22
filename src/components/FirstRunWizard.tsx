@@ -210,8 +210,10 @@ export function FirstRunWizard({
           <div className="firstrun__panel">
             <h3>2 · Home</h3>
             <p>
-              Homing uses the <strong>zero-side</strong> limit switches only.
-              Clear the bed, then Home. Soft travel still protects the far rails.
+              Homing (<code>$H</code>) uses the <strong>zero-side</strong> limit
+              switches only — not the touch plate (that is for Z zero in
+              Prepare). Clear the bed, then Home. Soft travel still protects the
+              far rails.
             </p>
             <div className="firstrun__actions">
               <button

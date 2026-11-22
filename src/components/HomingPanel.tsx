@@ -34,8 +34,9 @@ export function HomingPanel({
       </header>
 
       <p className="homing__hint">
-        Sends GRBL <code>$H</code> (needs home switches + <code>$22=1</code>).
-        Clear only drops SharpCNC’s session flag — it does not wipe EEPROM.
+        Sends GRBL <code>$H</code> to the zero-side <strong>limit switches</strong>{" "}
+        (needs <code>$22=1</code>) — not the touch plate. Clear only drops
+        SharpCNC’s session flag — it does not wipe EEPROM.
       </p>
 
       <div className="homing__actions" role="group" aria-label="Home controls">
