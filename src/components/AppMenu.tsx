@@ -8,11 +8,15 @@ interface AppMenuProps {
   onOpenMaterialTool: () => void;
   onOpenExternalJobs: () => void;
   onOpenFirstRun?: () => void;
+  onOpenAbout?: () => void;
   /** When true, Log tab shows Export / Copy / Debug bridge chrome. */
   debugMode: boolean;
   onDebugModeChange: (enabled: boolean) => void;
   theme: UiTheme;
   onThemeChange: (theme: UiTheme) => void;
+  /** Optional version label shown in the menu footer (e.g. v0.1.0). */
+  versionLabel?: string;
+  updateAvailable?: boolean;
 }
 
 export function AppMenu({
@@ -22,10 +26,13 @@ export function AppMenu({
   onOpenMaterialTool,
   onOpenExternalJobs,
   onOpenFirstRun,
+  onOpenAbout,
   debugMode,
   onDebugModeChange,
   theme,
   onThemeChange,
+  versionLabel,
+  updateAvailable = false,
 }: AppMenuProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -194,6 +201,32 @@ export function AppMenu({
               ? "On — Log tab shows Export, Copy, and Debug bridge."
               : "Off — keep the Log tab clean for everyday use."}
           </p>
+          {onOpenAbout ? (
+            <>
+              <div className="appmenu__divider" role="separator" />
+              <button
+                type="button"
+                role="menuitem"
+                className="appmenu__item"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenAbout();
+                }}
+              >
+                About &amp; updates…
+                {updateAvailable ? " · New" : ""}
+              </button>
+              <p className="appmenu__hint">
+                Version, What’s new, and download from GitHub Releases.
+              </p>
+            </>
+          ) : null}
+          {versionLabel ? (
+            <p className="appmenu__version" aria-label={`SharpCNC ${versionLabel}`}>
+              SharpCNC {versionLabel}
+              {updateAvailable ? " · update available" : ""}
+            </p>
+          ) : null}
         </div>
       )}
     </div>

@@ -5,7 +5,7 @@ Use this before tagging a cut you will run on wood. Brand spelling: **SharpCNC**
 ## 0. Preconditions
 
 - [ ] Latest `main` is green (or your release branch is rebased onto it)
-- [ ] Version bumped in `package.json` **and** `src-tauri/tauri.conf.json` (keep them equal)
+- [ ] Version bumped in `package.json`, `src-tauri/tauri.conf.json`, **and** `src-tauri/Cargo.toml` (keep them equal; `smoke-app-update` checks)
 - [ ] User guide / Pages still match UI labels (especially Move / Probe / Job)
 - [ ] No secrets in the tree (Drive client IDs stay in env / local `.env`)
 
@@ -40,6 +40,7 @@ Critical smokes (pre-test pack):
 | `smoke-first-run` | Wizard order connect→home→calibrate→travel→stock |
 | `smoke-job-recovery` | Mid-job checkpoint persist / resume label |
 | `smoke-app-safety` | Mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop |
+| `smoke-app-update` | package/tauri/Cargo version sync + mocked GitHub Releases check |
 
 ## 2. Desktop installer
 

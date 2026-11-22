@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AboutUpdatePanel } from "./components/AboutUpdatePanel";
 import { ActivityLogPanel } from "./components/ActivityLogPanel";
 import { AppMenu } from "./components/AppMenu";
 import {
@@ -67,6 +68,7 @@ import {
   canStartJob,
   canWriteSettings,
   checkJobSoftLimits,
+  checkLatestRelease,
   checkSoftLimits,
   clampScrubIndex,
   clearJobRecoveryCheckpoint,
@@ -83,6 +85,7 @@ import {
   estimateJobTimeFromJob,
   feedOverrideByte,
   fetchGrblSettings,
+  formatVersionLabel,
   guideForAlarm,
   importSvg,
   isDesktopShell,
@@ -106,6 +109,8 @@ import {
   loadTool,
   loadUiTheme,
   loadWorkOffsets,
+  packagedAppVersion,
+  resolveAppVersion,
   saveFirstRunCompleted,
   OFFLINE_STATUS,
   parseAlarmLine,
@@ -311,6 +316,11 @@ export default function App() {
   const bedTravelAbortRef = useRef(false);
   const bedTravelRunningRef = useRef(false);
   const [prepareOpen, setPrepareOpen] = useState(false);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const [appVersion, setAppVersion] = useState(() =>
+    packagedAppVersion(),
+  );
+  const [updateAvailable, setUpdateAvailable] = useState(false);
   const [firstRunOpen, setFirstRunOpen] = useState(
     () => !loadFirstRunState().completed,
   );
@@ -721,6 +731,27 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const version = await resolveAppVersion();
+      if (cancelled) return;
+      setAppVersion(version);
+      // Quiet background check — never installs; only lights the version chip.
+      try {
+        const result = await checkLatestRelease(version);
+        if (!cancelled && result.status === "update-available") {
+          setUpdateAvailable(true);
+        }
+      } catch {
+        // Offline / rate-limit: leave chip quiet; About panel shows detail.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
     if (!calOpen) return;
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") setCalOpen(false);
@@ -728,6 +759,15 @@ export default function App() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [calOpen]);
+
+  useEffect(() => {
+    if (!aboutOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAboutOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [aboutOpen]);
 
   useEffect(() => {
     if (!bedTravelOpen) return;
@@ -2635,18 +2675,39 @@ export default function App() {
             One machine. Clear position. Run the job.
           </p>
         </div>
-        <AppMenu
-          onOpenCalibration={openCalibration}
-          onOpenBedTravelTest={openBedTravelTest}
-          onOpenPrepareRun={openPrepareRun}
-          onOpenMaterialTool={openMaterialTool}
-          onOpenExternalJobs={openExternalJobs}
-          onOpenFirstRun={openFirstRun}
-          debugMode={debugMode}
-          onDebugModeChange={handleDebugModeChange}
-          theme={theme}
-          onThemeChange={handleThemeChange}
-        />
+        <div className="brand__actions">
+          <button
+            type="button"
+            className={`brand__version${updateAvailable ? " is-update" : ""}`}
+            data-testid="app-version-chip"
+            title={
+              updateAvailable
+                ? "Update available — open About & updates"
+                : "About SharpCNC & updates"
+            }
+            onClick={() => setAboutOpen(true)}
+          >
+            {formatVersionLabel(appVersion)}
+            {updateAvailable ? (
+              <span className="brand__version-badge">Update</span>
+            ) : null}
+          </button>
+          <AppMenu
+            onOpenCalibration={openCalibration}
+            onOpenBedTravelTest={openBedTravelTest}
+            onOpenPrepareRun={openPrepareRun}
+            onOpenMaterialTool={openMaterialTool}
+            onOpenExternalJobs={openExternalJobs}
+            onOpenFirstRun={openFirstRun}
+            onOpenAbout={() => setAboutOpen(true)}
+            debugMode={debugMode}
+            onDebugModeChange={handleDebugModeChange}
+            theme={theme}
+            onThemeChange={handleThemeChange}
+            versionLabel={formatVersionLabel(appVersion)}
+            updateAvailable={updateAvailable}
+          />
+        </div>
       </header>
 
       <section className="shell__essentials" aria-label="Machine essentials">
@@ -3099,6 +3160,43 @@ export default function App() {
           </section>
         </aside>
       </div>
+
+      {aboutOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="About SharpCNC"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close About"
+            onClick={() => setAboutOpen(false)}
+          />
+          <div className="cal-modal__sheet">
+            <header className="cal-modal__head">
+              <div>
+                <p className="cal-modal__eyebrow">SharpCNC</p>
+                <h2 className="cal-modal__title">About &amp; updates</h2>
+              </div>
+              <button
+                type="button"
+                className="cal-modal__close"
+                onClick={() => setAboutOpen(false)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="cal-modal__body">
+              <AboutUpdatePanel
+                currentVersion={appVersion}
+                onUpdateAvailabilityChange={setUpdateAvailable}
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {firstRunOpen && (
         <div

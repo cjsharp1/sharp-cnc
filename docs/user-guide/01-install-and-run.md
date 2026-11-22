@@ -14,6 +14,17 @@ If Windows SmartScreen warns on an **unsigned** personal build, choose **More in
 
 MSI packages are also published when available — use them for managed / IT installs. Day-to-day shop use should prefer the NSIS `.exe`.
 
+## Updating to a newer release
+
+SharpCNC never auto-installs. The header shows the installed version (e.g. `v0.1.0`); **Menu → About & updates…** checks [GitHub Releases](https://github.com/cjsharp1/sharp-cnc/releases/latest) and, when newer, shows What’s new plus download / open-release actions.
+
+1. Quit SharpCNC.
+2. Run the newer NSIS `SharpCNC_*_x64-setup.exe` **over the existing install** — you do **not** need to uninstall first.
+3. Launch SharpCNC and confirm the version chip.
+4. Uninstall first **only if** that in-place upgrade fails, then run the setup again.
+
+Offline or GitHub rate-limit: the About panel says so and still offers **Open latest release**. Browser builds show the version and open the release page only (no installer download button).
+
 ## Option B — Build from source (dev PC)
 
 ### What you need
