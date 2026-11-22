@@ -357,20 +357,23 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                For the actual cut: load a job →
+                For the actual cut:
+                <a href="prepare.html#p1">load G-code or SVG</a> →
                 <a href="prepare.html">Prepare</a> (stock, XY zero, Z probe) →
-                Simulate → Start.
+                verify path on stock → Simulate → Start.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Job tab shows <strong>Prepared</strong>; Start unlocks only after
-                Mark ready.
+                Path appears on the bed after Load; Job shows
+                <strong>Prepared</strong> after Mark ready; Start unlocks.
               </p>
             </li>
           </ol>
           <p class="step-card__aside">
             Every new job: connect / home as needed →
-            <a href="prepare.html">Prepare</a> (stock, XY zero, Z probe) → cut.
+            <strong>load the file</strong> →
+            <a href="prepare.html">Prepare</a> (stock, XY zero, Z probe) →
+            Simulate → cut.
           </p>
           <a class="step-card__next" href="prepare.html"
             >Done · per-job prepare →</a

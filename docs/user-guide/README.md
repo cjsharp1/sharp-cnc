@@ -2,14 +2,14 @@
 
 Friendly, practical docs for running **one** home CNC: Chris’s custom Demon Shield + Arduino + GRBL over USB, controlled from SharpCNC on Windows.
 
-**Scope:** SharpCNC is a dedicated personal controller for that specific machine. Calibrate once, then for every job connect/home as needed, prepare (stock + zeros + Z probe), load, simulate, and run. It is **not** a multi-machine CAM suite or Universal Gcode Sender replacement, and there is **no intention** to support other CNCs, controllers, or firmwares.
+**Scope:** SharpCNC is a dedicated personal controller for that specific machine. Calibrate once, then for every job connect/home as needed, **load** the file, prepare (stock + zeros + Z probe), verify on the bed, simulate, and run. It is **not** a multi-machine CAM suite or Universal Gcode Sender replacement, and there is **no intention** to support other CNCs, controllers, or firmwares.
 
 **Browse on GitHub Pages** (same workshop fonts as the app): [docs home](../index.html) · [this guide in the viewer](../guide.html) · **[visual setup](../setup-visual/index.html)**
 
 ## Order of operations
 
 1. **[Calibration](05-calibration.md)** — once per machine (or after hardware change): `$3` direction · steps/mm · soft travel · optional bed travel test. Visual: [calibration](../setup-visual/calibration.html).
-2. **[Per-job prepare](07-prepare-and-z-probe.md)** — every new job: connect · home as needed · stock · XY work zero · Z probe · then cut. Visual: [prepare](../setup-visual/prepare.html).
+2. **[Per-job prepare](07-prepare-and-z-probe.md)** — every new job: connect · home as needed · **load G-code/SVG** · stock · XY work zero · Z probe · verify on bed · Simulate · then cut. Visual: [prepare](../setup-visual/prepare.html) · [load step](../setup-visual/prepare.html#p1).
 
 Fresh install bootstrap (connect → home → into calibration): [First-run](../setup-visual/first-run.html). Do not treat Prepare as a substitute for calibration.
 
@@ -26,7 +26,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | 1 | [Install & run](01-install-and-run.md) | Windows installer, `npm run tauri dev`, mock UI |
 | 2 | [Connect](02-connect.md) | COM ports + [first-run bootstrap](../setup-visual/first-run.html) |
 | — | [Calibration visual](../setup-visual/calibration.html) | **Once** · `$3` · steps/mm · soft travel · bed test |
-| — | [Prepare visual](../setup-visual/prepare.html) | **Every job** · stock · zeros · Z probe |
+| — | [Prepare visual](../setup-visual/prepare.html) | **Every job** · load · stock · zeros · Z probe |
 | 3 | [Understanding the UI](03-understanding-the-ui.md) | Essentials strip, visualizer, Move / Job / Log, Menu |
 | 4 | [Jogging & zeros](04-jogging-and-zeros.md) | Jog, home, G54–G59, XY probe, console, overrides |
 | 5 | [Calibration](05-calibration.md) | Short appendix · prefer [visual](../setup-visual/calibration.html) |

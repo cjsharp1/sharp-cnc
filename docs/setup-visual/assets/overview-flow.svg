@@ -37,7 +37,7 @@
     <rect class="job" y="24" width="200" height="12"/>
     <text class="w" x="100" y="24" text-anchor="middle">2 · Every job</text>
     <text class="lab" x="100" y="70" text-anchor="middle">Prepare</text>
-    <text class="tiny" x="100" y="96" text-anchor="middle">Stock · zeros · Z probe</text>
+    <text class="tiny" x="100" y="96" text-anchor="middle">Load · stock · zeros</text>
   </g>
   <path class="arrow" d="M530 160 H575"/>
   <g transform="translate(590,100)">
