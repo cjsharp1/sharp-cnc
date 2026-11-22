@@ -56,24 +56,28 @@
   <rect class="job" x="512" y="84" width="420" height="36" rx="12"/>
   <rect class="job" x="512" y="108" width="420" height="12"/>
   <text class="w" x="532" y="108">2 · Every job — Prepare to run</text>
-  <text class="tiny" x="532" y="148">Connect · home as needed · then prepare</text>
+  <text class="tiny" x="532" y="148">Connect · home · load file · then zeros</text>
 
   <g transform="translate(532,168)">
-    <rect class="chip" width="70" height="36" rx="8"/>
-    <text class="w" x="35" y="23" text-anchor="middle" font-size="12">Stock</text>
+    <rect class="chip" width="64" height="36" rx="8"/>
+    <text class="w" x="32" y="23" text-anchor="middle" font-size="12">Load</text>
   </g>
-  <g transform="translate(614,168)">
-    <rect class="chip" width="78" height="36" rx="8"/>
-    <text class="w" x="39" y="23" text-anchor="middle" font-size="12">XY zero</text>
+  <g transform="translate(608,168)">
+    <rect class="chip" width="64" height="36" rx="8"/>
+    <text class="w" x="32" y="23" text-anchor="middle" font-size="12">Stock</text>
   </g>
-  <g transform="translate(704,168)">
-    <rect class="chip" width="78" height="36" rx="8"/>
-    <text class="w" x="39" y="23" text-anchor="middle" font-size="12">Z probe</text>
+  <g transform="translate(684,168)">
+    <rect class="chip" width="56" height="36" rx="8"/>
+    <text class="w" x="28" y="23" text-anchor="middle" font-size="12">XY</text>
   </g>
-  <g transform="translate(794,168)">
-    <rect class="chip" width="110" height="36" rx="8"/>
-    <text class="w" x="55" y="23" text-anchor="middle" font-size="12">Simulate · Cut</text>
+  <g transform="translate(752,168)">
+    <rect class="chip" width="56" height="36" rx="8"/>
+    <text class="w" x="28" y="23" text-anchor="middle" font-size="12">Z</text>
   </g>
-  <text class="tiny" x="532" y="236">Job → Prepare… · required before Start</text>
+  <g transform="translate(820,168)">
+    <rect class="chip" width="88" height="36" rx="8"/>
+    <text class="w" x="44" y="23" text-anchor="middle" font-size="11">Sim · Cut</text>
+  </g>
+  <text class="tiny" x="532" y="236">Load G-code/SVG · Prepare… · then Simulate</text>
   <text class="tiny" x="532" y="258">Not a substitute for calibration</text>
 </svg>

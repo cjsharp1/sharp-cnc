@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC per-job prepare: connect, home, stock, work zero, Z probe, then cut."
+      content="SharpCNC per-job prepare: connect, home, load G-code or SVG, stock, work zero, Z probe, then cut."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -34,16 +34,19 @@
           <p class="visual-guide__eyebrow">Every new job · after calibration</p>
           <h1>Per-job prepare</h1>
           <p class="visual-guide__one">
-            Every new piece of wood: link up, home if needed, say where the
-            stock sits, mark the corner start (XY), then touch a probe plate on
-            the top to set height (Z). This is <strong>not</strong> calibration
-            — the machine is already tuned.
+            Every new piece of wood: link up, home if needed,
+            <strong>load the G-code or SVG</strong>, say where the stock sits,
+            mark the corner start (XY), then touch a probe plate on the top to
+            set height (Z). Check the path on the bed picture, then Simulate →
+            Start. This is <strong>not</strong> calibration — the machine is
+            already tuned.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#p0">0 Link</a>
-            <a href="#p1">1 Stock</a>
-            <a href="#p2">2 Zeros</a>
-            <a href="#p3">3 Z probe</a>
+            <a href="#p1">1 Load</a>
+            <a href="#p2">2 Stock</a>
+            <a href="#p3">3 Zeros</a>
+            <a href="#p4">4 Z probe</a>
           </nav>
         </header>
 
@@ -92,27 +95,102 @@
                 changed.
               </p>
             </li>
-            <li>
-              <p class="step-card__do-act">
-                Load the job file (.nc / .gcode / SVG) you will cut.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Job tab shows the file; Start stays locked until Prepare is
-                finished.
-              </p>
-            </li>
           </ol>
           <p class="step-card__aside">
             Machine already calibrated? Soft travel stays until hardware
             changes.
           </p>
-          <a class="step-card__next" href="#p1">Next: Stock →</a>
+          <a class="step-card__next" href="#p1">Next: Load the job →</a>
         </article>
 
         <article class="step-card" id="p1">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">1</span>
+            <h2>Load the job</h2>
+            <p class="step-card__action">
+              Job → <strong>Load</strong> (.nc / .gcode) <em>or</em>
+              <strong>Load SVG</strong> → <strong>Generate → Job</strong> · see
+              the path on the stock
+            </p>
+            <p class="step-card__eli5">
+              The job file is the drawing the machine will follow. G-code =
+              ready-made cutting steps. SVG = a picture SharpCNC turns into
+              simple 2D cuts. Until you load it, the bed picture has no path —
+              load <em>before</em> you Mark ready (a new file clears Prepared).
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/prep-04-load.svg"
+              alt="Load G-code or SVG so the toolpath appears on the stock"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Open the <strong>Job</strong> tab. Either
+                <strong>Load</strong> (or drag-drop) a
+                <strong>.nc / .gcode / .ngc / .tap</strong> file, or use
+                External jobs / Drive to open one.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Job shows the filename and line count; the visualizer draws the
+                toolpath on the bed / stock rectangle.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Or for a simple 2D picture: <strong>Load SVG</strong> (or drop
+                <strong>.svg</strong>) → set Engrave / Outline, feed, plunge,
+                depth, safe Z, spindle → <strong>Generate → Job</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                SVG paths preview on the bed, then become a normal job after
+                Generate (one job at a time).
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Look at the visualizer: does the path sit on the stock where
+                you expect? Soft-limit check should not block with “outside
+                travel.”
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Path overlay matches the blank; if it hangs off the wood or past
+                soft travel, fix CAM / stock size / zero later — do not Start
+                yet.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Optional now: tap <strong>Simulate</strong> for a first look
+                (preview only — no serial motion). Prefer a full Simulate again
+                after Prepare zeros so the picture matches the real wood.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Banner: <strong>Preview — not sending to CNC</strong>. Toolhead
+                walks the path; Start stays locked until Prepare is finished.
+              </p>
+            </li>
+          </ol>
+          <p class="step-card__aside">
+            Text detail:
+            <a href="../guide.html#08">Jobs &amp; SVG</a>
+            · loading a new file clears Prepared — finish Prepare after the
+            final file.
+          </p>
+          <a class="step-card__next" href="#p2">Next: Stock →</a>
+        </article>
+
+        <article class="step-card" id="p2">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">2</span>
             <h2>Stock</h2>
             <p class="step-card__action">
               Job → <strong>Prepare…</strong> → confirm width × length ×
@@ -169,12 +247,12 @@
               </p>
             </li>
           </ol>
-          <a class="step-card__next" href="#p2">Next: XY zero →</a>
+          <a class="step-card__next" href="#p3">Next: XY zero →</a>
         </article>
 
-        <article class="step-card" id="p2">
+        <article class="step-card" id="p3">
           <div class="step-card__meta">
-            <span class="step-card__num" aria-hidden="true">2</span>
+            <span class="step-card__num" aria-hidden="true">3</span>
             <h2>XY work zero</h2>
             <p class="step-card__action">
               Jog tip to job origin on stock →
@@ -224,7 +302,8 @@
             <li>
               <p class="step-card__do-act">
                 Optional: <strong>Trace stock perimeter…</strong> to walk the
-                blank bounds at safe Z (cancelable).
+                blank bounds at safe Z (cancelable). Best after the path is
+                loaded so you can compare the toolpath to the wood edge.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -240,22 +319,24 @@
               </p>
             </li>
           </ol>
-          <a class="step-card__next" href="#p3">Next: Z probe →</a>
+          <a class="step-card__next" href="#p4">Next: Z probe →</a>
         </article>
 
-        <article class="step-card" id="p3">
+        <article class="step-card" id="p4">
           <div class="step-card__meta">
-            <span class="step-card__num" aria-hidden="true">3</span>
-            <h2>Z probe → cut</h2>
+            <span class="step-card__num" aria-hidden="true">4</span>
+            <h2>Z probe → verify → cut</h2>
             <p class="step-card__action">
               Plate on <strong>stock top</strong> · enter thickness →
               <strong>Run Z probe</strong> → remove plate →
-              <strong>Mark ready &amp; close</strong> → Simulate → Start
+              <strong>Mark ready &amp; close</strong> → confirm path on stock →
+              <strong>Simulate</strong> → <strong>Start</strong>
             </p>
             <p class="step-card__eli5">
               Probe plate = a metal pad on top of the wood. The bit gently
               touches it so the machine knows where the top surface is (Z=0).
               Remove the plate before you cut — never leave it under the bit.
+              Simulate is a dress rehearsal on screen; Start is the real cut.
             </p>
           </div>
           <figure class="step-card__figure">
@@ -309,9 +390,11 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Mark ready &amp; close</strong>. Prefer
-                <strong>Simulate</strong> once, then <strong>Start</strong>
-                (UI or Demon Shield start button).
+                Tap <strong>Mark ready &amp; close</strong>. On the visualizer,
+                confirm the loaded path still sits on the stock. Optional:
+                <strong>Trace stock perimeter…</strong> if you skipped it
+                earlier. Prefer <strong>Simulate</strong> once (preview only),
+                then <strong>Start</strong> (UI or Demon Shield start button).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -323,6 +406,8 @@
           <p class="step-card__aside">
             Text detail:
             <a href="../guide.html#07">Prepare &amp; Z probe</a>
+            ·
+            <a href="../guide.html#08">Jobs &amp; SVG</a>
           </p>
           <a class="step-card__next" href="calibration.html"
             >Need machine tuning? Calibration (once) →</a

@@ -1,22 +1,26 @@
 # 8. Jobs, SVG & run
 
-The **Job** tab is where files become motion. Flow: load (or generate) → **Prepare** (zeros / Z probe) → simulate → start.
+The **Job** tab is where files become motion. Flow: **load** (or generate) → see the path on the bed/stock → **Prepare** (stock / XY / Z probe) → verify placement → optional perimeter → **Simulate** → **Start**.
+
+Visual: [Load the job](../setup-visual/prepare.html#p1) in the per-job prepare guide.
 
 ![Job flow](assets/diagram-job-flow.svg)
 
 ![Simulate controls](assets/job-simulate.webp)
 
-Before the first **Start** after load (or whenever work zero is not confirmed this session), run **Prepare…** — see [Prepare to run & Z probe](07-prepare-and-z-probe.md).
+Before the first **Start** after load (or whenever work zero is not confirmed this session), run **Prepare…** — see [Prepare to run & Z probe](07-prepare-and-z-probe.md). Load **before** Mark ready: opening a new file clears the Prepared flag.
 
 ## Load G-code
 
 Under **Job**:
 
 1. **Load** (or drag-drop) a `.nc` / `.gcode` / `.ngc` / `.tap` file.  
-2. Confirm line count and path overlay on the visualizer.  
+2. Confirm line count and path overlay on the visualizer — the drawing should sit on the stock rectangle.  
 3. Soft-limit check runs against known travel — if the path is outside, Start stays blocked with a reason.
 
 **Replace** swaps the file; **Clear** removes it.
+
+**ELI5:** G-code is a ready-made shopping list of moves. Until you Load it, SharpCNC has nothing to draw on the bed or send to the machine.
 
 ## SVG → simple G-code
 
@@ -27,9 +31,13 @@ SharpCNC is **not** full CAM. For simple 2D engraving / outline:
 3. Set **Feed**, **Plunge**, **Depth**, **Safe Z**, and **Spindle RPM**. Bit Ø comes from Material & tool; use **Apply to SVG** there to pull material presets.  
 4. **Generate → Job** hands the G-code to the job runner (one job at a time). Generated jobs include `M3 S…` before cuts and `M5` before program end (omit spindle words if RPM is 0).
 
+**ELI5:** SVG is a picture. Generate turns that picture into cutting steps. Always check it on the stock before Start.
+
 Always simulate after generate. Depth is into the material — double-check sign/convention and stock thickness before Start.
 
 ## Simulate (preview only)
+
+**When it fits:** after the file is loaded (and ideally after Prepare zeros so the picture matches the real wood). Optional early look right after Load; preferred full dress rehearsal after Mark ready, before Start.
 
 **Simulate** animates the toolhead along the path **without sending motion to the CNC**.
 

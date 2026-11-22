@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Load job file onto the bed</title>
+  <desc id="d">Load G-code or SVG so the toolpath appears on the stock in the visualizer</desc>
+  <defs>
+    <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .bed { fill: #dfe3e8; stroke: #3a4550; stroke-width: 3; }
+      .stock { fill: #c4a574; stroke: #6b4f2a; stroke-width: 2.5; }
+      .path { fill: none; stroke: #2f5d7a; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+      .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .accent { fill: #b8862d; }
+      .job { fill: #2f5d7a; }
+      .chip { fill: #1a2332; }
+    </style>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <text class="lab" x="40" y="48">Every job · Load the file</text>
+  <text class="tiny" x="40" y="74">G-code or SVG → path appears on the stock in the visualizer</text>
+
+  <rect class="bed" x="60" y="110" width="500" height="360" rx="8"/>
+  <text class="tiny" x="80" y="140">Machine bed</text>
+  <rect class="stock" x="120" y="180" width="300" height="220" rx="4"/>
+  <text class="tiny" x="270" y="208" text-anchor="middle">Stock</text>
+  <path class="path" d="M160 360 L220 280 L300 320 L360 240 L400 300"/>
+  <circle class="job" cx="160" cy="360" r="6"/>
+  <text class="tiny" x="270" y="420" text-anchor="middle">Toolpath overlay after Load</text>
+
+  <rect class="panel" x="600" y="130" width="300" height="320" rx="12"/>
+  <circle class="accent" cx="636" cy="170" r="18"/>
+  <text class="w" x="636" y="176" text-anchor="middle" font-size="14">1</text>
+  <text class="lab" x="668" y="176" font-size="16">Job tab</text>
+
+  <g transform="translate(628,210)">
+    <rect class="chip" width="120" height="36" rx="8"/>
+    <text class="w" x="60" y="23" text-anchor="middle" font-size="13">Load G-code</text>
+  </g>
+  <text class="tiny" x="628" y="270">.nc / .gcode / .ngc</text>
+
+  <g transform="translate(628,300)">
+    <rect class="job" width="120" height="36" rx="8"/>
+    <text class="w" x="60" y="23" text-anchor="middle" font-size="13">Load SVG</text>
+  </g>
+  <text class="tiny" x="628" y="360">Then Generate → Job</text>
+  <text class="tiny" x="628" y="400">Confirm path sits on stock</text>
+  <text class="tiny" x="628" y="424">Simulate = preview only</text>
+</svg>

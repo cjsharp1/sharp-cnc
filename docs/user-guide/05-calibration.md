@@ -26,4 +26,4 @@ After soft travel (or **Done → Bed travel test** / **Menu → Bed travel test�
 
 Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [steps](assets/cal-step2-steps.png) · [travel](assets/cal-step3-travel.png) · [manual](assets/cal-step4-manual.png)
 
-Next (every job): [Prepare to run & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html)
+Next (every job): load G-code/SVG → [Prepare to run & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html#p1)
