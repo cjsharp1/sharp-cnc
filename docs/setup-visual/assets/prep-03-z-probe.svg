@@ -3,14 +3,16 @@
   <desc id="d">Clip on bit, plate on stock, G38.2 seek, remove plate</desc>
   <defs>
     <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .bg { fill: #f1f3f5; }
       .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
       .stock { fill: #c4a574; stroke: #6b4f2a; stroke-width: 2.5; }
       .plate { fill: #8a9aa8; stroke: #3a4550; stroke-width: 2; }
       .bit { fill: #3a4550; }
-      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; font-weight: 700; }
-      .tiny { font-size: 14px; fill: #5a6570; font-family: system-ui, "Segoe UI", sans-serif; }
-      .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
       .accent { fill: #b8862d; }
       .warn { fill: #c45c4a; }
       .arrow { stroke: #3a4550; stroke-width: 3; fill: none; marker-end: url(#a); }
