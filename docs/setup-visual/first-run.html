@@ -41,9 +41,10 @@
           <p class="visual-guide__eyebrow">SharpCNC · Fresh install bootstrap</p>
           <h1>First-run wizard</h1>
           <p class="visual-guide__one">
-            Gets you linked and into <strong>calibration</strong> (machine,
-            once). Stock at the end is only a seed for the first job — every
-            later cut uses <a href="prepare.html">Prepare</a>.
+            Brand-new install? This walks you from “plug in” into
+            <strong>calibration</strong> (teach the machine once). Stock at the
+            end is only a starter guess — every later cut uses
+            <a href="prepare.html">Prepare</a>.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#s1">1 Connect</a>
@@ -60,6 +61,10 @@
             <h2>Connect</h2>
             <p class="step-card__action">
               Plug USB → Refresh → Connect → wait for <strong>Linked</strong>
+            </p>
+            <p class="step-card__eli5">
+              Hook the computer to the machine with the USB cable so they can
+              talk. “Linked” means the chat line is open.
             </p>
           </div>
           <figure class="step-card__figure">
@@ -80,6 +85,10 @@
             <p class="step-card__action">
               Clear bed → <strong>Home ($H)</strong> → wait Idle / Homed
             </p>
+            <p class="step-card__eli5">
+              Send the machine to its known corner switches. Like putting a
+              toy car back in the garage so you know where it starts.
+            </p>
           </div>
           <figure class="step-card__figure">
             <img
@@ -99,6 +108,10 @@
             <p class="step-card__action">
               Tap <strong>Open Calibration…</strong> → finish direction +
               steps/mm
+            </p>
+            <p class="step-card__eli5">
+              Teach the motors which way is forward and how far one millimeter
+              really is. Do this once per machine — not every job.
             </p>
           </div>
           <figure class="step-card__figure">
@@ -125,6 +138,11 @@
               Enter max X / Y / Z mm → <strong>Save travel</strong> · optional
               bed travel test
             </p>
+            <p class="step-card__eli5">
+              Soft travel = invisible fences. You only have crash switches on
+              the home side, so these numbers stop the machine before it hits
+              the far edge of the bed.
+            </p>
           </div>
           <figure class="step-card__figure">
             <img
@@ -148,6 +166,11 @@
             <p class="step-card__action">
               Optional starter sizes → <strong>Finish setup</strong> · later
               jobs use Prepare
+            </p>
+            <p class="step-card__eli5">
+              Stock = your wood (or other material). This first guess just fills
+              in sizes so the picture looks right — re-set it in Prepare for
+              every real job.
             </p>
           </div>
           <figure class="step-card__figure">
