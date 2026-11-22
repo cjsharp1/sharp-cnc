@@ -439,24 +439,18 @@ export function PrepareRunPanel({
           <h3 id="prep-xy" className="cal__step-title">
             Set work XY zero
           </h3>
-          <p className="cal__hint">
-            Jog so the bit is over your job origin (usually a stock corner). Keep
-            Z clear of clamps. Then Zero XY — this does not move the machine.
-          </p>
-          <div className="prep__jog">
-            <JogPanel
-              enabled={jogEnabled && canAct}
-              mode={jogMode}
-              stepMm={stepMm}
-              feedMmMin={feedMmMin}
-              softLimitHint={softLimitHint}
-              onModeChange={onJogModeChange}
-              onStepChange={onStepChange}
-              onFeedChange={onFeedChange}
-              onJog={onJog}
-              onJogEnd={onJogEnd}
-            />
-          </div>
+          <ul className="prep__callouts" aria-label="XY zero steps">
+            <li>
+              <span className="prep__callout-label">No plate</span>
+              Jog tip to job origin on stock → <strong>Zero XY</strong>. Does
+              not move the machine. Keep Z clear of clamps.
+            </li>
+            <li>
+              <span className="prep__callout-label">Not homing</span>
+              Homing (<code>$H</code>) uses limit switches — the touch plate
+              is not for XY or home.
+            </li>
+          </ul>
           <div className="cal__actions">
             <button
               type="button"
@@ -477,6 +471,20 @@ export function PrepareRunPanel({
               </span>
             )}
           </div>
+          <div className="prep__jog">
+            <JogPanel
+              enabled={jogEnabled && canAct}
+              mode={jogMode}
+              stepMm={stepMm}
+              feedMmMin={feedMmMin}
+              softLimitHint={softLimitHint}
+              onModeChange={onJogModeChange}
+              onStepChange={onStepChange}
+              onFeedChange={onFeedChange}
+              onJog={onJog}
+              onJogEnd={onJogEnd}
+            />
+          </div>
         </div>
       )}
 
@@ -485,12 +493,28 @@ export function PrepareRunPanel({
           <h3 id="prep-probe" className="cal__step-title">
             Z probe (touch plate)
           </h3>
-          <p className="cal__hint">
-            Clip the probe lead to the bit. Place the plate on the stock top
-            under the bit. SharpCNC runs{" "}
-            <code>G38.2</code> down, then sets work Z0 at the stock face
-            (accounting for plate thickness). E-Stop still works.
-          </p>
+          <ul className="prep__callouts" aria-label="Z probe steps">
+            <li>
+              <span className="prep__callout-label">Setup</span>
+              Clip on the bit · put the conductive plate on the{" "}
+              <strong>stock top</strong> under the tip — not the bare bed.
+            </li>
+            <li>
+              <span className="prep__callout-label">Thickness</span>
+              Enter plate thickness (~15–20&nbsp;mm for Chris’s plate). App
+              offsets so the stock face = work Z0.
+            </li>
+            <li>
+              <span className="prep__callout-label">Why stock</span>
+              Plate on the bed would zero the bed, not the stock top — wrong
+              for top-of-stock cuts.
+            </li>
+            <li>
+              <span className="prep__callout-label">Fallback</span>
+              <strong>Manual Zero Z</strong> = paper-feel at the tip if the
+              plate is unavailable.
+            </li>
+          </ul>
           <div className="cal__row">
             <label className="cal__field">
               <span className="cal__field-label">Plate thickness mm</span>
@@ -545,8 +569,9 @@ export function PrepareRunPanel({
             </label>
           </div>
           <p className="cal__hint">
-            {softMaxHint}. Refuse probe in Alarm / while busy. If the probe pin
-            is already ON, clear contact first (Alarm 5).
+            Runs <code>G38.2</code> down · {softMaxHint}. Refuse probe in Alarm
+            / while busy. Probe pin already ON → clear contact first (Alarm 5).
+            E-Stop still works.
           </p>
           {!probeEnabled && probeBlockedReason ? (
             <p className="cal__warn" role="status">
@@ -587,13 +612,20 @@ export function PrepareRunPanel({
       {step.id === "safez" && (
         <div className="cal__body" role="group" aria-labelledby="prep-safez">
           <h3 id="prep-safez" className="cal__step-title">
-            Safe Z / retract
+            Safe Z / remove plate
           </h3>
-          <p className="cal__hint">
-            Raise clear of the plate and clamps before Start. Optional retract
-            jogs to the work Z you choose (default {probe.retractWorkZMm} mm
-            above stock top).
-          </p>
+          <ul className="prep__callouts" aria-label="Safe Z steps">
+            <li>
+              <span className="prep__callout-label">Remove plate</span>
+              Take the plate and clip off <strong>before cutting</strong> —
+              leaving them on the stock is unsafe.
+            </li>
+            <li>
+              <span className="prep__callout-label">Retract</span>
+              Optional jog to work Z {probe.retractWorkZMm} mm (above stock
+              top). Clear clamps from the path.
+            </li>
+          </ul>
           <label className="cal__field">
             <span className="cal__field-label">Retract work Z mm</span>
             <input

@@ -3307,6 +3307,37 @@ button {
   grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 
+.prep__callouts {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 0.4rem;
+}
+
+.prep__callouts li {
+  display: grid;
+  grid-template-columns: minmax(5.25rem, auto) 1fr;
+  gap: 0.35rem 0.65rem;
+  align-items: start;
+  margin: 0;
+  padding: 0.4rem 0.55rem;
+  border-left: 2px solid rgba(212, 168, 75, 0.55);
+  background: rgba(212, 168, 75, 0.06);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+  color: var(--steel);
+}
+
+.prep__callout-label {
+  font-size: var(--text-xs);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--brass-hot);
+  font-weight: 600;
+  padding-top: 0.1rem;
+}
+
 .prep__corners {
   display: flex;
   flex-wrap: wrap;

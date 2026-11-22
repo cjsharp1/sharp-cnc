@@ -26,18 +26,20 @@ Prepare is **required before Start** until you finish **Mark ready** for the cur
 |------|------|
 | 1 · Stock | Confirm size / thickness / bed corner (same settings as Material & tool) |
 | 2 · Tool | Confirm bit type and diameter |
-| 3 · XY zero | Jog to job origin → **Zero XY** (`G10 L20`) |
-| 4 · Z probe | Touch plate cycle (or **Manual Zero Z**) |
-| 5 · Safe Z | Optional retract; confirm plate removed / clear |
+| 3 · XY zero | Jog to job origin on stock → **Zero XY** (`G10 L20`) — no plate |
+| 4 · Z probe | Touch plate on **stock top** (or **Manual Zero Z** paper-feel) |
+| 5 · Safe Z | Retract; **remove plate** before cut; confirm clear |
 | 6 · Ready | **Mark ready & close** → Start unlocks |
 
 Footer **Next** stays disabled until that step’s confirmations are done (checkboxes, zeros, probe).
+
+**Homing is separate:** `$H` uses zero-side limit switches. The touch plate is only for Z (and optional XY edge probe) — never for home.
 
 ---
 
 ## Touch plate setup
 
-Chris’s hardware path: conductive plate on the stock top (or table), alligator clip on the bit. Contact closes the GRBL probe input.
+Chris’s hardware path: conductive plate on the **stock top**, alligator clip on the bit. Contact closes the GRBL probe input. Enter plate thickness (~15–20 mm for his plate); SharpCNC offsets so the stock face is work Z0. Plate on the bare bed would zero the bed instead of the stock top — wrong for top-of-stock cuts.
 
 ![Clip, plate, stock](assets/diagram-z-probe.svg)
 
