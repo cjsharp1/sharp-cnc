@@ -28,9 +28,13 @@ const pkg = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
 };
 const tauri = JSON.parse(
   readFileSync(join(root, "src-tauri/tauri.conf.json"), "utf8"),
-) as { version: string };
-const cargo = readFileSync(join(root, "src-tauri/Cargo.toml"), "utf8");
-const cargoMatch = /^version\s*=\s*"([^"]+)"/m.exec(cargo);
+) as {
+  version: string;
+  bundle?: { createUpdaterArtifacts?: boolean | string };
+  plugins?: { updater?: { pubkey?: string; endpoints?: string[] } };
+};
+const cargoToml = readFileSync(join(root, "src-tauri/Cargo.toml"), "utf8");
+const cargoMatch = /^version\s*=\s*"([^"]+)"/m.exec(cargoToml);
 assert(cargoMatch, "Cargo.toml missing package version");
 assert(
   pkg.version === tauri.version && pkg.version === cargoMatch[1],
@@ -120,22 +124,69 @@ const missing = await checkLatestRelease("0.1.0", {
 });
 assert(missing.status === "error" && missing.reason === "not-found", "not found");
 
-// UI copy contract: upgrade in place (no uninstall-first)
+// UI copy contract: in-app install (no uninstall-first happy path)
 const aboutSrc = readFileSync(
   join(root, "src/components/AboutUpdatePanel.tsx"),
   "utf8",
 );
 assert(
-  /over the existing install/i.test(aboutSrc),
-  "About panel must say upgrade over existing install",
+  /Install update & relaunch/i.test(aboutSrc),
+  "About panel must offer Install update & relaunch",
 );
 assert(
-  /Uninstall first\s+only if that upgrade fails/i.test(aboutSrc),
-  "About panel must say uninstall only if upgrade fails",
+  /over the existing install/i.test(aboutSrc),
+  "About panel must keep NSIS over-existing-install fallback",
 );
 assert(
   !/uninstall.*then run the installer/i.test(aboutSrc),
   "About panel must not instruct uninstall-then-install as the happy path",
+);
+
+// Official Tauri updater config present
+assert(
+  tauri.bundle?.createUpdaterArtifacts === true,
+  "tauri.conf bundle.createUpdaterArtifacts must be true",
+);
+const updater = (tauri as { plugins?: { updater?: Record<string, unknown> } })
+  .plugins?.updater;
+assert(updater && typeof updater.pubkey === "string" && updater.pubkey.length > 40, "updater pubkey");
+const endpoints = updater.endpoints as string[] | undefined;
+assert(
+  Array.isArray(endpoints) &&
+    endpoints.some((u) => /releases\/latest\/download\/latest\.json/.test(u)),
+  "updater endpoints must include GitHub latest.json",
+);
+
+const libRs = readFileSync(join(root, "src-tauri/src/lib.rs"), "utf8");
+assert(/tauri_plugin_updater/.test(libRs), "lib.rs registers updater plugin");
+assert(/tauri_plugin_process/.test(libRs), "lib.rs registers process plugin");
+
+const caps = JSON.parse(
+  readFileSync(join(root, "src-tauri/capabilities/default.json"), "utf8"),
+) as { permissions?: string[] };
+assert(
+  caps.permissions?.includes("updater:default"),
+  "capabilities include updater:default",
+);
+assert(
+  caps.permissions?.includes("process:default"),
+  "capabilities include process:default",
+);
+
+const cargo = readFileSync(join(root, "src-tauri/Cargo.toml"), "utf8");
+assert(/tauri-plugin-updater/.test(cargo), "Cargo.toml has updater");
+assert(/tauri-plugin-process/.test(cargo), "Cargo.toml has process");
+
+const pkgJson = JSON.parse(readFileSync(join(root, "package.json"), "utf8")) as {
+  dependencies?: Record<string, string>;
+};
+assert(
+  pkgJson.dependencies?.["@tauri-apps/plugin-updater"],
+  "npm dependency @tauri-apps/plugin-updater",
+);
+assert(
+  pkgJson.dependencies?.["@tauri-apps/plugin-process"],
+  "npm dependency @tauri-apps/plugin-process",
 );
 
 console.log("smoke-app-update: ok");

@@ -47,7 +47,23 @@ Do **not** publish a source-only Release by hand before that job finishes — th
 
 Download the `windows-installer` artifact (or Release assets) and put the link on the [docs download section](../docs/index.html#download).
 
-Code signing is **not** configured by default. Windows SmartScreen may warn on first run of an unsigned personal build — choose *More info → Run anyway* for machines you trust. To add signing later, set Tauri `bundle.windows.certificateThumbprint` / CI secrets; do not commit PFXs.
+### In-app updater signing (required for Release tags)
+
+Tauri’s updater uses **minisign** keys (separate from Windows Authenticode / SmartScreen):
+
+1. Repo secret `TAURI_SIGNING_PRIVATE_KEY` must match `plugins.updater.pubkey` in `tauri.conf.json`.
+2. Local builds that need `.sig` + `latest.json`:
+
+```powershell
+$env:TAURI_SIGNING_PRIVATE_KEY = Get-Content -Raw path\to\sharpcnc.key
+npm run build:windows
+node scripts/generate-updater-latest-json.mjs --version 0.3.1 `
+  --nsis-url https://github.com/cjsharp1/sharp-cnc/releases/download/v0.3.1/SharpCNC_0.3.1_x64-setup.exe `
+  --sig-file src-tauri/target/release/bundle/nsis/SharpCNC_0.3.1_x64-setup.exe.sig `
+  --out latest.json
+```
+
+Windows **Authenticode** code signing is **not** configured by default. SmartScreen may warn on first run of an unsigned personal build — choose *More info → Run anyway* for machines you trust. To add Authenticode later, set Tauri `bundle.windows.certificateThumbprint` / CI secrets; do not commit PFXs.
 
 ## Dev loop (no installer)
 

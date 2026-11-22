@@ -34,3 +34,4 @@ You should receive an acknowledgement when practical. Fixes land on `main` as so
 - Keep the debug bridge off unless you need it; it is read-oriented and bound to localhost.
 - Never expose the machine PC’s serial or debug ports to the public internet.
 - Treat E-Stop and soft limits as required — software cannot replace physical safety.
+- In-app updates are verified with a Tauri **minisign** public key in `tauri.conf.json`. The matching private key lives only in the GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY` — never commit it. Losing that key breaks future signed updates for already-installed builds.

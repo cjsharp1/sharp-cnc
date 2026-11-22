@@ -65,6 +65,6 @@ Use **tabs** for day-to-day jog / run / logs. Use **Menu** for setup that you do
 - Prepare to run… (pre-start / Z probe wizard)  
 - **Appearance** — Dark or Light (persisted). Workshop steel & brass in both modes; visualizer grid and toolpath stay readable.  
 - **Debug mode** — toggle (persisted; default off). When on, the Log tab shows Export / Copy / Debug bridge and the menu label reads **Menu · Debug**.  
-- **About & updates…** — installed version, check GitHub Releases, What’s new, download NSIS (desktop) or open the release page. Upgrade in place: run the newer setup over the existing install; uninstall only if that fails.
+- **About & updates…** — installed version, check GitHub Releases, What’s new, **Install update & relaunch** (desktop), or download NSIS / open the release page. In-app install applies the signed setup in place; fallback is run the newer NSIS over the existing install.
 
 Next: [Jogging & zeros](04-jogging-and-zeros.md).

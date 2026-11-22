@@ -25,6 +25,7 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["nsis", "msi"],
     "icon": [
       "icons/32x32.png",
@@ -41,5 +42,16 @@
     },
     "shortDescription": "Personal GRBL controller for one CNC",
     "longDescription": "SharpCNC is a personal GRBL controller for one custom CNC — USB serial to a Demon Shield / Arduino, with jog, probe, jobs, and a live machine view."
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDkxMzQ3MDk1RDk4MDhEQUMKUldTc2pZRFpsWEEwa1N1UWh1dGl2dzFwR3g4emc0TkUyM3FWWUwzUitxSjVRWituVXduM0pBL1EK",
+      "endpoints": [
+        "https://github.com/cjsharp1/sharp-cnc/releases/latest/download/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
+      }
+    }
   }
 }

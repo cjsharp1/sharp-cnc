@@ -42,7 +42,7 @@ Critical smokes (pre-test pack):
 | `smoke-first-run` | Wizard order connect→home→calibrate→travel→stock |
 | `smoke-job-recovery` | Mid-job checkpoint persist / resume label |
 | `smoke-app-safety` | Mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop |
-| `smoke-app-update` | package/tauri/Cargo version sync + mocked GitHub Releases check |
+| `smoke-app-update` | package/tauri/Cargo version sync + mocked GitHub Releases check + updater plugin config |
 
 ## 2. Desktop installer
 
@@ -64,14 +64,16 @@ git tag -a v0.2.0 -m "SharpCNC v0.2.0"
 git push origin v0.2.0
 ```
 
-Tag `v*` triggers the Windows installer workflow. That job builds NSIS/MSI, attaches them to a **draft** Release, then **publishes (undrafts) only after** the `.exe` is on the Release.
+Tag `v*` triggers the Windows installer workflow. That job builds NSIS/MSI **with updater signatures**, attaches them (plus `latest.json` + `.sig`) to a **draft** Release, then **publishes (undrafts) only after** the `.exe`, `.sig`, and `latest.json` are on the Release.
+
+**Required repo secret (once):** `TAURI_SIGNING_PRIVATE_KEY` — the Tauri minisign private key matching the `plugins.updater.pubkey` in `tauri.conf.json`. Optional: `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` if the key is password-protected. Without the private key, tagged installer builds fail on purpose (in-app updates would be unsigned).
 
 **Do not** `gh release create` (or publish) a source-only Release before CI finishes. Prefer either:
 
 1. Push the tag and let Actions create + publish the Release with assets, **or**
 2. `gh release create vX.Y.Z --draft --notes-file …` early for notes, then wait for CI to attach installers and undraft (or undraft yourself once the `.exe` is present).
 
-Never leave `/releases` or `/releases/latest` pointing at a published cut with no installer — Chris’s in-app updater would offer a useless update.
+Never leave `/releases` or `/releases/latest` pointing at a published cut with no installer / no `latest.json` — Chris’s in-app updater would offer a useless or unverifiable update.
 
 ### Release notes template
 

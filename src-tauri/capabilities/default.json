@@ -6,6 +6,8 @@
   "permissions": [
     "core:default",
     "opener:default",
+    "updater:default",
+    "process:default",
     "allow-serial",
     "allow-debug-bridge",
     "allow-jobs-folder"

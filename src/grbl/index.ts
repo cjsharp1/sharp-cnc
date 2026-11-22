@@ -576,3 +576,11 @@ export {
   resolveAppVersion,
   summarizeReleaseNotes,
 } from "./appVersion";
+export type {
+  DesktopUpdateProgress,
+  DesktopUpdateResult,
+} from "./desktopUpdater";
+export {
+  checkDesktopUpdater,
+  installDesktopUpdateAndRelaunch,
+} from "./desktopUpdater";
