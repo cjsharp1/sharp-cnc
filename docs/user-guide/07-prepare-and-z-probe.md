@@ -1,5 +1,9 @@
 # 7. Prepare to run & Z probe
 
+**When:** every new job (after the machine is already [calibrated](05-calibration.md)). Prepare is **not** calibration — it does not set `$3`, steps/mm, or soft travel.
+
+**Prefer pictures:** [Per-job prepare visual](../setup-visual/prepare.html).
+
 Before **Start**, SharpCNC walks you through a stepped **Prepare to run** wizard (same modal style as Calibration). It confirms stock and tool, sets work XY, runs a Z probe (or manual Z zero), then unlocks Start for this session.
 
 ![Prepare wizard steps](assets/diagram-prepare-flow.svg)

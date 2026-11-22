@@ -1,6 +1,8 @@
 # 5. Calibration
 
-**Prefer pictures:** [Calibration visual guide](../setup-visual/calibration.html) (zeros · `$3` · steps/mm · soft travel).
+**When:** once per machine, or after wiring / screws / travel change. **Before** trusting Prepare or cuts. Not a per-job step.
+
+**Prefer pictures:** [Calibration visual guide](../setup-visual/calibration.html) (zeros · `$3` · steps/mm · soft travel · bed test).
 
 Menu → **Calibration…** (also from First-run step 3). Connect first.
 
@@ -24,4 +26,4 @@ After soft travel (or **Done → Bed travel test** / **Menu → Bed travel test�
 
 Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [steps](assets/cal-step2-steps.png) · [travel](assets/cal-step3-travel.png) · [manual](assets/cal-step4-manual.png)
 
-Next: [Material & tool](06-material-and-tool.md) · [First-run visual](../setup-visual/first-run.html)
+Next (every job): [Prepare to run & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html)

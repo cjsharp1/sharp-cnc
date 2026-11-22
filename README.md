@@ -49,11 +49,13 @@ npm run dev
 
 ### 4. First things to do
 
+**Order:** calibrate the machine once, then prepare every job.
+
 1. Power the CNC safely and plug USB into the Demon Shield / Arduino.
 2. In SharpCNC: **Refresh** ports → pick COM → **Connect** at **115200** baud.
 3. Confirm **Linked** and live Work / Machine coordinates.
-4. **Menu → Calibration…** once so soft travel matches the real bed.
-5. Set **Material & tool**, load a `.nc` / `.gcode` (or SVG), run **Prepare to run…** (XY + Z probe), **Simulate**, then **Start**.
+4. **Calibration (once):** **Menu → Calibration…** — `$3`, steps/mm, soft travel (optional bed travel test). Fresh profile: First-run bootstraps connect → home → into that wizard.
+5. **Every job:** load a `.nc` / `.gcode` (or SVG) → **Prepare to run…** (stock, XY + Z probe) → **Simulate** → **Start**.
 
 Full walkthrough with screenshots: [docs/user-guide/](docs/user-guide/) or the [Pages guide](https://cjsharp1.github.io/sharp-cnc/guide.html).
 

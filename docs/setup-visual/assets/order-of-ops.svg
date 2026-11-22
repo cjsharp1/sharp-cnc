@@ -1,0 +1,77 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" role="img" aria-labelledby="t d">
+  <title id="t">SharpCNC order of operations</title>
+  <desc id="d">Calibration once per machine, then prepare every job</desc>
+  <defs>
+    <style>
+      .bg { fill: #f1f3f5; }
+      .phase { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .cal { fill: #b8862d; }
+      .job { fill: #2f5d7a; }
+      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 15px; font-weight: 700; }
+      .tiny { font-size: 12px; fill: #5a6570; font-family: system-ui, "Segoe UI", sans-serif; }
+      .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; font-size: 13px; }
+      .arrow { stroke: #3a4550; stroke-width: 2.5; fill: none; marker-end: url(#a); }
+      .chip { fill: #1a2332; }
+    </style>
+    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+      <path d="M0,0 L7,3 L0,6 Z" fill="#3a4550"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="960" height="320" rx="12"/>
+  <text class="lab" x="32" y="36" font-size="20">Order of operations</text>
+  <text class="tiny" x="32" y="58">Calibrate the machine once. Prepare every new job.</text>
+
+  <!-- Phase A -->
+  <rect class="phase" x="28" y="84" width="420" height="200" rx="12"/>
+  <rect class="cal" x="28" y="84" width="420" height="36" rx="12"/>
+  <rect class="cal" x="28" y="108" width="420" height="12"/>
+  <text class="w" x="48" y="108">1 · Calibration — once per machine</text>
+  <text class="tiny" x="48" y="148">After install, or after wiring / screws / travel change</text>
+
+  <g transform="translate(48,168)">
+    <rect class="chip" width="78" height="36" rx="8"/>
+    <text class="w" x="39" y="23" text-anchor="middle" font-size="12">$3 dir</text>
+  </g>
+  <g transform="translate(140,168)">
+    <rect class="chip" width="96" height="36" rx="8"/>
+    <text class="w" x="48" y="23" text-anchor="middle" font-size="12">Steps/mm</text>
+  </g>
+  <g transform="translate(250,168)">
+    <rect class="chip" width="100" height="36" rx="8"/>
+    <text class="w" x="50" y="23" text-anchor="middle" font-size="12">Soft travel</text>
+  </g>
+  <g transform="translate(364,168)">
+    <rect class="chip" width="60" height="36" rx="8"/>
+    <text class="w" x="30" y="23" text-anchor="middle" font-size="12">Bed?</text>
+  </g>
+  <text class="tiny" x="48" y="236">Menu → Calibration… · optional Bed travel test</text>
+  <text class="tiny" x="48" y="258">Do this before trusting soft limits or cuts</text>
+
+  <path class="arrow" d="M460 184 H500"/>
+
+  <!-- Phase B -->
+  <rect class="phase" x="512" y="84" width="420" height="200" rx="12"/>
+  <rect class="job" x="512" y="84" width="420" height="36" rx="12"/>
+  <rect class="job" x="512" y="108" width="420" height="12"/>
+  <text class="w" x="532" y="108">2 · Every job — Prepare to run</text>
+  <text class="tiny" x="532" y="148">Connect · home as needed · then prepare</text>
+
+  <g transform="translate(532,168)">
+    <rect class="chip" width="70" height="36" rx="8"/>
+    <text class="w" x="35" y="23" text-anchor="middle" font-size="12">Stock</text>
+  </g>
+  <g transform="translate(614,168)">
+    <rect class="chip" width="78" height="36" rx="8"/>
+    <text class="w" x="39" y="23" text-anchor="middle" font-size="12">XY zero</text>
+  </g>
+  <g transform="translate(704,168)">
+    <rect class="chip" width="78" height="36" rx="8"/>
+    <text class="w" x="39" y="23" text-anchor="middle" font-size="12">Z probe</text>
+  </g>
+  <g transform="translate(794,168)">
+    <rect class="chip" width="110" height="36" rx="8"/>
+    <text class="w" x="55" y="23" text-anchor="middle" font-size="12">Simulate · Cut</text>
+  </g>
+  <text class="tiny" x="532" y="236">Job → Prepare… · required before Start</text>
+  <text class="tiny" x="532" y="258">Not a substitute for calibration</text>
+</svg>

@@ -71,15 +71,24 @@ Good for UI practice. **Not** a substitute for soak or scrap.
 
 ---
 
-## 2. First-run wizard order
+## 2. Order of operations
 
-On a fresh profile the app opens **SharpCNC · First run**:
+Chris’s model — keep these separate:
+
+1. **Calibration (once per machine**, or after hardware change) — `$3` direction · steps/mm · soft travel · optional **Bed travel test**. Menu → **Calibration…**. Visual: `docs/setup-visual/calibration.html`.
+2. **Per-job prepare (every new job)** — connect · home as needed · stock · XY work zero · Z probe · Simulate → Start. Job → **Prepare…**. Visual: `docs/setup-visual/prepare.html`.
+
+Do **not** skip calibration and jump straight to Prepare on a new or rewired machine. Prepare does not write `$3` / steps / soft travel.
+
+### First-run bootstrap (fresh profile only)
+
+On a fresh profile the app opens **SharpCNC · First run** to get you linked and into calibration:
 
 1. **Connect** — refresh ports → COM → **Connect** at **115200** → wait for **Linked**
 2. **Home** — clear bed → **Home ($H)** (zero-side switches only)
-3. **Calibrate** — open Calibration for `$3` direction + steps/mm
-4. **Travel** — measure bed → set soft max X/Y/Z → save (`$130`–`$132`, `$20`)
-5. **Stock** — width / length / thickness + corner on the bed
+3. **Calibrate** — open Calibration for `$3` direction + steps/mm *(machine phase)*
+4. **Travel** — measure bed → set soft max X/Y/Z → save (`$130`–`$132`, `$20`) *(still machine phase)*
+5. **Stock seed** — optional starter sizes for the first job only; later jobs use **Prepare**
 
 Finish or **Skip for now** (you can re-open setup later). Do not skip Home + Travel before soft-limit soak.
 
@@ -107,7 +116,7 @@ Do this **after** soak sign-off, on scrap only.
 1. **Simulate first** — load job (`.nc` / SVG) → **Simulate** path with spindle conceptually off; scrub / dry-run if unsure.
 2. **Soft limits on** — `$20=1` and measured `$130`–`$132` (wizard Travel / Calibration).
 3. **E-Stop known** — UI E-Stop + physical Abort; know which enclosure color is Abort.
-4. **Prepare to run** — stock, tool, XY zero, Z probe plate thickness, plate **removed** after probe.
+4. **Prepare to run** (every job — after calibration is already done) — stock, tool, XY zero, Z probe plate thickness, plate **removed** after probe.
 5. **Spindle clear** — bit clear of stock for first Start; start at low feed/spindle override if nervous.
 6. **Dry air / scrap** — Start; one hand near Abort; Hold then Resume once; Abort once and Unlock only after cause is clear.
 7. Only then cut the real part.

@@ -620,6 +620,20 @@ button:focus-visible {
   max-width: 36rem;
 }
 
+.visual-hub__order {
+  margin: 0 0 1.5rem;
+  padding: 0;
+}
+
+.visual-hub__order img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #f1f3f5;
+}
+
 .visual-hub__grid {
   display: grid;
   gap: 1rem;

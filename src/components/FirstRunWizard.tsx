@@ -140,10 +140,10 @@ export function FirstRunWizard({
       <header className="firstrun__head">
         <div>
           <p className="firstrun__eyebrow">SharpCNC · First run</p>
-          <h2 className="firstrun__title">Set up this machine</h2>
+          <h2 className="firstrun__title">Calibrate this machine</h2>
           <p className="firstrun__lead">
-            Connect → home → calibrate → soft travel → stock. Takes a few
-            minutes once.
+            Connect → home → calibrate → soft travel (once). Stock at the end
+            only seeds the first job — use Prepare every cut after.
           </p>
         </div>
         <button type="button" className="firstrun__skip" onClick={onSkip}>
@@ -357,10 +357,10 @@ export function FirstRunWizard({
 
         {step === "stock" && (
           <div className="firstrun__panel">
-            <h3>5 · Stock</h3>
+            <h3>5 · Stock seed</h3>
             <p>
-              Enter the workpiece on the bed. You can refine corners later under
-              Material &amp; tool.
+              Optional starter size for the first job only. Every later cut uses
+              Prepare (stock, zeros, Z probe) — not this wizard.
             </p>
             <div className="firstrun__grid">
               <label>
@@ -467,7 +467,7 @@ export function FirstRunWizard({
                 : "Confirm stock before finishing setup"
             }
           >
-            Finish setup
+            Finish calibration
           </button>
         )}
       </footer>
