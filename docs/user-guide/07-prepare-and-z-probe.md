@@ -26,7 +26,7 @@ Prepare is **required before Start** until you finish **Mark ready** for the cur
 |------|------|
 | 1 · Stock | Confirm size / thickness / bed corner (same settings as Material & tool) |
 | 2 · Tool | Confirm bit type and diameter |
-| 3 · XY zero | Jog to job origin on stock → **Zero XY** (`G10 L20`) — no plate |
+| 3 · XY zero | Jog tip to a stock corner → **Set XY zero + stock … at tip** (`G10 L20` + stock origin). **Zero XY only** is available as a fallback |
 | 4 · Z probe | Touch plate on **stock top** (or **Manual Zero Z** paper-feel) |
 | 5 · Safe Z | Retract; **remove plate** before cut; confirm clear |
 | 6 · Ready | **Mark ready & close** → Start unlocks |

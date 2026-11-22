@@ -41,12 +41,27 @@ export {
   saveSoftTravel,
 } from "./machineConfig";
 
-export type { StockConfig, StockCorner } from "./stockConfig";
+export type {
+  StockConfig,
+  StockCorner,
+  StockHandle,
+  StockHit,
+} from "./stockConfig";
 export {
   DEFAULT_STOCK,
+  MIN_STOCK_XY_MM,
+  applyStockSizeKeepingOrigin,
+  clampStockToBed,
+  cursorForStockHit,
+  hitTestStock,
   loadStock,
+  moveStockBy,
+  resizeStockFromHandle,
+  roundStockMm,
   saveStock,
+  stockBounds,
   stockOffsetForCorner,
+  stockOffsetForWorkOriginCorner,
 } from "./stockConfig";
 
 export type { ToolBitType, ToolConfig } from "./toolConfig";

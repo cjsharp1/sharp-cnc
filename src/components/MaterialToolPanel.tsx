@@ -3,9 +3,11 @@ import {
   CUT_STYLE_LABELS,
   MATERIAL_PRESETS,
   TOOL_BIT_LABELS,
+  applyStockSizeKeepingOrigin,
   deleteCustomFeedsPreset,
   loadCustomFeedsPresets,
   stockOffsetForCorner,
+  stockOffsetForWorkOriginCorner,
   suggestFeedsSpeeds,
   upsertCustomFeedsPreset,
   type CustomFeedsPreset,
@@ -23,9 +25,13 @@ interface MaterialToolPanelProps {
   tool: ToolConfig;
   bedMm: { width: number; depth: number };
   feeds: FeedsSpeedsSelection;
+  /** True when serial is ready to G10 work zero. */
+  zeroEnabled?: boolean;
   onStockChange: (next: StockConfig) => void;
   onToolChange: (next: ToolConfig) => void;
   onPlaceCorner: (corner: StockCorner) => void;
+  /** Primary: G10 XY zero + stock corner at toolhead. */
+  onSetCornerFromToolhead?: (corner: StockCorner) => void;
   onFeedsChange: (next: FeedsSpeedsSelection) => void;
   /** Apply current suggestion into SVG generate fields (Job tab). */
   onApplyToSvg?: () => void;
@@ -53,9 +59,11 @@ export function MaterialToolPanel({
   tool,
   bedMm,
   feeds,
+  zeroEnabled = false,
   onStockChange,
   onToolChange,
   onPlaceCorner,
+  onSetCornerFromToolhead,
   onFeedsChange,
   onApplyToSvg,
 }: MaterialToolPanelProps) {
@@ -64,22 +72,42 @@ export function MaterialToolPanel({
   );
   const [presetName, setPresetName] = useState("");
   const [presetMessage, setPresetMessage] = useState<string | null>(null);
+  const [toolheadCorner, setToolheadCorner] = useState<StockCorner>(
+    stock.originCorner ?? "sw",
+  );
 
-  const patchStock = (partial: Partial<StockConfig>) => {
-    onStockChange({ ...stock, ...partial });
+  const patchStockSize = (
+    size: Partial<Pick<StockConfig, "widthMm" | "lengthMm" | "thicknessMm">>,
+  ) => {
+    if (stock.originCorner) {
+      onStockChange(applyStockSizeKeepingOrigin(stock, size));
+      return;
+    }
+    onStockChange({ ...stock, ...size });
   };
 
   const patchTool = (partial: Partial<ToolConfig>) => {
     onToolChange({ ...tool, ...partial });
   };
 
-  const activeCorner = (CORNERS.find(({ id }) => {
+  const activeBedCorner = (CORNERS.find(({ id }) => {
     const expected = stockOffsetForCorner(stock, id, bedMm.width, bedMm.depth);
     return (
       Math.abs(expected.offsetXMm - stock.offsetXMm) < 1e-6 &&
       Math.abs(expected.offsetYMm - stock.offsetYMm) < 1e-6
     );
   })?.id ?? null);
+
+  const activeOriginCorner =
+    stock.originCorner ??
+    CORNERS.find(({ id }) => {
+      const expected = stockOffsetForWorkOriginCorner(stock, id);
+      return (
+        Math.abs(expected.offsetXMm - stock.offsetXMm) < 1e-6 &&
+        Math.abs(expected.offsetYMm - stock.offsetYMm) < 1e-6
+      );
+    })?.id ??
+    null;
 
   const suggestion = suggestFeedsSpeeds({
     material: feeds.material,
@@ -138,13 +166,57 @@ export function MaterialToolPanel({
       <div className="mattool__meta">
         <h2 className="mattool__title">Material &amp; tool</h2>
         <p className="mattool__hint">
-          Stock on the bed · bit Ø · material presets for suggested F/S · bed{" "}
-          {bedMm.width}×{bedMm.depth} mm
+          Primary: jog tip to a stock corner → set XY zero + stock origin →
+          enter W / L / T. Optional: drag the blank on the visualizer to
+          fine-tune. Bit Ø · F/S presets · bed {bedMm.width}×{bedMm.depth} mm
         </p>
       </div>
 
       <div className="mattool__block">
         <p className="mattool__section">Stock</p>
+        <div className="mattool__anchor">
+          <p className="mattool__field-label">
+            Set XY zero + stock corner from toolhead
+          </p>
+          <p className="mattool__micro">
+            Clamp stock, jog the tip to a corner (usually SW), pick that
+            corner, then set. Work XY and stock origin move together — then
+            type width / length / thickness.
+          </p>
+          <div
+            className="mattool__corners"
+            role="group"
+            aria-label="Toolhead stock corner"
+          >
+            {CORNERS.map(({ id, label, title }) => (
+              <button
+                key={id}
+                type="button"
+                className={`mattool__corner${toolheadCorner === id ? " is-active" : ""}${activeOriginCorner === id ? " is-origin" : ""}`}
+                title={title}
+                aria-pressed={toolheadCorner === id}
+                onClick={() => setToolheadCorner(id)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            className="mattool__primary-action"
+            disabled={!zeroEnabled || !onSetCornerFromToolhead}
+            title="G10 L20 X0 Y0 and place this stock corner at work origin"
+            onClick={() => onSetCornerFromToolhead?.(toolheadCorner)}
+          >
+            Set XY zero + stock {toolheadCorner.toUpperCase()} at tip
+          </button>
+          {activeOriginCorner ? (
+            <p className="mattool__micro mattool__micro--ok">
+              Anchored at work origin: {activeOriginCorner.toUpperCase()} —
+              size fields grow away from that corner.
+            </p>
+          ) : null}
+        </div>
         <div className="mattool__row">
           <label className="mattool__field">
             <span className="mattool__field-label">Width X mm</span>
@@ -155,7 +227,7 @@ export function MaterialToolPanel({
               step={1}
               value={stock.widthMm}
               onChange={(e) =>
-                patchStock({
+                patchStockSize({
                   widthMm: parsePositive(e.target.value, stock.widthMm),
                 })
               }
@@ -170,7 +242,7 @@ export function MaterialToolPanel({
               step={1}
               value={stock.lengthMm}
               onChange={(e) =>
-                patchStock({
+                patchStockSize({
                   lengthMm: parsePositive(e.target.value, stock.lengthMm),
                 })
               }
@@ -187,22 +259,26 @@ export function MaterialToolPanel({
               step={0.5}
               value={stock.thicknessMm}
               onChange={(e) =>
-                patchStock({
+                patchStockSize({
                   thicknessMm: parsePositive(e.target.value, stock.thicknessMm),
                 })
               }
             />
           </label>
           <div className="mattool__field mattool__field--corners">
-            <span className="mattool__field-label">Corner on bed</span>
-            <div className="mattool__corners" role="group" aria-label="Place stock corner">
+            <span className="mattool__field-label">Bed frame (optional)</span>
+            <div
+              className="mattool__corners"
+              role="group"
+              aria-label="Place stock against bed corner"
+            >
               {CORNERS.map(({ id, label, title }) => (
                 <button
                   key={id}
                   type="button"
-                  className={`mattool__corner${activeCorner === id ? " is-active" : ""}`}
-                  title={title}
-                  aria-pressed={activeCorner === id}
+                  className={`mattool__corner${activeBedCorner === id ? " is-active" : ""}`}
+                  title={`${title} — frames stock on soft-travel bed (does not set work zero)`}
+                  aria-pressed={activeBedCorner === id}
                   onClick={() => onPlaceCorner(id)}
                 >
                   {label}
@@ -219,11 +295,14 @@ export function MaterialToolPanel({
               type="number"
               step={1}
               value={stock.offsetXMm}
-              onChange={(e) =>
-                patchStock({
+              onChange={(e) => {
+                const { originCorner: _drop, ...rest } = stock;
+                void _drop;
+                onStockChange({
+                  ...rest,
                   offsetXMm: parseFinite(e.target.value, stock.offsetXMm),
-                })
-              }
+                });
+              }}
             />
           </label>
           <label className="mattool__field">
@@ -233,11 +312,14 @@ export function MaterialToolPanel({
               type="number"
               step={1}
               value={stock.offsetYMm}
-              onChange={(e) =>
-                patchStock({
+              onChange={(e) => {
+                const { originCorner: _drop, ...rest } = stock;
+                void _drop;
+                onStockChange({
+                  ...rest,
                   offsetYMm: parseFinite(e.target.value, stock.offsetYMm),
-                })
-              }
+                });
+              }}
             />
           </label>
         </div>

@@ -113,7 +113,10 @@ export function WorkZeroPanel({
         </p>
       ) : (
         <p className="zero__hint">
-          Zeroing sets the current tool location as work origin — it does not move the machine.
+          Zeroing sets the current tool location as work origin — it does not
+          move the machine. To also place stock, use{" "}
+          <strong>Set XY zero + stock … at tip</strong> in Material &amp; tool
+          or Prepare.
         </p>
       )}
     </section>

@@ -4,7 +4,9 @@ import {
   JOG_FEED_OPTIONS_MM_MIN,
   JOG_STEP_OPTIONS_MM,
   TOOL_BIT_LABELS,
+  applyStockSizeKeepingOrigin,
   stockOffsetForCorner,
+  stockOffsetForWorkOriginCorner,
   type GrblStatus,
   type JogMode,
   type ProbeConfig,
@@ -69,6 +71,8 @@ interface PrepareRunPanelProps {
   onStockChange: (next: StockConfig) => void;
   onToolChange: (next: ToolConfig) => void;
   onPlaceCorner: (corner: StockCorner) => void;
+  /** Primary: G10 XY zero + stock corner at current toolhead. */
+  onSetCornerFromToolhead: (corner: StockCorner) => void;
   onProbeChange: (next: ProbeConfig) => void;
   onJogModeChange: (mode: JogMode) => void;
   onStepChange: (stepMm: number) => void;
@@ -120,6 +124,7 @@ export function PrepareRunPanel({
   onStockChange,
   onToolChange,
   onPlaceCorner,
+  onSetCornerFromToolhead,
   onProbeChange,
   onJogModeChange,
   onStepChange,
@@ -167,7 +172,7 @@ export function PrepareRunPanel({
     setStepConfirmed(zProbed, probeStep);
   }, [zProbed, probeStep, setStepConfirmed]);
 
-  const activeCorner = useMemo(() => {
+  const activeBedCorner = useMemo(() => {
     return (
       CORNERS.find(({ id }) => {
         const expected = stockOffsetForCorner(
@@ -184,8 +189,32 @@ export function PrepareRunPanel({
     );
   }, [stock, bedMm.width, bedMm.depth]);
 
+  const activeOriginCorner = useMemo(() => {
+    if (stock.originCorner) return stock.originCorner;
+    return (
+      CORNERS.find(({ id }) => {
+        const expected = stockOffsetForWorkOriginCorner(stock, id);
+        return (
+          Math.abs(expected.offsetXMm - stock.offsetXMm) < 1e-6 &&
+          Math.abs(expected.offsetYMm - stock.offsetYMm) < 1e-6
+        );
+      })?.id ?? null
+    );
+  }, [stock]);
+
   const patchStock = (partial: Partial<StockConfig>) => {
     onStockChange({ ...stock, ...partial });
+    setStepConfirmed(false, stockStep);
+  };
+
+  const patchStockSize = (
+    size: Partial<Pick<StockConfig, "widthMm" | "lengthMm" | "thicknessMm">>,
+  ) => {
+    if (stock.originCorner) {
+      onStockChange(applyStockSizeKeepingOrigin(stock, size));
+    } else {
+      onStockChange({ ...stock, ...size });
+    }
     setStepConfirmed(false, stockStep);
   };
 
@@ -270,8 +299,9 @@ export function PrepareRunPanel({
             Confirm stock on bed
           </h3>
           <p className="cal__hint">
-            Match the physical workpiece: size, thickness, and where it sits on
-            the bed. This updates the visualizer (same as Material &amp; tool).
+            Clamp the blank. Enter width / length / thickness now (or after XY
+            zero). Placement is set on the next step by jogging the tip to a
+            corner — same fields as Material &amp; tool.
           </p>
           <div className="cal__row">
             <label className="cal__field">
@@ -284,7 +314,7 @@ export function PrepareRunPanel({
                 value={stock.widthMm}
                 disabled={!canAct}
                 onChange={(e) =>
-                  patchStock({
+                  patchStockSize({
                     widthMm: parsePositive(e.target.value, stock.widthMm),
                   })
                 }
@@ -300,7 +330,7 @@ export function PrepareRunPanel({
                 value={stock.lengthMm}
                 disabled={!canAct}
                 onChange={(e) =>
-                  patchStock({
+                  patchStockSize({
                     lengthMm: parsePositive(e.target.value, stock.lengthMm),
                   })
                 }
@@ -318,7 +348,7 @@ export function PrepareRunPanel({
                 value={stock.thicknessMm}
                 disabled={!canAct}
                 onChange={(e) =>
-                  patchStock({
+                  patchStockSize({
                     thicknessMm: parsePositive(
                       e.target.value,
                       stock.thicknessMm,
@@ -328,14 +358,14 @@ export function PrepareRunPanel({
               />
             </label>
             <div className="cal__field">
-              <span className="cal__field-label">Corner on bed</span>
+              <span className="cal__field-label">Bed frame (optional)</span>
               <div className="prep__corners">
                 {CORNERS.map((c) => (
                   <button
                     key={c.id}
                     type="button"
-                    className={`cal__btn cal__btn--ghost${activeCorner === c.id ? " is-active" : ""}`}
-                    title={c.title}
+                    className={`cal__btn cal__btn--ghost${activeBedCorner === c.id ? " is-active" : ""}`}
+                    title={`${c.title} — soft-travel bed only (does not set work zero)`}
                     disabled={!canAct}
                     onClick={() => {
                       onPlaceCorner(c.id);
@@ -348,11 +378,21 @@ export function PrepareRunPanel({
               </div>
             </div>
           </div>
+          {activeOriginCorner ? (
+            <p className="cal__meta prep__ok">
+              Work-origin anchor: {activeOriginCorner.toUpperCase()} — size
+              grows away from that corner.
+            </p>
+          ) : (
+            <p className="cal__meta">
+              Tip: on the XY step, set zero + stock corner from the toolhead.
+            </p>
+          )}
           <WizardStepConfirm
             id="prep-confirm-stock"
             checked={stockConfirmed}
             disabled={!canAct}
-            label="Stock is clamped and matches these numbers"
+            label="Stock is clamped and sizes look right"
             onChange={(v) => setStepConfirmed(v, stockStep)}
           />
         </div>
@@ -437,13 +477,19 @@ export function PrepareRunPanel({
       {step.id === "xy" && (
         <div className="cal__body" role="group" aria-labelledby="prep-xy">
           <h3 id="prep-xy" className="cal__step-title">
-            Set work XY zero
+            Set work XY zero + stock corner
           </h3>
           <ul className="prep__callouts" aria-label="XY zero steps">
             <li>
+              <span className="prep__callout-label">Primary</span>
+              Jog tip to a stock corner (usually SW) → pick that corner →{" "}
+              <strong>Set XY zero + stock</strong>. Work origin and stock
+              origin move together. Then enter W / L if you have not yet.
+            </li>
+            <li>
               <span className="prep__callout-label">No plate</span>
-              Jog tip to job origin on stock → <strong>Zero XY</strong>. Does
-              not move the machine. Keep Z clear of clamps.
+              Keep Z clear of clamps. Does not move the machine — only
+              redefines work XY.
             </li>
             <li>
               <span className="prep__callout-label">Not homing</span>
@@ -451,15 +497,43 @@ export function PrepareRunPanel({
               is not for XY or home.
             </li>
           </ul>
+          <div className="prep__corners" role="group" aria-label="Stock corner at tip">
+            {CORNERS.map((c) => (
+              <button
+                key={c.id}
+                type="button"
+                className={`cal__btn cal__btn--ghost${(stock.originCorner ?? "sw") === c.id ? " is-active" : ""}`}
+                title={c.title}
+                disabled={!jogEnabled || busy}
+                onClick={() => {
+                  patchStock({ originCorner: c.id });
+                }}
+              >
+                {c.label}
+              </button>
+            ))}
+          </div>
           <div className="cal__actions">
             <button
               type="button"
               className="cal__btn"
               disabled={!jogEnabled || busy}
-              onClick={onZeroXy}
-              title="G10 L20 P1 X0 Y0"
+              onClick={() =>
+                onSetCornerFromToolhead(stock.originCorner ?? "sw")
+              }
+              title="G10 L20 P1 X0 Y0 and place stock corner at work origin"
             >
-              Zero XY
+              Set XY zero + stock{" "}
+              {(stock.originCorner ?? "sw").toUpperCase()} at tip
+            </button>
+            <button
+              type="button"
+              className="cal__btn cal__btn--ghost"
+              disabled={!jogEnabled || busy}
+              onClick={onZeroXy}
+              title="G10 L20 P1 X0 Y0 only — does not move stock"
+            >
+              Zero XY only
             </button>
             {xyZeroed ? (
               <span className="cal__meta prep__ok">

@@ -10,15 +10,30 @@ Open from **Menu → Material & tool…** or scroll the **Job** tab.
 
 ## Stock (workpiece)
 
+### Primary: corner from toolhead
+
+1. Clamp the blank on the bed.  
+2. Jog the tip to a stock corner (usually **SW** / front-left).  
+3. Pick that corner and press **Set XY zero + stock … at tip** (Material & tool or Prepare → XY).  
+4. Enter **Width / Length / Thickness**. Size grows away from the anchored corner; the visualizer updates with the same numbers.
+
+That one action sets work XY zero (`G10 L20`) and stock origin together so the corner under the tip is work (0,0).
+
+### Fields
+
 | Field | Meaning |
 |-------|---------|
-| **Width X mm** | Stock size along X |
+| **Width X mm** | Stock size along X (from the anchored corner) |
 | **Length Y mm** | Stock size along Y |
 | **Thickness mm** | Stock height (for awareness / future checks) |
-| **Corner on bed** | **SW** front-left · **SE** front-right · **NW** back-left · **NE** back-right |
-| **Offset X / Y mm** | Manual placement from bed origin if not using a corner shortcut |
+| **Bed frame (optional)** | **SW** / **SE** / **NW** / **NE** against soft-travel bed — does **not** set work zero |
+| **Offset X / Y mm** | Manual fine placement in work mm |
 
-Corner buttons set offsets from the current bed size (soft travel). Defaults start around 300 × 200 × 18 mm at offset 0,0 until you change them. Values persist in the app.
+Defaults start around 300 × 200 × 18 mm. Values persist in the app.
+
+### Optional fine-tune on the visualizer
+
+Click the stock blank to select it, then drag to nudge or use side/corner handles to resize. Prefer the numeric fields for accuracy. Pan/zoom still work on empty bed (stock hit takes priority). Esc clears selection.
 
 Place the physical sheet to match what you enter — the orange **Stock** rectangle on the visualizer should match reality.
 
@@ -44,11 +59,11 @@ These are hobby starting points — always test on scrap. Runtime feed / rapid /
 
 ## Checklist before a job
 
-1. Measure the stock with a tape; enter width / length / thickness.  
-2. Clamp stock; pick the corner that matches how you will zero the job.  
-3. Install the bit; enter diameter (and tip angle if V-bit).  
-4. Pick material + cut style; apply suggested F/S to SVG if generating in-app.  
-5. Zero work coordinates to the same corner / top face you intend in CAM or SVG.  
-6. Glance at the visualizer — stock and path should overlap sensibly.
+1. Clamp stock; measure width / length / thickness.  
+2. Jog tip to the job corner; **Set XY zero + stock … at tip**.  
+3. Enter (or adjust) W / L / T — glance at the visualizer.  
+4. Install the bit; enter diameter (and tip angle if V-bit).  
+5. Pick material + cut style; apply suggested F/S to SVG if generating in-app.  
+6. Probe / set Z to the top face you intend in CAM or SVG.
 
 Next: [Prepare to run & Z probe](07-prepare-and-z-probe.md).
