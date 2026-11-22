@@ -2961,9 +2961,8 @@ export default function App() {
                   aria-labelledby="workspace-tab-job"
                 >
                   <p className="workspace__intro">
-                    Job only: material, files, prepare, simulate, and Start.
-                    Jogging stays on <strong>Move</strong>; touch-offs on{" "}
-                    <strong>Probe</strong>.
+                    Material, files, prepare, simulate, and Start. Jog on{" "}
+                    <strong>Move</strong>; touch-offs on <strong>Probe</strong>.
                   </p>
                   {recoveryVisible && recovery ? (
                     <CrashRecoveryPanel

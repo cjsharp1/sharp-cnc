@@ -41,7 +41,7 @@ const WIZARD_STEPS: {
   { id: "direction", label: "Direction", short: "2 · Dir" },
   { id: "steps", label: "Steps/mm", short: "3 · Steps" },
   { id: "travel", label: "Soft travel", short: "4 · Travel" },
-  { id: "manual", label: "Manual settings", short: "5 · Manual" },
+  { id: "manual", label: "Manual", short: "5 · Manual" },
 ];
 
 const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {

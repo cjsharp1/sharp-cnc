@@ -148,7 +148,7 @@
   --viz-bed-edge: rgba(138, 148, 158, 0.55);
   --viz-bed-glow-0: rgba(212, 168, 75, 0.16);
   --viz-bed-glow-1: rgba(18, 20, 22, 0);
-  --viz-label: rgba(232, 234, 237, 0.45);
+  --viz-label: rgba(232, 234, 237, 0.62);
   --viz-stock-fill: rgba(90, 72, 48, 0.45);
   --viz-stock-stroke: rgba(196, 152, 90, 0.75);
   --viz-stock-hatch: rgba(140, 110, 70, 0.35);
@@ -222,13 +222,13 @@
     rgba(232, 236, 240, 0.95)
   );
 
-  --steel: #4a5560;
-  --steel-dim: #5c6772;
-  --brass: #a67c28;
-  --brass-hot: #8f6818;
-  --brass-bright: #6e5010;
+  --steel: #3d4650;
+  --steel-dim: #4a5560;
+  --brass: #8a6518;
+  --brass-hot: #755412;
+  --brass-bright: #5c420c;
   --ink: #1a1e24;
-  --muted: #4a5560;
+  --muted: #3d4650;
 
   --line: rgba(70, 80, 92, 0.2);
   --border-strong: rgba(70, 80, 92, 0.32);
