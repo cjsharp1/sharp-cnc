@@ -459,7 +459,7 @@ button {
   z-index: 2;
   flex: 0 0 auto;
   margin: 0;
-  padding: 0.45rem 0.85rem 0.55rem;
+  padding: 0.5rem 0.85rem 0.6rem;
   border-top: 1px solid color-mix(in srgb, var(--line) 70%, transparent);
   color: var(--viz-hud);
   font-family: var(--font-mono);
@@ -470,7 +470,7 @@ button {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: var(--machine-frame-bg);
+  background: color-mix(in srgb, var(--machine-frame-bg) 92%, #000 8%);
 }
 
 .machine__tool {

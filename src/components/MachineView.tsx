@@ -941,11 +941,13 @@ export function MachineView({
             })}
           </g>
 
-          {/* Axis labels on major ticks — outside the bed in left/bottom gutters. */}
+          {/* Axis labels on major ticks — outside the bed in left/bottom gutters.
+              Skip the corner 0 ticks; the origin marker label already marks zero. */}
           <g className="machine__grid-labels" aria-hidden>
             {majorX
               .filter(
                 (x) =>
+                  Math.abs(x) > 1e-6 &&
                   x >= vb.x - labelSize &&
                   x <= vb.x + vb.w + labelSize &&
                   // Bottom gutter must be in view (labels sit below the bed edge).
@@ -969,6 +971,7 @@ export function MachineView({
             {majorYWork
               .filter(
                 (y) =>
+                  Math.abs(y) > 1e-6 &&
                   y >= workYMin - labelSize &&
                   y <= workYMax + labelSize &&
                   // Left gutter must be in view (labels sit left of the bed edge).
