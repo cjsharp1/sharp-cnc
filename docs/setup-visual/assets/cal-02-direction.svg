@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
   <title id="t">Calibration 2 — Direction $3</title>
-  <desc id="d">Invert axes with $3 bitmask so +jog matches bed</desc>
+  <desc id="d">Invert axes with $3 bitmask so +jog matches bed: +X right, +Y back up on screen, +Z up</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -45,9 +45,10 @@
 
   <rect class="card" x="540" y="140" width="340" height="300" rx="14"/>
   <text class="lab" x="710" y="185" text-anchor="middle" font-weight="700">Expect</text>
-  <path class="arrow" d="M600 250 H780"/>
-  <text class="lab" x="710" y="240" text-anchor="middle" font-weight="700">+X right</text>
-  <path class="arrow" d="M710 280 V400"/>
-  <text class="lab" x="740" y="340" font-weight="700">+Y back</text>
+  <!-- Top-down bed view: work +Y (back) points up on screen — same as MachineView -->
+  <path class="arrow" d="M600 360 H800"/>
+  <text class="lab" x="700" y="345" text-anchor="middle" font-weight="700">+X right</text>
+  <path class="arrow" d="M620 380 V220"/>
+  <text class="lab" x="640" y="250" font-weight="700">+Y back</text>
   <text class="tiny" x="710" y="420" text-anchor="middle">+Z up · wrong way → flip bit</text>
 </svg>

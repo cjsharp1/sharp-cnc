@@ -4,6 +4,8 @@ Open the **Move** tab. This is how you nudge the machine and set a work origin b
 
 ![Axis directions](assets/diagram-axes.svg)
 
+Looking down on the bed (same as the visualizer): **+X** right, **+Y** back = up on screen, **+Z** up.
+
 ## Jog pad
 
 ![Jog pad diagram](assets/diagram-jog-pad.svg)

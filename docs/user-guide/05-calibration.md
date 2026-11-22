@@ -20,7 +20,7 @@ After soft travel (or **Done → Bed travel test** / **Menu → Bed travel test�
 
 ## Quick reference
 
-- `$3` bits: X=1, Y=2, Z=4 (sum to invert). Expect +X right, +Y back, +Z up.
+- `$3` bits: X=1, Y=2, Z=4 (sum to invert). Expect +X right, +Y back (up on the visualizer), +Z up.
 - Steps formula: `new = old × commanded ÷ measured`.
 - Soft travel: `$130`–`$132` + `$20=1`. Far rails are software on this machine.
 
