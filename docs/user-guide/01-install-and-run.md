@@ -74,7 +74,7 @@ Full notes (CI tags, SmartScreen, signing): [scripts/build-windows-installer.md]
 
 GitHub Actions can also produce the same artifacts: **Actions → Windows installer → Run workflow**, or push a `v*` tag for a Release upload.
 
-## Frontend-only (mock GRBL)
+## Frontend-only (Virtual CNC)
 
 For UI smoke tests without hardware:
 
@@ -82,7 +82,7 @@ For UI smoke tests without hardware:
 npm run dev
 ```
 
-You get a mock port (including fake alarms / settings). There is **no USB**. Folder pick for external jobs also needs the desktop app.
+The Connect port list offers **Virtual CNC** (in-app GRBL simulator, including fake alarms / settings). There is **no USB** in this shell. The desktop app lists Virtual CNC alongside real COM ports. Folder pick for external jobs needs the desktop app.
 
 ## First launch checklist
 

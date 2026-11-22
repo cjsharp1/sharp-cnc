@@ -266,12 +266,31 @@ export {
 export {
   createMockGrblClient,
   createMockTransport,
+  isVirtualCncPath,
   listMockPorts,
+  VIRTUAL_CNC_PATH,
 } from "./mockSerial";
 
 export { createWebGrblClient, createWebSerialTransport } from "./webSerial";
 
-export { createSessionClient, listAvailablePorts, isDesktopShell } from "./session";
+export { createRoutingTransport } from "./routingTransport";
+
+export {
+  createSessionClient,
+  listAvailablePorts,
+  isDesktopShell,
+} from "./session";
+
+export type { GamepadJogFrame, GamepadSample, GamepadAxisMap } from "./gamepadJog";
+export {
+  GAMEPAD_DEADZONE,
+  GAMEPAD_MAP,
+  GAMEPAD_MAPPING_HELP,
+  firstConnectedGamepad,
+  gamepadContinuousDelta,
+  mapGamepadToJog,
+  pressedButtonSet,
+} from "./gamepadJog";
 
 export type { LoadedJob, PathMotion, ToolpathSegment } from "./gcode";
 export {

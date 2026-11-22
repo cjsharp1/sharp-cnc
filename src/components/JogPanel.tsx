@@ -1,5 +1,6 @@
 import {
   DEFAULT_JOG_FEED_MM_MIN,
+  GAMEPAD_MAPPING_HELP,
   JOG_FEED_OPTIONS_MM_MIN,
   JOG_STEP_OPTIONS_MM,
   type Axis,
@@ -14,6 +15,8 @@ interface JogPanelProps {
   stepMm: number;
   feedMmMin: number;
   softLimitHint?: string | null;
+  /** Live gamepad status from Browser Gamepad API (optional). */
+  gamepadStatus?: string | null;
   onModeChange: (mode: JogMode) => void;
   onStepChange: (stepMm: number) => void;
   onFeedChange: (feedMmMin: number) => void;
@@ -136,6 +139,7 @@ export function JogPanel({
   stepMm,
   feedMmMin,
   softLimitHint,
+  gamepadStatus = null,
   onModeChange,
   onStepChange,
   onFeedChange,
@@ -146,6 +150,14 @@ export function JogPanel({
     <section className="jog" aria-label="Jog controls">
       <header className="jog__head">
         <h2 className="jog__title">Jog</h2>
+        {gamepadStatus ? (
+          <span
+            className={`jog__gamepad-chip${gamepadStatus !== "No gamepad" ? " is-live" : ""}`}
+            title={GAMEPAD_MAPPING_HELP.join(" · ")}
+          >
+            {gamepadStatus}
+          </span>
+        ) : null}
       </header>
 
       <div className="jog__modes" role="group" aria-label="Jog mode">
@@ -274,6 +286,19 @@ export function JogPanel({
           ? "Tap a direction for one step. Corners jog XY together."
           : "Hold a direction to move; release or Stop cancels the jog."}
       </p>
+      <details className="jog__gamepad">
+        <summary>Xbox / gamepad mapping</summary>
+        <ul>
+          {GAMEPAD_MAPPING_HELP.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+        <p>
+          Works on Virtual CNC and a linked USB machine. Plug the controller in
+          before or after Connect — browsers may need a button press to wake the
+          Gamepad API.
+        </p>
+      </details>
       {softLimitHint ? (
         <p className="jog__warn" role="status">
           {softLimitHint}

@@ -2,14 +2,22 @@ import { isTauri } from "@tauri-apps/api/core";
 import type { ActivityLog } from "./activityLog";
 import type { GrblClient } from "./transport";
 import {
-  createDesktopGrblClient,
   createDesktopTransport,
   listDesktopPorts,
   type DesktopPortInfo,
 } from "./desktopSerial";
 import { createGrblClient } from "./client";
 import { instrumentTransport } from "./instrumentTransport";
-import { createMockGrblClient, createMockTransport, listMockPorts } from "./mockSerial";
+import {
+  createMockGrblClient,
+  createMockTransport,
+  isVirtualCncPath,
+  listMockPorts,
+  VIRTUAL_CNC_PATH,
+} from "./mockSerial";
+import { createRoutingTransport } from "./routingTransport";
+
+export { isVirtualCncPath, VIRTUAL_CNC_PATH, createRoutingTransport };
 
 export function isDesktopShell(): boolean {
   try {
@@ -24,22 +32,37 @@ export interface SessionClientOptions {
   activityLog?: ActivityLog;
 }
 
-/** Prefer real Tauri USB serial; fall back to mock for browser / cloud smoke tests. */
+/**
+ * Prefer real Tauri USB serial with Virtual CNC as a selectable port;
+ * browser / cloud shells use the in-app simulator only.
+ */
 export function createSessionClient(
   options: SessionClientOptions = {},
 ): GrblClient {
   const log = options.activityLog;
   if (isDesktopShell()) {
-    if (!log) return createDesktopGrblClient();
-    return createGrblClient(instrumentTransport(createDesktopTransport(), log));
+    const routed = createRoutingTransport(
+      createDesktopTransport(),
+      createMockTransport(),
+    );
+    if (!log) return createGrblClient(routed);
+    return createGrblClient(instrumentTransport(routed, log));
   }
   if (!log) return createMockGrblClient();
   return createGrblClient(instrumentTransport(createMockTransport(), log));
 }
 
+/**
+ * Port list for the Connect UI. Always includes **Virtual CNC** so the
+ * simulator is chosen the same way as a COM port — not a post-connect mode.
+ */
 export async function listAvailablePorts(): Promise<DesktopPortInfo[]> {
+  const virtual = listMockPorts();
   if (isDesktopShell()) {
-    return listDesktopPorts();
+    const real = await listDesktopPorts();
+    // Virtual CNC first so it is an explicit, visible alternative to USB.
+    const realOnly = real.filter((p) => !isVirtualCncPath(p.path));
+    return [...virtual, ...realOnly];
   }
-  return listMockPorts();
+  return virtual;
 }

@@ -24,6 +24,20 @@ Looking down on the bed (same as the visualizer): **+X** right, **+Y** back = up
 
 Start slow near the stock. Use 0.1 mm when touching off Z.
 
+### Xbox / gamepad
+
+Plug an Xbox-layout controller into the PC. SharpCNC uses the browser Gamepad API (desktop WebView included). Mapping (also under **Move → Xbox / gamepad mapping**):
+
+| Input | Action |
+|-------|--------|
+| Left stick | Jog XY (stick up = **Y+** / bed back) |
+| LT / LB | **Z−** |
+| RT / RB | **Z+** |
+| D-pad | One step (uses Step mm) |
+| B or Back | Stop / cancel jog (`0x85`) |
+
+Sticks use a deadzone so rest noise does not creep. Works on **Virtual CNC** and a linked USB machine. Many browsers need one button press on the pad before it appears.
+
 ### Soft-limit awareness
 
 SharpCNC refuses jogs that would push past known soft travel (when max X/Y/Z are set). You will see a soft-limit hint instead of motion.
