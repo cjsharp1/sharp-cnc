@@ -2034,6 +2034,36 @@ button {
   cursor: not-allowed;
 }
 
+.mattool__secondary-action {
+  appearance: none;
+  align-self: stretch;
+  margin-top: 0.35rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border-muted, rgba(255, 255, 255, 0.18));
+  background: transparent;
+  color: var(--text-secondary, inherit);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  line-height: 1.3;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+
+.mattool__secondary-action:hover:not(:disabled),
+.mattool__secondary-action:focus-visible:not(:disabled) {
+  border-color: var(--brass-border-strong);
+  color: var(--brass-bright);
+}
+
+.mattool__secondary-action:disabled {
+  opacity: 0.62;
+  cursor: not-allowed;
+}
+
 .mattool__hint--inline {
   margin: 0 0 0.35rem;
 }

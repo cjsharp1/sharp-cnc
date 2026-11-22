@@ -4,6 +4,7 @@ import type { UiTheme } from "../grbl";
 interface AppMenuProps {
   onOpenCalibration: () => void;
   onOpenBedTravelTest?: () => void;
+  onOpenStockPerimeter?: () => void;
   onOpenPrepareRun: () => void;
   onOpenMaterialTool: () => void;
   onOpenExternalJobs: () => void;
@@ -22,6 +23,7 @@ interface AppMenuProps {
 export function AppMenu({
   onOpenCalibration,
   onOpenBedTravelTest,
+  onOpenStockPerimeter,
   onOpenPrepareRun,
   onOpenMaterialTool,
   onOpenExternalJobs,
@@ -143,6 +145,25 @@ export function AppMenu({
               </button>
               <p className="appmenu__hint">
                 After calibration: full soft-limit corner walk with slow approach.
+              </p>
+            </>
+          ) : null}
+          {onOpenStockPerimeter ? (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                className="appmenu__item"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenStockPerimeter();
+                }}
+              >
+                Trace stock perimeter…
+              </button>
+              <p className="appmenu__hint">
+                After stock setup: jog around the blank so you can see the
+                boundaries.
               </p>
             </>
           ) : null}

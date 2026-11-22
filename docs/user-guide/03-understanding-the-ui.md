@@ -11,7 +11,7 @@ The window is built so you always see **connection**, **position**, and **safety
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
 - **Version chip** (e.g. `v0.1.0`) — opens **About & updates**; lights an Update badge when a newer GitHub Release exists
-- **Menu** — Material & tool, External jobs, Calibration, Prepare to run, **Appearance** (dark / light), **Debug mode**, and **About & updates…** (version footer in the menu)
+- **Menu** — Material & tool, External jobs, Calibration, Bed travel test, Trace stock perimeter, Prepare to run, **Appearance** (dark / light), **Debug mode**, and **About & updates…** (version footer in the menu)
 
 ![Menu open](assets/menu-open.webp)
 

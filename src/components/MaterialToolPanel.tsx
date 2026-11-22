@@ -32,6 +32,8 @@ interface MaterialToolPanelProps {
   onPlaceCorner: (corner: StockCorner) => void;
   /** Primary: G10 XY zero + stock corner at toolhead. */
   onSetCornerFromToolhead?: (corner: StockCorner) => void;
+  /** Optional: open stock perimeter boundary check. */
+  onOpenStockPerimeter?: () => void;
   onFeedsChange: (next: FeedsSpeedsSelection) => void;
   /** Apply current suggestion into SVG generate fields (Job tab). */
   onApplyToSvg?: () => void;
@@ -64,6 +66,7 @@ export function MaterialToolPanel({
   onToolChange,
   onPlaceCorner,
   onSetCornerFromToolhead,
+  onOpenStockPerimeter,
   onFeedsChange,
   onApplyToSvg,
 }: MaterialToolPanelProps) {
@@ -210,6 +213,17 @@ export function MaterialToolPanel({
           >
             Set XY zero + stock {toolheadCorner.toUpperCase()} at tip
           </button>
+          {onOpenStockPerimeter ? (
+            <button
+              type="button"
+              className="mattool__secondary-action"
+              disabled={!zeroEnabled}
+              title="Safe Z retract, then cancelable XY jogs around the stock blank"
+              onClick={onOpenStockPerimeter}
+            >
+              Trace stock perimeter…
+            </button>
+          ) : null}
           {activeOriginCorner ? (
             <p className="mattool__micro mattool__micro--ok">
               Anchored at work origin: {activeOriginCorner.toUpperCase()} —

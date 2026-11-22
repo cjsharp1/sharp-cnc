@@ -33,6 +33,8 @@ Critical smokes (pre-test pack):
 | `smoke-gcode-stream` | Streamer start / pause / stop |
 | `smoke-activity-safety` | E-Stop / unlock / alarm paths |
 | `smoke-calibration` | Steps/mm, `$3`, soft travel writes |
+| `smoke-bed-travel` | Full-bed corner walk planner + mock jogs |
+| `smoke-stock-perimeter` | Stock blank perimeter planner + mock jogs |
 | `smoke-probe` | Z probe helpers |
 | `smoke-spindle-feeds` | PWM + override math |
 | `smoke-overrides-presets` | Persisted feed/spindle % + material presets |
