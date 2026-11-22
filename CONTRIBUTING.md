@@ -1,6 +1,6 @@
 # Contributing to SharpCNC
 
-SharpCNC is a **personal** GRBL controller for one custom CNC. Outside contributions are welcome for clear bugs and small fixes, but scope stays narrow: one machine, USB serial / Demon Shield, no multi-firmware CAM suite.
+SharpCNC is a **personal** GRBL controller for Chris’s custom Demon Shield + GRBL CNC. Outside contributions are welcome for clear bugs and small fixes, but scope stays narrow: **one machine only**, USB serial / Demon Shield, no multi-machine CAM suite or UGS replacement — and no intention to support other controllers or firmwares.
 
 ## Before you start
 
