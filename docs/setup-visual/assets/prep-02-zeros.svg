@@ -30,7 +30,7 @@
 
   <rect class="panel" x="640" y="180" width="260" height="220" rx="12"/>
   <circle class="accent" cx="676" cy="220" r="18"/>
-  <text class="w" x="676" y="226" text-anchor="middle" font-size="14">3</text>
+  <text class="w" x="676" y="220" text-anchor="middle" dominant-baseline="central" font-size="14">3</text>
   <text class="lab" x="710" y="226" font-size="16">XY zero</text>
   <text class="tiny" x="668" y="270">1. Jog tip to corner</text>
   <text class="tiny" x="668" y="300">2. Tap Zero XY</text>

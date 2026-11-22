@@ -22,12 +22,12 @@
   <rect class="bed" x="80" y="120" width="520" height="340" rx="8"/>
   <text class="tiny" x="100" y="150">Machine bed</text>
   <rect class="stock" x="140" y="200" width="260" height="180" rx="4"/>
-  <text class="lab" x="270" y="290" text-anchor="middle" font-size="16">Stock</text>
-  <text class="tiny" x="270" y="314" text-anchor="middle">SW corner example</text>
+  <text class="lab" x="270" y="282" text-anchor="middle" dominant-baseline="central" font-size="16">Stock</text>
+  <text class="tiny" x="270" y="306" text-anchor="middle" dominant-baseline="central">SW corner example</text>
 
   <rect class="panel" x="640" y="160" width="260" height="260" rx="12"/>
   <circle class="accent" cx="676" cy="200" r="18"/>
-  <text class="w" x="676" y="206" text-anchor="middle" font-size="14">1</text>
+  <text class="w" x="676" y="200" text-anchor="middle" dominant-baseline="central" font-size="14">1</text>
   <text class="lab" x="710" y="206" font-size="16">Prepare</text>
   <text class="tiny" x="668" y="250">Width X</text>
   <text class="lab" x="668" y="278" font-size="20">400 mm</text>

@@ -20,38 +20,40 @@
   <text class="lab title" x="28" y="36">Jog pad (Move tab)</text>
   <text class="tiny" x="28" y="56">Eight-way XY · separate Z · Stop cancels in-flight jog</text>
 
+  <!-- XY pad: labels centered on each 80×80 button (cx = x+40, cy = y+40) -->
   <rect class="diag" x="56" y="80" width="80" height="80" rx="12"/>
-  <text class="lab" x="82" y="128">↖</text>
+  <text class="lab" x="96" y="120" text-anchor="middle" dominant-baseline="central">↖</text>
   <rect class="btn" x="148" y="80" width="80" height="80" rx="12"/>
-  <text class="lab" x="170" y="128">Y+</text>
+  <text class="lab" x="188" y="120" text-anchor="middle" dominant-baseline="central">Y+</text>
   <rect class="diag" x="240" y="80" width="80" height="80" rx="12"/>
-  <text class="lab" x="266" y="128">↗</text>
+  <text class="lab" x="280" y="120" text-anchor="middle" dominant-baseline="central">↗</text>
 
   <rect class="btn" x="56" y="172" width="80" height="80" rx="12"/>
-  <text class="lab" x="78" y="220">X−</text>
+  <text class="lab" x="96" y="212" text-anchor="middle" dominant-baseline="central">X−</text>
   <rect x="148" y="172" width="80" height="80" rx="12" fill="#d8e0e8" stroke="#3a4550" stroke-width="1.75"/>
-  <text class="tiny" x="164" y="216">XY pad</text>
+  <text class="tiny" x="188" y="212" text-anchor="middle" dominant-baseline="central">XY pad</text>
   <rect class="btn" x="240" y="172" width="80" height="80" rx="12"/>
-  <text class="lab" x="262" y="220">X+</text>
+  <text class="lab" x="280" y="212" text-anchor="middle" dominant-baseline="central">X+</text>
 
   <rect class="diag" x="56" y="264" width="80" height="80" rx="12"/>
-  <text class="lab" x="82" y="312">↙</text>
+  <text class="lab" x="96" y="304" text-anchor="middle" dominant-baseline="central">↙</text>
   <rect class="btn" x="148" y="264" width="80" height="80" rx="12"/>
-  <text class="lab" x="170" y="312">Y−</text>
+  <text class="lab" x="188" y="304" text-anchor="middle" dominant-baseline="central">Y−</text>
   <rect class="diag" x="240" y="264" width="80" height="80" rx="12"/>
-  <text class="lab" x="266" y="312">↘</text>
+  <text class="lab" x="280" y="304" text-anchor="middle" dominant-baseline="central">↘</text>
 
+  <!-- Z / Stop: 200×80, center x=480; stacked primary + caption, both middle -->
   <rect class="z" x="380" y="80" width="200" height="80" rx="12"/>
-  <text class="lab" x="456" y="118">Z+</text>
-  <text class="tiny" x="434" y="140">raise tool</text>
+  <text class="lab" x="480" y="108" text-anchor="middle" dominant-baseline="central">Z+</text>
+  <text class="tiny" x="480" y="132" text-anchor="middle" dominant-baseline="central">raise tool</text>
 
   <rect class="z" x="380" y="172" width="200" height="80" rx="12"/>
-  <text class="lab" x="456" y="210">Z−</text>
-  <text class="tiny" x="432" y="232">lower tool</text>
+  <text class="lab" x="480" y="200" text-anchor="middle" dominant-baseline="central">Z−</text>
+  <text class="tiny" x="480" y="224" text-anchor="middle" dominant-baseline="central">lower tool</text>
 
   <rect class="stop" x="380" y="264" width="200" height="80" rx="12"/>
-  <text class="lab" x="448" y="302">Stop</text>
-  <text class="tiny" x="420" y="324">cancel jog</text>
+  <text class="lab" x="480" y="292" text-anchor="middle" dominant-baseline="central">Stop</text>
+  <text class="tiny" x="480" y="316" text-anchor="middle" dominant-baseline="central">cancel jog</text>
 
   <text class="tiny" x="28" y="380">Modes: Step (tap once) · Hold (press and keep moving)</text>
   <text class="tiny" x="28" y="400">Steps: 0.1 / 1 / 10 / 50 mm · Feed: 200–2000 mm/min (default 500)</text>

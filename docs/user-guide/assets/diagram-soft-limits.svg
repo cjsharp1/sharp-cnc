@@ -35,8 +35,8 @@
   <!-- Soft-limit envelope: start below bed label -->
   <rect class="soft" x="128" y="150" width="244" height="244" rx="4"/>
   <text class="tiny warn" x="250" y="178" text-anchor="middle">Soft-limit envelope</text>
-  <text class="tiny" x="312" y="300" text-anchor="middle">Far side</text>
-  <text class="tiny" x="312" y="318" text-anchor="middle">(no switches)</text>
+  <text class="tiny" x="250" y="300" text-anchor="middle">Far side</text>
+  <text class="tiny" x="250" y="318" text-anchor="middle">(no switches)</text>
 
   <!-- Origin marker near soft bottom-left, clear of dashed stroke -->
   <circle class="dot" cx="148" cy="370" r="7"/>

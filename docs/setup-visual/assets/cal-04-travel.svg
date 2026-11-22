@@ -23,7 +23,7 @@
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
   <circle class="num" cx="56" cy="56" r="28"/>
-  <text class="w" x="56" y="64" text-anchor="middle" font-size="24">4</text>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">4</text>
   <text class="lab big" x="100" y="50">Soft travel</text>
   <text class="lab act" x="100" y="84">Jog far → Use MPos → Write travel + $20</text>
 
@@ -42,5 +42,5 @@
   <text class="tiny" x="690" y="280" text-anchor="middle">Use MPos or type measured size</text>
   <text class="tiny" x="690" y="310" text-anchor="middle">Enable soft limits ($20=1)</text>
   <rect class="btn" x="560" y="350" width="260" height="48" rx="10"/>
-  <text class="w" x="690" y="382" text-anchor="middle" font-size="16">Write travel + $20</text>
+  <text class="w" x="690" y="374" text-anchor="middle" dominant-baseline="central" font-size="16">Write travel + $20</text>
 </svg>

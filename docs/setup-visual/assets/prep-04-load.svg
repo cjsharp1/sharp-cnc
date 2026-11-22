@@ -25,25 +25,25 @@
   <rect class="bed" x="60" y="110" width="500" height="360" rx="8"/>
   <text class="tiny" x="80" y="140">Machine bed</text>
   <rect class="stock" x="120" y="180" width="300" height="220" rx="4"/>
-  <text class="tiny" x="270" y="208" text-anchor="middle">Stock</text>
+  <text class="tiny" x="270" y="208" text-anchor="middle" dominant-baseline="central">Stock</text>
   <path class="path" d="M160 360 L220 280 L300 320 L360 240 L400 300"/>
   <circle class="job" cx="160" cy="360" r="6"/>
   <text class="tiny" x="270" y="420" text-anchor="middle">Toolpath overlay after Load</text>
 
   <rect class="panel" x="600" y="130" width="300" height="320" rx="12"/>
   <circle class="accent" cx="636" cy="170" r="18"/>
-  <text class="w" x="636" y="176" text-anchor="middle" font-size="14">1</text>
+  <text class="w" x="636" y="170" text-anchor="middle" dominant-baseline="central" font-size="14">1</text>
   <text class="lab" x="668" y="176" font-size="16">Job tab</text>
 
   <g transform="translate(628,210)">
     <rect class="chip" width="120" height="36" rx="8"/>
-    <text class="w" x="60" y="23" text-anchor="middle" font-size="13">Load G-code</text>
+    <text class="w" x="60" y="18" text-anchor="middle" dominant-baseline="central" font-size="13">Load G-code</text>
   </g>
   <text class="tiny" x="628" y="270">.nc / .gcode / .ngc</text>
 
   <g transform="translate(628,300)">
     <rect class="job" width="120" height="36" rx="8"/>
-    <text class="w" x="60" y="23" text-anchor="middle" font-size="13">Load SVG</text>
+    <text class="w" x="60" y="18" text-anchor="middle" dominant-baseline="central" font-size="13">Load SVG</text>
   </g>
   <text class="tiny" x="628" y="360">Then Generate → Job</text>
   <text class="tiny" x="628" y="400">Confirm path sits on stock</text>

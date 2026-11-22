@@ -27,7 +27,7 @@
   <rect class="bed" x="56" y="280" width="300" height="32" rx="3"/>
   <text class="tiny" x="56" y="336">Machine bed / table</text>
   <rect class="stock" x="100" y="220" width="220" height="60" rx="3"/>
-  <text class="tiny" x="178" y="256">Stock</text>
+  <text class="tiny" x="210" y="250" text-anchor="middle" dominant-baseline="central">Stock</text>
 
   <rect class="plate" x="160" y="204" width="100" height="16" rx="2"/>
   <text class="lab" x="276" y="198" font-weight="700">Plate</text>

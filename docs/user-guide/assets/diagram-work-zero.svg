@@ -32,7 +32,7 @@
   <rect class="bed" x="48" y="78" width="320" height="250" rx="8"/>
   <text class="tiny" x="62" y="98">Machine bed</text>
   <rect class="stock" x="168" y="168" width="150" height="100" rx="4"/>
-  <text class="lab" x="210" y="224" font-weight="700">Stock</text>
+  <text class="lab" x="243" y="218" text-anchor="middle" dominant-baseline="central" font-weight="700">Stock</text>
 
   <circle cx="72" cy="302" r="7" fill="#3a4550"/>
   <text class="lab m" x="86" y="286">Machine 0</text>

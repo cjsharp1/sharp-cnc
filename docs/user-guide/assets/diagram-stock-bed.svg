@@ -41,8 +41,8 @@
   <text class="tiny" x="420" y="134">Back-right</text>
 
   <rect class="stock" x="250" y="260" width="140" height="90" rx="4"/>
-  <text class="lab" x="284" y="304" font-weight="700">Stock</text>
-  <text class="tiny" x="268" y="324">Width × Length</text>
+  <text class="lab" x="320" y="298" text-anchor="middle" dominant-baseline="central" font-weight="700">Stock</text>
+  <text class="tiny" x="320" y="320" text-anchor="middle" dominant-baseline="central">Width × Length</text>
 
   <text class="tiny" x="500" y="160">Example: SE corner</text>
   <text class="tiny" x="500" y="180">placement — the orange</text>

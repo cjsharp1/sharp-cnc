@@ -34,46 +34,46 @@
   <rect class="header" x="40" y="72" width="700" height="28"/>
   <text class="brand" x="60" y="82">SharpCNC</text>
   <rect class="chip" x="178" y="64" width="168" height="26" rx="6"/>
-  <text class="lab-w tiny" x="192" y="81">Linked · COM3 · Connect</text>
+  <text class="lab-w tiny" x="262" y="77" text-anchor="middle" dominant-baseline="central">Linked · COM3 · Connect</text>
   <rect x="530" y="64" width="72" height="26" rx="6" fill="#3d4f63" stroke="#f1f3f5" stroke-width="1"/>
-  <text class="lab-w tiny" x="548" y="81">v0.2.0</text>
+  <text class="lab-w tiny" x="566" y="77" text-anchor="middle" dominant-baseline="central">v0.2.0</text>
   <rect x="612" y="64" width="88" height="26" rx="6" fill="#3d4f63" stroke="#f1f3f5" stroke-width="1"/>
-  <text class="lab-w small" x="634" y="82">Menu</text>
+  <text class="lab-w small" x="656" y="77" text-anchor="middle" dominant-baseline="central">Menu</text>
 
   <rect class="ess" x="56" y="116" width="380" height="72" rx="8"/>
   <text class="lab title" x="72" y="140">Position + Safety</text>
   <rect x="72" y="150" width="140" height="26" rx="5" fill="#fff" stroke="#3a4550"/>
-  <text class="lab tiny" x="86" y="167">Work / Machine XYZ</text>
+  <text class="lab tiny" x="142" y="163" text-anchor="middle" dominant-baseline="central">Work / Machine XYZ</text>
   <rect x="224" y="150" width="192" height="26" rx="5" fill="#fff" stroke="#3a4550"/>
-  <text class="lab tiny" x="238" y="167">E-Stop · Hold · Unlock</text>
+  <text class="lab tiny" x="320" y="163" text-anchor="middle" dominant-baseline="central">E-Stop · Hold · Unlock</text>
 
   <rect class="viz" x="56" y="200" width="380" height="208" rx="8"/>
   <text class="lab title" x="72" y="228">Visualizer</text>
   <text class="lab tiny" x="72" y="248">Bed · stock · toolpath · toolhead</text>
   <rect x="96" y="264" width="300" height="120" rx="4" fill="#c5d4e0" stroke="#3a4550" stroke-width="1"/>
-  <text class="lab tiny" x="186" y="294">Machine bed view</text>
-  <circle cx="246" cy="340" r="8" fill="#b8862d"/>
+  <text class="lab tiny" x="246" y="324" text-anchor="middle" dominant-baseline="central">Machine bed view</text>
+  <circle cx="246" cy="352" r="8" fill="#b8862d"/>
 
   <rect class="rail" x="452" y="116" width="272" height="292" rx="8"/>
   <text class="lab title" x="468" y="144">Workspace (tall)</text>
   <rect class="tab-on" x="468" y="160" width="58" height="26" rx="5"/>
-  <text class="lab-w small" x="478" y="178">Move</text>
+  <text class="lab-w small" x="497" y="173" text-anchor="middle" dominant-baseline="central">Move</text>
   <rect class="tab" x="532" y="160" width="58" height="26" rx="5"/>
-  <text class="lab small" x="544" y="178">Probe</text>
+  <text class="lab small" x="561" y="173" text-anchor="middle" dominant-baseline="central">Probe</text>
   <rect class="tab" x="596" y="160" width="50" height="26" rx="5"/>
-  <text class="lab small" x="608" y="178">Job</text>
+  <text class="lab small" x="621" y="173" text-anchor="middle" dominant-baseline="central">Job</text>
   <rect class="tab" x="652" y="160" width="50" height="26" rx="5"/>
-  <text class="lab small" x="664" y="178">Log</text>
+  <text class="lab small" x="677" y="173" text-anchor="middle" dominant-baseline="central">Log</text>
   <rect x="468" y="200" width="234" height="72" rx="5" fill="#fff" stroke="#3a4550"/>
-  <text class="lab small" x="484" y="230">Jog controls</text>
-  <text class="lab tiny" x="484" y="250">above the fold</text>
+  <text class="lab small" x="585" y="226" text-anchor="middle" dominant-baseline="central">Jog controls</text>
+  <text class="lab tiny" x="585" y="248" text-anchor="middle" dominant-baseline="central">above the fold</text>
   <text class="lab tiny" x="468" y="300">Then zeros · home · console</text>
   <text class="lab tiny" x="468" y="322">Rail starts under the header</text>
 
   <circle class="callout" cx="56" cy="116" r="13"/>
-  <text class="callout-t" x="52" y="121">1</text>
+  <text class="callout-t" x="56" y="116" text-anchor="middle" dominant-baseline="central">1</text>
   <circle class="callout" cx="56" cy="200" r="13"/>
-  <text class="callout-t" x="52" y="205">2</text>
+  <text class="callout-t" x="56" y="200" text-anchor="middle" dominant-baseline="central">2</text>
   <circle class="callout" cx="452" cy="116" r="13"/>
-  <text class="callout-t" x="448" y="121">3</text>
+  <text class="callout-t" x="452" y="116" text-anchor="middle" dominant-baseline="central">3</text>
 </svg>
