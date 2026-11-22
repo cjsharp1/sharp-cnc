@@ -10,21 +10,22 @@ The window is built so you always see **connection**, **position**, and **safety
 
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
+- **Connection chip** — compact Linked / Offline status, port, Connect / Disconnect / Reset (sits with the brand and Menu)
 - **Version chip** (e.g. `v0.1.0`) — opens **About & updates**; lights an Update badge when a newer GitHub Release exists
 - **Menu** — Material & tool, External jobs, Calibration, Bed travel test, Trace stock perimeter, Prepare to run, **Appearance** (dark / light), **Debug mode**, and **About & updates…** (version footer in the menu)
 
 ![Menu open](assets/menu-open.webp)
 
-## Essentials strip (always visible)
+## Left column (under the header)
 
-Blocks side by side:
+Above the visualizer, two boxes side by side:
 
-1. **Connect** — port, baud note, Connect / Disconnect / Reset  
-2. **Position** — Work and Machine X / Y / Z plus machine state (Idle, Jog, Run, Hold, Alarm, …)  
-3. **Safety** — E-Stop, Hold, Resume, Reset, Unlock (+ guided alarm steps when locked)  
-4. **Live overrides** (while Running / Held) — feed %, rapid % (100/50/25), spindle % with coarse steps
+1. **Position** — Work and Machine X / Y / Z plus machine state (Idle, Jog, Run, Hold, Alarm, …)  
+2. **Safety** — E-Stop, Hold, Resume, Reset, Unlock (+ guided alarm steps when locked)  
 
-Keep an eye on this strip while jogging or running. If state flips to **Alarm** or **Hold**, stop and read the banner before continuing.
+While Running / Held, a **live overrides** strip appears under those boxes (feed %, rapid % 100/50/25, spindle %).
+
+Keep an eye on position and safety while jogging or running. If state flips to **Alarm** or **Hold**, stop and read the banner before continuing.
 
 ## Visualizer (main stage)
 
@@ -40,6 +41,8 @@ Shows:
 Labels on the view call out bed size, stock, path name, and whether you are in preview or live motion.
 
 ## Workspace tabs (right rail)
+
+The tabbed panel stretches from just under the header to the bottom of the window so **Move → Jog** stays reachable without scrolling the panel first.
 
 Four focused tabs (arrow keys move between them):
 

@@ -90,17 +90,27 @@ button {
   position: relative;
   z-index: 30;
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: 1.25rem;
+  gap: 1rem 1.25rem;
   animation: rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.brand__lead {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem 1.15rem;
+  min-width: 0;
+  flex: 1;
+  flex-wrap: wrap;
 }
 
 .brand__text {
   display: flex;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.25rem;
   min-width: 0;
+  flex-shrink: 0;
 }
 
 .brand__mark {
@@ -117,19 +127,18 @@ button {
 
 .brand__tag {
   margin: 0;
-  max-width: 28rem;
+  max-width: 22rem;
   color: var(--muted);
-  font-size: var(--text-lg);
+  font-size: var(--text-sm);
   font-weight: 400;
   letter-spacing: 0.01em;
 }
 
 .brand__actions {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   gap: 0.55rem;
   flex-shrink: 0;
-  margin-top: 0.35rem;
 }
 
 .brand__version {
@@ -287,6 +296,12 @@ button {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: 0.55rem;
+}
+
+.shell__main > .machine {
+  flex: 1;
+  min-height: 0;
 }
 
 @keyframes rise {
@@ -714,37 +729,62 @@ button {
   overflow: hidden;
 }
 
-.shell__essentials {
-  display: grid;
-  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.95fr) minmax(0, 1.2fr);
-  gap: 0.65rem;
+.shell__chrome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
   flex-shrink: 0;
-  animation: rise 820ms 40ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
-.shell__essentials .connect,
-.shell__essentials .coords,
-.shell__essentials .safety {
-  padding: 0.75rem 0.9rem;
+.shell__chrome-row {
+  display: grid;
+  grid-template-columns: minmax(11.5rem, 0.78fr) minmax(0, 1.22fr);
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.shell__chrome .coords,
+.shell__chrome .safety {
+  padding: 0.55rem 0.7rem;
   min-width: 0;
 }
 
-.shell__essentials .safety__actions {
+.shell__chrome .coords__head {
+  margin-bottom: 0.35rem;
+}
+
+.shell__chrome .safety {
+  gap: 0.45rem;
+}
+
+.shell__chrome .safety__actions {
   grid-template-columns: 1.25fr repeat(4, minmax(0, 1fr));
   gap: 0.3rem;
 }
 
-.shell__essentials .safety__estop,
-.shell__essentials .safety__btn {
-  min-height: 2.2rem;
+.shell__chrome .safety__estop,
+.shell__chrome .safety__btn {
+  min-height: 2.1rem;
 }
 
-.shell__essentials .safety__estop {
-  font-size: var(--text-lg);
+.shell__chrome .safety__estop {
+  font-size: var(--text-base);
 }
 
-.shell__essentials .connect__ports {
-  flex-wrap: wrap;
+.shell__chrome .coords__val {
+  font-size: 0.98rem;
+}
+
+.shell__chrome .coords__val--muted {
+  font-size: var(--text-sm);
+}
+
+.shell__chrome .coords__row {
+  padding: 0.18rem 0;
+}
+
+.shell__chrome .coords__legend {
+  margin-bottom: 0.2rem;
 }
 
 .workspace {
@@ -783,6 +823,12 @@ button {
   color: var(--muted);
   line-height: 1.4;
   overflow-wrap: anywhere;
+}
+
+.workspace__intro--compact {
+  margin: 0 0 0.45rem;
+  font-size: var(--text-xs);
+  line-height: 1.3;
 }
 
 .visually-hidden {
@@ -845,7 +891,7 @@ button {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: 0.75rem;
+  padding: 0.55rem 0.65rem 0.75rem;
 }
 
 .workspace__panel {
@@ -867,7 +913,6 @@ button {
   padding: 0;
 }
 
-.connect,
 .coords,
 .jog,
 .zero,
@@ -894,29 +939,44 @@ button {
   background: var(--panel-deep);
 }
 
-.connect {
-  display: flex;
-  flex-direction: column;
-  gap: 0.85rem;
+.workspace__panel--move {
+  gap: 0.75rem;
 }
 
-.connect__row {
+.connect--header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
+  gap: 0.4rem 0.5rem;
+  min-width: 0;
+  max-width: min(100%, 34rem);
+  padding: 0.35rem 0.45rem 0.35rem 0.55rem;
+  border: 1px solid var(--border-strong);
+  background: var(--panel);
+  transition: border-color 160ms ease, background 160ms ease;
+}
+
+.connect--header.is-live {
+  border-color: var(--brass-border);
+  background: var(--brass-fill);
+}
+
+.connect--header.is-error {
+  border-color: var(--danger-border);
+  background: var(--danger-fill-soft);
 }
 
 .connect__status {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  gap: 0.45rem;
   min-width: 0;
+  padding-right: 0.15rem;
 }
 
 .connect__dot {
-  width: 0.65rem;
-  height: 0.65rem;
+  width: 0.5rem;
+  height: 0.5rem;
   border-radius: 50%;
   background: var(--steel-dim);
   box-shadow: 0 0 0 0 rgba(212, 168, 75, 0);
@@ -926,22 +986,22 @@ button {
 
 .connect__dot.is-live {
   background: var(--brass);
-  box-shadow: 0 0 0 4px rgba(212, 168, 75, 0.18);
+  box-shadow: 0 0 0 3px rgba(212, 168, 75, 0.18);
   animation: pulse-live 2.4s ease-in-out infinite;
 }
 
 .connect__dot.is-error {
   background: var(--danger);
-  box-shadow: 0 0 0 4px rgba(196, 92, 74, 0.2);
+  box-shadow: 0 0 0 3px rgba(196, 92, 74, 0.2);
 }
 
 @keyframes pulse-live {
   0%,
   100% {
-    box-shadow: 0 0 0 4px rgba(212, 168, 75, 0.14);
+    box-shadow: 0 0 0 3px rgba(212, 168, 75, 0.14);
   }
   50% {
-    box-shadow: 0 0 0 7px rgba(212, 168, 75, 0.05);
+    box-shadow: 0 0 0 5px rgba(212, 168, 75, 0.05);
   }
 }
 
@@ -965,10 +1025,20 @@ button {
   color: var(--steel);
 }
 
+.connect--header .connect__label {
+  font-size: var(--text-2xs);
+  letter-spacing: 0.1em;
+  white-space: nowrap;
+}
+
+.connect--header.is-live .connect__label {
+  color: var(--brass-hot);
+}
+
 .connect__port,
 .job__name,
 .svgjob__name {
-  margin: 0.15rem 0 0;
+  margin: 0;
   font-family: var(--font-mono);
   font-size: var(--text-base);
   color: var(--ink);
@@ -977,62 +1047,61 @@ button {
   text-overflow: ellipsis;
 }
 
+.connect--header .connect__port {
+  max-width: 9.5rem;
+  font-size: var(--text-xs);
+  color: var(--steel);
+  opacity: 0.92;
+}
+
 .connect__actions {
   display: flex;
   align-items: center;
-  gap: 0.45rem;
+  gap: 0.3rem;
   flex-shrink: 0;
 }
 
 .connect__ports {
   display: flex;
-  align-items: flex-end;
-  gap: 0.55rem;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
 }
 
 .connect__field {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
-  flex: 1;
+  gap: 0;
   min-width: 0;
-}
-
-.connect__field-label {
-  font-size: var(--text-xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--steel-dim);
+  flex: 1;
 }
 
 .connect__select {
   width: 100%;
+  min-width: 7.5rem;
+  max-width: 11rem;
   appearance: none;
   border: 1px solid var(--line);
   background: var(--input-bg);
   color: var(--ink);
   font-family: var(--font-mono);
-  font-size: var(--text-md);
-  padding: 0.5rem 0.65rem;
+  font-size: var(--text-xs);
+  padding: 0.28rem 0.45rem;
   border-radius: 0;
+  line-height: 1.2;
 }
 
 .connect__select:disabled {
   opacity: 0.55;
 }
 
-.connect__meta {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--muted);
-  letter-spacing: 0.02em;
-}
-
 .connect__error {
   margin: 0;
-  font-size: var(--text-md);
+  flex-basis: 100%;
+  font-size: var(--text-xs);
   color: var(--danger-text-soft);
   font-family: var(--font-mono);
+  line-height: 1.3;
 }
 
 .connect__btn,
@@ -1048,6 +1117,13 @@ button {
   text-transform: uppercase;
   transition: border-color 160ms ease, background 160ms ease, color 160ms ease,
     opacity 160ms ease;
+}
+
+.connect--header .connect__btn {
+  padding: 0.28rem 0.55rem;
+  font-size: var(--text-2xs);
+  letter-spacing: 0.06em;
+  min-height: 1.7rem;
 }
 
 .connect__btn:hover:not(:disabled),
@@ -3826,12 +3902,8 @@ button {
 }
 
 @media (max-width: 1100px) {
-  .shell__essentials {
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .shell__essentials .safety {
-    grid-column: 1 / -1;
+  .shell__chrome-row {
+    grid-template-columns: 1fr;
   }
 
   .shell__stage {
@@ -3839,7 +3911,7 @@ button {
     gap: 0.85rem;
   }
 
-  .shell__essentials .safety__actions {
+  .shell__chrome .safety__actions {
     grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr));
   }
 
@@ -3860,14 +3932,19 @@ button {
 
   .brand {
     flex-wrap: wrap;
+    align-items: flex-start;
   }
 
-  .shell__essentials {
+  .brand__lead {
+    width: 100%;
+  }
+
+  .connect--header {
+    max-width: 100%;
+  }
+
+  .shell__chrome-row {
     grid-template-columns: 1fr;
-  }
-
-  .shell__essentials .safety {
-    grid-column: auto;
   }
 
   .shell__stage {
@@ -3918,9 +3995,8 @@ button {
 
 
 /* —— Status cues (not color-alone) —— */
-.connect__status.is-live .connect__label {
+.connect--header.is-live .connect__label {
   font-weight: 600;
-  letter-spacing: 0.04em;
 }
 
 .connect__dot.is-live {

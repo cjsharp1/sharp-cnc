@@ -2883,11 +2883,34 @@ export default function App() {
       <div className="shell__atmosphere" aria-hidden />
 
       <header className="brand">
-        <div className="brand__text">
-          <p className="brand__mark">SharpCNC</p>
-          <p className="brand__tag">
-            One machine. Clear position. Run the job.
-          </p>
+        <div className="brand__lead">
+          <div className="brand__text">
+            <p className="brand__mark">SharpCNC</p>
+            <p className="brand__tag">
+              One machine. Clear position. Run the job.
+            </p>
+          </div>
+          <ConnectPanel
+            phase={phase}
+            ports={ports}
+            selectedPath={selectedPath}
+            portLabel={portLabel}
+            errorMessage={errorMessage}
+            usingMock={usingMock}
+            onSelectPath={setSelectedPath}
+            onRefreshPorts={() => {
+              void refreshPorts();
+            }}
+            onConnect={() => {
+              void handleConnect();
+            }}
+            onDisconnect={() => {
+              void handleDisconnect();
+            }}
+            onSoftReset={() => {
+              void handleSoftReset();
+            }}
+          />
         </div>
         <div className="brand__actions">
           <button
@@ -2925,97 +2948,80 @@ export default function App() {
         </div>
       </header>
 
-      <section className="shell__essentials" aria-label="Machine essentials">
-        <ConnectPanel
-          phase={phase}
-          ports={ports}
-          selectedPath={selectedPath}
-          portLabel={portLabel}
-          errorMessage={errorMessage}
-          usingMock={usingMock}
-          onSelectPath={setSelectedPath}
-          onRefreshPorts={() => {
-            void refreshPorts();
-          }}
-          onConnect={() => {
-            void handleConnect();
-          }}
-          onDisconnect={() => {
-            void handleDisconnect();
-          }}
-          onSoftReset={() => {
-            void handleSoftReset();
-          }}
-        />
-        <CoordinateReadout status={status} />
-        <SafetyControls
-          connected={connected}
-          machineState={status.state}
-          alarmMessage={alarmMessage}
-          alarmGuide={alarmGuide}
-          usingMock={usingMock}
-          onEstop={() => {
-            void handleEstop();
-          }}
-          onHold={() => {
-            void handleHold();
-          }}
-          onResume={() => {
-            void handleResume();
-          }}
-          onReset={() => {
-            void handleSoftReset();
-          }}
-          onUnlock={() => {
-            void handleUnlock();
-          }}
-          onSimulateAlarm={() => {
-            void handleSimulateAlarm();
-          }}
-          onSimulateSoftLimit={() => {
-            void handleSimulateSoftLimit();
-          }}
-          onSimulateProbeFail={() => {
-            void handleSimulateProbeFail();
-          }}
-        />
-        <OverridesStrip
-          visible={streaming || status.state === "Run" || status.state === "Hold"}
-          feedPercent={liveFeedPercent}
-          rapidPercent={liveRapidPercent}
-          spindlePercent={liveSpindlePercent}
-          feedRate={status.feedRate}
-          spindleSpeed={status.spindleSpeed}
-          connected={connected}
-          onFeedOverride={(step) => {
-            void handleFeedOverride(step);
-          }}
-          onSpindleOverride={(step) => {
-            void handleSpindleOverride(step);
-          }}
-          onRapidOverride={(step) => {
-            void handleRapidOverride(step);
-          }}
-        />
-        {recoveryVisible && recovery ? (
-          <div className="recovery-banner" role="status">
-            <span>
-              Interrupted job <strong>{recovery.jobName}</strong> — open Job for
-              recovery (where am I / unlock / resume / abort).
-            </span>
-            <button
-              type="button"
-              className="recovery-banner__btn"
-              onClick={() => setWorkspaceTab("job")}
-            >
-              Open Job
-            </button>
-          </div>
-        ) : null}
-      </section>
-
       <div className="shell__stage">
         <div className="shell__main">
+          <section className="shell__chrome" aria-label="Position and safety">
+            <div className="shell__chrome-row">
+              <CoordinateReadout status={status} />
+              <SafetyControls
+                connected={connected}
+                machineState={status.state}
+                alarmMessage={alarmMessage}
+                alarmGuide={alarmGuide}
+                usingMock={usingMock}
+                onEstop={() => {
+                  void handleEstop();
+                }}
+                onHold={() => {
+                  void handleHold();
+                }}
+                onResume={() => {
+                  void handleResume();
+                }}
+                onReset={() => {
+                  void handleSoftReset();
+                }}
+                onUnlock={() => {
+                  void handleUnlock();
+                }}
+                onSimulateAlarm={() => {
+                  void handleSimulateAlarm();
+                }}
+                onSimulateSoftLimit={() => {
+                  void handleSimulateSoftLimit();
+                }}
+                onSimulateProbeFail={() => {
+                  void handleSimulateProbeFail();
+                }}
+              />
+            </div>
+            <OverridesStrip
+              visible={
+                streaming || status.state === "Run" || status.state === "Hold"
+              }
+              feedPercent={liveFeedPercent}
+              rapidPercent={liveRapidPercent}
+              spindlePercent={liveSpindlePercent}
+              feedRate={status.feedRate}
+              spindleSpeed={status.spindleSpeed}
+              connected={connected}
+              onFeedOverride={(step) => {
+                void handleFeedOverride(step);
+              }}
+              onSpindleOverride={(step) => {
+                void handleSpindleOverride(step);
+              }}
+              onRapidOverride={(step) => {
+                void handleRapidOverride(step);
+              }}
+            />
+            {recoveryVisible && recovery ? (
+              <div className="recovery-banner" role="status">
+                <span>
+                  Interrupted job <strong>{recovery.jobName}</strong> — open Job
+                  for recovery (where am I / unlock / resume / abort).
+                </span>
+                <button
+                  type="button"
+                  className="recovery-banner__btn"
+                  onClick={() => setWorkspaceTab("job")}
+                >
+                  Open Job
+                </button>
+              </div>
+            ) : null}
+          </section>
+
           <MachineView
             tool={displayTool}
             bedMm={bedMm}
@@ -3076,16 +3082,11 @@ export default function App() {
             <div className="workspace__body">
               {workspaceTab === "move" && (
                 <div
-                  className="workspace__panel"
+                  className="workspace__panel workspace__panel--move"
                   role="tabpanel"
                   id="workspace-panel-move"
                   aria-labelledby="workspace-tab-move"
                 >
-                  <p className="workspace__intro">
-                    Move the machine: jog, home, work zeros / offsets, console,
-                    spindle. Probe tools live on the <strong>Probe</strong> tab;
-                    files and Start live on <strong>Job</strong>.
-                  </p>
                   <JogPanel
                     enabled={jogEnabled}
                     mode={jogMode}
