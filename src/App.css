@@ -1611,6 +1611,41 @@ button {
   line-height: 1.35;
 }
 
+.svgjob__samples {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.15rem 0 0.35rem;
+}
+
+.svgjob__samples-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--steel-dim);
+}
+
+.svgjob__samples-btns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.svgjob__btn--sample {
+  text-transform: none;
+  letter-spacing: 0.02em;
+  font-weight: 600;
+  padding: 0.3rem 0.55rem;
+}
+
+.svgjob__samples-hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--steel-dim);
+  line-height: 1.35;
+}
+
 .svgjob__actions {
   display: flex;
   flex-wrap: wrap;

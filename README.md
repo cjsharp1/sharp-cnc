@@ -68,7 +68,7 @@ Full walkthrough with screenshots: [docs/user-guide/](docs/user-guide/) or the [
 - USB serial connect + live MPos/WPos; jog / work zeros; G-code load & run
 - Live machine view (toolhead + path); pre-run simulate
 - Activity log, E-Stop / Hold / Unlock, alarm surfacing
-- Guided calibration + soft travel; SVG → simple engrave/outline G-code
+- Guided calibration + soft travel; SVG → simple engrave/outline G-code (built-in mm cut-size samples)
 - Material & tool, prepare / Z probe wizard, spindle & feed overrides
 - External Demon Shield start / pause / stop mirroring
 - Optional watched jobs folder + Drive scaffolding; AI debug bridge (desktop, Debug mode)

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="100mm"
+     height="4mm"
+     viewBox="0 0 100 4"
+     role="img"
+     aria-labelledby="title desc">
+  <!--
+    SharpCNC cut-size sample — true 100 mm reference line with end ticks.
+    Outer width is 100 mm; viewBox X span is 100 so 1 user unit = 1 mm.
+    Measure between the vertical end ticks after cutting.
+  -->
+  <title id="title">SharpCNC 100 mm line</title>
+  <desc id="desc">100 mm horizontal span with 4 mm end ticks for single-axis length checks.</desc>
+  <line x1="0" y1="2" x2="100" y2="2"
+        stroke="#111" stroke-width="0.25"/>
+  <line x1="0" y1="0" x2="0" y2="4"
+        stroke="#111" stroke-width="0.25"/>
+  <line x1="100" y1="0" x2="100" y2="4"
+        stroke="#111" stroke-width="0.25"/>
+</svg>
