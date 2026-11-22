@@ -58,6 +58,10 @@ button:focus-visible {
   flex-direction: column;
 }
 
+/*
+ * Site header markup is owned by docs/js/site-chrome.js (data-site-chrome mount).
+ * Keep brand / .site-nav / .theme-toggle structure in sync with that script.
+ */
 .site-header {
   display: flex;
   align-items: center;
