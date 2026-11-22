@@ -14,6 +14,8 @@ Prefer a packaged install on the machine PC:
 - [Latest GitHub Release](https://github.com/cjsharp1/sharp-cnc/releases/latest) — NSIS `SharpCNC_*_x64-setup.exe`
 - Docs landing download section: [cjsharp1.github.io/sharp-cnc/#download](https://cjsharp1.github.io/sharp-cnc/#download)
 
+**Updating day-to-day:** in SharpCNC, check the header version chip or **Menu → About & updates…**. If a newer GitHub Release exists, quit the app and run the newer NSIS setup **over the existing install** (no uninstall needed). Uninstall first only if that upgrade fails. SmartScreen on unsigned personal builds: **More info → Run anyway** only on a PC you trust. Browser/`npm run dev` shows the version and can open the release page only.
+
 Build locally on Windows (`npm run build:windows`) or via **Actions → Windows installer** / a `v*` tag. Details: [scripts/build-windows-installer.md](scripts/build-windows-installer.md).
 
 Or clone for development:

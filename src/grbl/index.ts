@@ -531,3 +531,27 @@ export {
   listDriveJobFiles,
   readDriveJobFile,
 } from "./googleDrive";
+
+export type {
+  LatestReleaseInfo,
+  ReleaseAsset,
+  UpdateCheckResult,
+} from "./appVersion";
+export {
+  GITHUB_API_LATEST_RELEASE,
+  GITHUB_OWNER,
+  GITHUB_RELEASES_LATEST_URL,
+  GITHUB_REPO,
+  checkLatestRelease,
+  compareVersions,
+  formatVersionLabel,
+  isNewerVersion,
+  normalizeVersion,
+  openExternalUrl,
+  packagedAppVersion,
+  parseGithubReleaseJson,
+  parseSemver,
+  pickNsisAsset,
+  resolveAppVersion,
+  summarizeReleaseNotes,
+} from "./appVersion";

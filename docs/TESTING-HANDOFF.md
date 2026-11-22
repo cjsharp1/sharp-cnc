@@ -40,6 +40,7 @@ Uses native serial. Prefer this while iterating.
 1. Prefer a [GitHub Release](https://github.com/cjsharp1/sharp-cnc/releases/latest) NSIS `SharpCNC_*_x64-setup.exe`, or build locally (see below).
 2. Install → launch **SharpCNC** from Start menu.
 3. Unsigned personal builds may hit SmartScreen → **More info → Run anyway** only on a PC you trust.
+4. **Later updates:** header version chip or **Menu → About & updates…** → download newer NSIS → quit → run setup **over the existing install** (no uninstall). Uninstall only if upgrade fails. Confirm the version chip after relaunch.
 
 ### C — Build the Windows installer yourself
 
