@@ -85,18 +85,52 @@ assert(grown.widthMm === 500, "keep-origin width");
 assert(grown.offsetXMm === -500 && grown.offsetYMm === 0, "SE stays at 0,0");
 assert(grown.originCorner === "se", "origin corner kept");
 
-// Fine-tune drag: allow negative offsets, refuse fully off bed.
+// Fine-tune drag: full stock stays inside [0,bed]×[0,bed] (no off-bed).
 const dragged = moveStockBy(anchored, 50, 0, bedW, bedD);
-assert(dragged.offsetXMm === -350, "drag onto bed from SE origin");
+assert(dragged.offsetXMm === 0, "drag snaps SE-anchored stock onto bed");
+assert(dragged.offsetYMm === 0, "Y stays on bed");
 assert(dragged.originCorner === undefined, "drag clears origin anchor");
-const offBed = moveStockBy(anchored, -50, 0, bedW, bedD);
-assert(offBed.offsetXMm === -400, "refuse drag fully off bed");
-const clamped = clampStockToBed(
-  { ...stock, offsetXMm: -9999, offsetYMm: 0, widthMm: 400, lengthMm: 250 },
+const offBed = moveStockBy(
+  { ...stock, offsetXMm: 10, offsetYMm: 20 },
+  -100,
+  -100,
   bedW,
   bedD,
 );
-assert(clamped.offsetXMm === -400, "clamp keeps edge touch at 0");
+assert(offBed.offsetXMm === 0 && offBed.offsetYMm === 0, "refuse drag off bed");
+const pastMax = moveStockBy(
+  { ...stock, offsetXMm: 500, offsetYMm: 600 },
+  9999,
+  9999,
+  bedW,
+  bedD,
+);
+assert(
+  pastMax.offsetXMm === bedW - stock.widthMm &&
+    pastMax.offsetYMm === bedD - stock.lengthMm,
+  "refuse drag past max soft travel",
+);
+const clamped = clampStockToBed(
+  { ...stock, offsetXMm: -9999, offsetYMm: -50, widthMm: 400, lengthMm: 250 },
+  bedW,
+  bedD,
+);
+assert(
+  clamped.offsetXMm === 0 && clamped.offsetYMm === 0,
+  "clamp pulls SW onto bed origin",
+);
+const oversized = clampStockToBed(
+  { ...stock, widthMm: 2000, lengthMm: 1500, offsetXMm: 10, offsetYMm: 10 },
+  bedW,
+  bedD,
+);
+assert(
+  oversized.widthMm === bedW &&
+    oversized.lengthMm === bedD &&
+    oversized.offsetXMm === 0 &&
+    oversized.offsetYMm === 0,
+  "clamp shrinks stock that exceeds soft bed",
+);
 
 const resized = resizeStockFromHandle(
   { ...DEFAULT_STOCK, offsetXMm: 100, offsetYMm: 50 },
@@ -107,6 +141,32 @@ const resized = resizeStockFromHandle(
 );
 assert(resized.widthMm === 350, `resize width ${resized.widthMm}`);
 assert(resized.offsetXMm === 100, "west edge fixed");
+
+const resizeOffWest = resizeStockFromHandle(
+  { ...DEFAULT_STOCK, offsetXMm: 100, offsetYMm: 50 },
+  "w",
+  { x: -80, y: 100 },
+  bedW,
+  bedD,
+);
+assert(resizeOffWest.offsetXMm === 0, "west resize stops at bed 0");
+assert(
+  Math.abs(resizeOffWest.widthMm - 400) < 0.05,
+  `west resize keeps east edge (${resizeOffWest.widthMm})`,
+);
+
+const resizePastEast = resizeStockFromHandle(
+  { ...DEFAULT_STOCK, offsetXMm: 800, offsetYMm: 50, widthMm: 100 },
+  "e",
+  { x: 1500, y: 100 },
+  bedW,
+  bedD,
+);
+assert(resizePastEast.offsetXMm === 800, "east resize keeps west edge");
+assert(
+  resizePastEast.offsetXMm + resizePastEast.widthMm === bedW,
+  "east resize stops at soft max X",
+);
 
 assert(
   hitTestStock(DEFAULT_STOCK, 10, 10, 2, false) === "body",
