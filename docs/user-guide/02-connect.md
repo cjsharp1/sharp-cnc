@@ -1,6 +1,6 @@
 # 2. First connection
 
-**Prefer pictures:** [First-run visual guide](../setup-visual/first-run.html) (Connect → Home → Calibrate → Travel → Stock).
+**Order reminder:** connect/home for the session, then [calibrate once](05-calibration.md) if the machine is new or changed; [prepare every job](07-prepare-and-z-probe.md) before Start. Pictures: [first-run bootstrap](../setup-visual/first-run.html) · [calibration](../setup-visual/calibration.html) · [prepare](../setup-visual/prepare.html).
 
 SharpCNC ↔ GRBL over **USB serial** (Demon Shield). Baud **115200**.
 
@@ -8,7 +8,7 @@ SharpCNC ↔ GRBL over **USB serial** (Demon Shield). Baud **115200**.
 
 ## First-run wizard
 
-Fresh install opens **First-run setup**. Finish or **Skip for now**. Reopen: **Menu → First-run setup…**.
+Fresh install opens **First-run setup** — a bootstrap that gets you **Linked**, home, and into **calibration** (machine, once). The optional stock step only seeds the first job; later cuts use **Prepare**. Finish or **Skip for now**. Reopen: **Menu → First-run setup…**.
 
 ## Connect (checklist)
 
@@ -31,4 +31,4 @@ On connect: soft reset (`Ctrl-X`).
 
 > **Safety:** Connect does not home. Look before you jog.
 
-Next: [UI](03-understanding-the-ui.md) · [Calibration visual](../setup-visual/calibration.html)
+Next: [Calibration](05-calibration.md) (once) · [UI](03-understanding-the-ui.md)

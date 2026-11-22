@@ -3115,7 +3115,7 @@ export default function App() {
           <div className="cal-modal__sheet">
             <header className="cal-modal__head">
               <div>
-                <p className="cal-modal__eyebrow">Settings · Wizard</p>
+                <p className="cal-modal__eyebrow">Once per machine</p>
                 <h2 className="cal-modal__title">Calibration</h2>
               </div>
               <button
@@ -3270,7 +3270,7 @@ export default function App() {
           <div className="cal-modal__sheet cal-modal__sheet--wide">
             <header className="cal-modal__head">
               <div>
-                <p className="cal-modal__eyebrow">Job · Pre-start</p>
+                <p className="cal-modal__eyebrow">Every job · after calibration</p>
                 <h2 className="cal-modal__title">Prepare to run</h2>
               </div>
               <button

@@ -3,11 +3,11 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>First-run setup · SharpCNC</title>
+    <title>First-run bootstrap · SharpCNC</title>
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC first-run visual guide: connect, home, calibrate, travel, stock."
+      content="SharpCNC first-run bootstrap: connect, home, then calibration. Stock seeds the first job only."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -38,17 +38,19 @@
 
       <main class="visual-guide">
         <header class="visual-guide__head">
-          <p class="visual-guide__eyebrow">SharpCNC · First run</p>
-          <h1>First-run setup</h1>
+          <p class="visual-guide__eyebrow">SharpCNC · Fresh install bootstrap</p>
+          <h1>First-run wizard</h1>
           <p class="visual-guide__one">
-            Same steps as the in-app wizard. One glance = next action.
+            Gets you linked and into <strong>calibration</strong> (machine,
+            once). Stock at the end is only a seed for the first job — every
+            later cut uses <a href="prepare.html">Prepare</a>.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#s1">1 Connect</a>
             <a href="#s2">2 Home</a>
             <a href="#s3">3 Calibrate</a>
             <a href="#s4">4 Travel</a>
-            <a href="#s5">5 Stock</a>
+            <a href="#s5">5 Stock seed</a>
           </nav>
         </header>
 
@@ -93,7 +95,7 @@
         <article class="step-card" id="s3">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">3</span>
-            <h2>Calibrate</h2>
+            <h2>Calibrate (machine)</h2>
             <p class="step-card__action">
               Tap <strong>Open Calibration…</strong> → finish direction +
               steps/mm
@@ -108,10 +110,11 @@
             />
           </figure>
           <p class="step-card__aside">
+            This is the <strong>once-per-machine</strong> phase.
             Detail:
             <a href="calibration.html">Calibration visual guide</a>
           </p>
-          <a class="step-card__next" href="#s4">Next: Travel →</a>
+          <a class="step-card__next" href="#s4">Next: Soft travel →</a>
         </article>
 
         <article class="step-card" id="s4">
@@ -119,7 +122,8 @@
             <span class="step-card__num" aria-hidden="true">4</span>
             <h2>Soft travel</h2>
             <p class="step-card__action">
-              Enter max X / Y / Z mm → <strong>Save travel</strong>
+              Enter max X / Y / Z mm → <strong>Save travel</strong> · optional
+              bed travel test
             </p>
           </div>
           <figure class="step-card__figure">
@@ -130,16 +134,20 @@
               height="520"
             />
           </figure>
-          <a class="step-card__next" href="#s5">Next: Stock →</a>
+          <p class="step-card__aside">
+            Machine calibration ends here. Soft limits stay until hardware
+            changes.
+          </p>
+          <a class="step-card__next" href="#s5">Next: Stock seed →</a>
         </article>
 
         <article class="step-card" id="s5">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">5</span>
-            <h2>Stock</h2>
+            <h2>Stock seed (first job only)</h2>
             <p class="step-card__action">
-              Enter width × length × thickness →
-              <strong>Finish setup</strong>
+              Optional starter sizes → <strong>Finish setup</strong> · later
+              jobs use Prepare
             </p>
           </div>
           <figure class="step-card__figure">
@@ -150,8 +158,12 @@
               height="520"
             />
           </figure>
-          <a class="step-card__next" href="calibration.html"
-            >Done · open Calibration guide →</a
+          <p class="step-card__aside">
+            Every new job: connect / home as needed →
+            <a href="prepare.html">Prepare</a> (stock, XY zero, Z probe) → cut.
+          </p>
+          <a class="step-card__next" href="prepare.html"
+            >Done · per-job prepare →</a
           >
         </article>
       </main>

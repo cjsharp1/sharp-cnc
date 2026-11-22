@@ -11,7 +11,7 @@ export type FirstRunStepId =
   | "travel"
   | "stock";
 
-/** Fixed operator order: connect → home → calibrate → soft travel → stock. */
+/** Bootstrap order: connect → home → calibrate → soft travel → stock seed. */
 export const FIRST_RUN_STEPS: {
   id: FirstRunStepId;
   label: string;
@@ -21,7 +21,7 @@ export const FIRST_RUN_STEPS: {
   { id: "home", label: "Home", short: "2 · Home" },
   { id: "calibrate", label: "Calibrate", short: "3 · Calibrate" },
   { id: "travel", label: "Travel", short: "4 · Travel" },
-  { id: "stock", label: "Stock", short: "5 · Stock" },
+  { id: "stock", label: "Stock seed", short: "5 · Stock" },
 ];
 
 export interface FirstRunState {

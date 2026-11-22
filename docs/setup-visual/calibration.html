@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC calibration visual guide: zeros, $3 direction, steps/mm, soft travel."
+      content="SharpCNC calibration once per machine: $3 direction, steps/mm, soft travel, optional bed travel test."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -29,7 +29,7 @@
         <nav class="site-nav" aria-label="Primary">
           <a href="../index.html">Home</a>
           <a href="index.html">Visual setup</a>
-          <a href="first-run.html">First-run</a>
+          <a href="prepare.html">Prepare</a>
           <button type="button" class="theme-toggle" id="theme-toggle">
             Light
           </button>
@@ -38,10 +38,14 @@
 
       <main class="visual-guide">
         <header class="visual-guide__head">
-          <p class="visual-guide__eyebrow">Menu → Calibration…</p>
+          <p class="visual-guide__eyebrow">
+            Once per machine · Menu → Calibration…
+          </p>
           <h1>Calibration</h1>
           <p class="visual-guide__one">
-            Clear bed. Keep Z high for XY. E-Stop ready.
+            Do this <strong>before</strong> trusting Prepare or cuts. Repeat
+            only after wiring, screws, or travel change. Clear bed. Keep Z high
+            for XY. E-Stop ready.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#c1">1 Zero</a>
@@ -119,10 +123,11 @@
         <article class="step-card" id="c4">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">4</span>
-            <h2>Soft travel</h2>
+            <h2>Soft travel (+ bed test)</h2>
             <p class="step-card__action">
               Jog to far end (margin) → Use MPos →
-              <strong>Write travel + $20</strong>
+              <strong>Write travel + $20</strong> · optional
+              <strong>Bed travel test</strong>
             </p>
           </div>
           <figure class="step-card__figure">
@@ -134,10 +139,12 @@
             />
           </figure>
           <p class="step-card__aside">
+            Machine phase done. Next job: connect / home as needed →
+            <a href="prepare.html">Prepare</a> (stock, zeros, Z probe) → cut.
             Manual $$ is wizard step 5 if you need a one-off setting.
           </p>
-          <a class="step-card__next" href="first-run.html"
-            >Done · back to First-run →</a
+          <a class="step-card__next" href="prepare.html"
+            >Done · per-job prepare →</a
           >
         </article>
       </main>

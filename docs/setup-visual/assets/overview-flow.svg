@@ -1,11 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 280" role="img" aria-labelledby="t d">
-  <title id="t">First-run flow overview</title>
-  <desc id="d">Connect Home Calibrate Travel Stock</desc>
+  <title id="t">SharpCNC setup order overview</title>
+  <desc id="d">Calibration once, then prepare every job</desc>
   <defs>
     <style>
       .bg { fill: #f1f3f5; }
       .box { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
-      .num { fill: #b8862d; }
+      .cal { fill: #b8862d; }
+      .job { fill: #2f5d7a; }
       .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 15px; font-weight: 700; }
       .tiny { font-size: 12px; fill: #5a6570; font-family: system-ui, "Segoe UI", sans-serif; }
       .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; font-size: 14px; }
@@ -16,46 +17,33 @@
     </marker>
   </defs>
   <rect class="bg" width="960" height="280" rx="12"/>
-  <text class="lab" x="32" y="40" font-size="20">First-run setup</text>
-  <text class="tiny" x="32" y="62">Matches in-app wizard · Menu → First-run setup…</text>
+  <text class="lab" x="32" y="40" font-size="20">Order of operations</text>
+  <text class="tiny" x="32" y="62">1 Calibration (once) → 2 Prepare every job</text>
 
   <g transform="translate(40,100)">
-    <rect class="box" width="140" height="100" rx="12"/>
-    <circle class="num" cx="28" cy="28" r="16"/>
-    <text class="w" x="28" y="33" text-anchor="middle">1</text>
-    <text class="lab" x="70" y="55" text-anchor="middle">Connect</text>
-    <text class="tiny" x="70" y="78" text-anchor="middle">Linked</text>
+    <rect class="box" width="200" height="120" rx="12"/>
+    <rect class="cal" width="200" height="36" rx="12"/>
+    <rect class="cal" y="24" width="200" height="12"/>
+    <text class="w" x="100" y="24" text-anchor="middle">1 · Once</text>
+    <text class="lab" x="100" y="70" text-anchor="middle">Calibration</text>
+    <text class="tiny" x="100" y="96" text-anchor="middle">$3 · steps · travel</text>
   </g>
-  <path class="arrow" d="M190 150 H220"/>
-  <g transform="translate(230,100)">
-    <rect class="box" width="140" height="100" rx="12"/>
-    <circle class="num" cx="28" cy="28" r="16"/>
-    <text class="w" x="28" y="33" text-anchor="middle">2</text>
-    <text class="lab" x="70" y="55" text-anchor="middle">Home</text>
-    <text class="tiny" x="70" y="78" text-anchor="middle">$H</text>
+  <path class="arrow" d="M255 160 H300"/>
+  <g transform="translate(315,100)">
+    <rect class="box" width="200" height="120" rx="12"/>
+    <rect class="job" width="200" height="36" rx="12"/>
+    <rect class="job" y="24" width="200" height="12"/>
+    <text class="w" x="100" y="24" text-anchor="middle">2 · Every job</text>
+    <text class="lab" x="100" y="70" text-anchor="middle">Prepare</text>
+    <text class="tiny" x="100" y="96" text-anchor="middle">Stock · zeros · Z probe</text>
   </g>
-  <path class="arrow" d="M380 150 H410"/>
-  <g transform="translate(420,100)">
-    <rect class="box" width="140" height="100" rx="12"/>
-    <circle class="num" cx="28" cy="28" r="16"/>
+  <path class="arrow" d="M530 160 H575"/>
+  <g transform="translate(590,100)">
+    <rect class="box" width="200" height="120" rx="12"/>
+    <circle class="job" cx="28" cy="28" r="16"/>
     <text class="w" x="28" y="33" text-anchor="middle">3</text>
-    <text class="lab" x="70" y="55" text-anchor="middle">Calibrate</text>
-    <text class="tiny" x="70" y="78" text-anchor="middle">$3 · steps</text>
+    <text class="lab" x="100" y="55" text-anchor="middle">Cut</text>
+    <text class="tiny" x="100" y="78" text-anchor="middle">Simulate → Start</text>
   </g>
-  <path class="arrow" d="M570 150 H600"/>
-  <g transform="translate(610,100)">
-    <rect class="box" width="140" height="100" rx="12"/>
-    <circle class="num" cx="28" cy="28" r="16"/>
-    <text class="w" x="28" y="33" text-anchor="middle">4</text>
-    <text class="lab" x="70" y="55" text-anchor="middle">Travel</text>
-    <text class="tiny" x="70" y="78" text-anchor="middle">$130–132</text>
-  </g>
-  <path class="arrow" d="M760 150 H790"/>
-  <g transform="translate(800,100)">
-    <rect class="box" width="120" height="100" rx="12"/>
-    <circle class="num" cx="28" cy="28" r="16"/>
-    <text class="w" x="28" y="33" text-anchor="middle">5</text>
-    <text class="lab" x="60" y="55" text-anchor="middle">Stock</text>
-    <text class="tiny" x="60" y="78" text-anchor="middle">W×L×T</text>
-  </g>
+  <text class="tiny" x="40" y="250">First-run wizard bootstraps connect + home, then hands you into calibration</text>
 </svg>

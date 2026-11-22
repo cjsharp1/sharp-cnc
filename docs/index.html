@@ -47,8 +47,8 @@
         <section class="hero" aria-labelledby="hero-brand">
           <h1 class="hero__brand" id="hero-brand">SharpCNC</h1>
           <p class="hero__lead">
-            Personal GRBL controller for one custom CNC — connect, jog, zero,
-            prepare, and run jobs with a live machine view.
+            Personal GRBL controller for one custom CNC — calibrate once,
+            prepare every job, then cut with a live machine view.
           </p>
           <p class="hero__sub">
             Windows desktop first (Tauri + USB serial). Same workshop steel and
@@ -180,14 +180,18 @@
               </p>
             </li>
             <li>
-              <h3>First-run + calibrate</h3>
+              <h3>Calibrate once, then prepare each job</h3>
               <p>
-                Follow the
-                <a href="setup-visual/first-run.html">visual first-run guide</a>
-                (Connect → Home → Calibrate → Travel → Stock), then
-                <a href="setup-visual/calibration.html">calibration</a> if
-                needed. After that: material &amp; tool, Prepare, Simulate,
-                Start. Keep E-Stop within reach.
+                <strong>1 · Calibration</strong> (once per machine, or after
+                hardware change):
+                <a href="setup-visual/calibration.html">$3 · steps/mm · soft travel</a>
+                — fresh install can bootstrap via
+                <a href="setup-visual/first-run.html">First-run</a>
+                (connect → home → into calibration).
+                <strong>2 · Every job:</strong>
+                <a href="setup-visual/prepare.html">Prepare</a>
+                (stock, XY zero, Z probe) → Simulate → Start. Keep E-Stop within
+                reach.
               </p>
             </li>
           </ol>
@@ -196,20 +200,21 @@
         <section class="section" aria-labelledby="visual-title">
           <h2 class="section__title" id="visual-title">Visual setup</h2>
           <p class="section__lead">
-            Ikea-style steps — big diagrams, one action line, obvious next.
+            Order of operations first — calibrate the machine, then prepare
+            every job. Ikea-style: big diagrams, one action line.
           </p>
           <div class="guide-grid">
-            <a class="guide-link" href="setup-visual/first-run.html">
-              <strong>First-run setup</strong>
-              <span>Connect → Home → Calibrate → Travel → Stock</span>
-            </a>
             <a class="guide-link" href="setup-visual/calibration.html">
-              <strong>Calibration</strong>
-              <span>Zeros · $3 · steps/mm · soft travel</span>
+              <strong>1 · Calibration</strong>
+              <span>Once per machine · $3 · steps/mm · soft travel</span>
+            </a>
+            <a class="guide-link" href="setup-visual/prepare.html">
+              <strong>2 · Per-job prepare</strong>
+              <span>Stock · XY zero · Z probe · then cut</span>
             </a>
             <a class="guide-link" href="setup-visual/index.html">
               <strong>Visual hub</strong>
-              <span>Both guides in one place</span>
+              <span>Order diagram + both guides</span>
             </a>
           </div>
         </section>
