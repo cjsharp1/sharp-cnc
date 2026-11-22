@@ -145,6 +145,7 @@ import {
   stopDebugBridge,
   stopSim,
   stockOffsetForCorner,
+  stockOffsetForWorkOriginCorner,
   writeGrblSetting,
   writeGrblSettings,
   buildDebugSnapshot,
@@ -1731,6 +1732,51 @@ export default function App() {
     }
   };
 
+  /**
+   * Primary stock placement: jog tip to a stock corner, then set work XY zero
+   * and stock origin together so that corner sits at work (0,0).
+   */
+  const handleSetStockCornerFromToolhead = async (corner: StockCorner) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen || streaming) {
+      setPrepareMessage(
+        !connected ? "Connect first." : "Stop the job before setting zero.",
+      );
+      return;
+    }
+    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setPrepareMessage(gate.reason ?? "Cannot set zero");
+      setZeroMessage(gate.reason ?? "Cannot set zero");
+      return;
+    }
+    try {
+      await client.sendLine("G10 L20 P1 X0 Y0");
+      const offsets = stockOffsetForWorkOriginCorner(stock, corner);
+      handleStockChange({
+        ...stock,
+        ...offsets,
+        originCorner: corner,
+      });
+      setPrepareXyZeroed(true);
+      setPrepareReady(false);
+      const label = corner.toUpperCase();
+      const msg = `Work XY zero + stock ${label} at toolhead (G10 L20). Enter width / length from that corner.`;
+      setPrepareMessage(msg);
+      setZeroMessage(msg);
+      activityLog.append(
+        "event",
+        `Work zero XY + stock origin ${label} (toolhead)`,
+      );
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPrepareMessage(message);
+      setZeroMessage(message);
+      setErrorMessage(message);
+    }
+  };
+
   const handleRunZProbe = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
@@ -2573,7 +2619,9 @@ export default function App() {
       bedMm.width,
       bedMm.depth,
     );
-    handleStockChange({ ...stock, ...offsets });
+    const { originCorner: _drop, ...rest } = stock;
+    void _drop;
+    handleStockChange({ ...rest, ...offsets });
   };
 
   return (
@@ -2707,6 +2755,7 @@ export default function App() {
                     : null
             }
             stock={stock}
+            onStockChange={handleStockChange}
             toolDiameterMm={tool.diameterMm}
             trail={trail}
             liveMoving={liveMoving}
@@ -2945,9 +2994,13 @@ export default function App() {
                       tool={tool}
                       bedMm={bedMm}
                       feeds={feeds}
+                      zeroEnabled={jogEnabled}
                       onStockChange={handleStockChange}
                       onToolChange={handleToolChange}
                       onPlaceCorner={handlePlaceStockCorner}
+                      onSetCornerFromToolhead={(corner) => {
+                        void handleSetStockCornerFromToolhead(corner);
+                      }}
                       onFeedsChange={handleFeedsChange}
                       onApplyToSvg={handleApplyFeedsToSvg}
                     />
@@ -3321,6 +3374,9 @@ export default function App() {
                 onStockChange={handleStockChange}
                 onToolChange={handleToolChange}
                 onPlaceCorner={handlePlaceStockCorner}
+                onSetCornerFromToolhead={(corner) => {
+                  void handleSetStockCornerFromToolhead(corner);
+                }}
                 onProbeChange={handleProbeConfigChange}
                 onJogModeChange={setJogMode}
                 onStepChange={setStepMm}

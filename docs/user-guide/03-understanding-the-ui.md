@@ -30,7 +30,7 @@ Keep an eye on this strip while jogging or running. If state flips to **Alarm** 
 Shows:
 
 - Bed size from soft travel (default **1000 × 1000 mm** until you calibrate)
-- Stock rectangle (from Material & tool)
+- Stock rectangle (from Material & tool / Prepare — set corner from toolhead, then W/L/T; optional drag fine-tune)
 - Loaded toolpath (job or SVG preview)
 - Toolhead (bit Ø sized) with a short motion trail while jogging / running
 - **Dual origin** markers — **Work 0** at the job origin and **Machine 0** from WCO

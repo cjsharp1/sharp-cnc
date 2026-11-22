@@ -11,9 +11,17 @@ import type {
   Position3,
   SimActivity,
   StockConfig,
+  StockHandle,
+  StockHit,
   ToolpathSegment,
 } from "../grbl";
-import { formatSimActivityLabel } from "../grbl";
+import {
+  cursorForStockHit,
+  formatSimActivityLabel,
+  hitTestStock,
+  moveStockBy,
+  resizeStockFromHandle,
+} from "../grbl";
 import {
   MAX_ZOOM,
   MIN_ZOOM,
@@ -30,6 +38,20 @@ import {
   zoomAtPoint,
   type ViewCamera,
 } from "./machineViewMath";
+
+const STOCK_HANDLES: StockHandle[] = [
+  "n",
+  "s",
+  "e",
+  "w",
+  "ne",
+  "nw",
+  "se",
+  "sw",
+];
+
+/** Screen-pixel half-size for resize handle hit / draw. */
+const HANDLE_HIT_PX = 9;
 
 export interface TrailPoint {
   x: number;
@@ -52,6 +74,11 @@ interface MachineViewProps {
   pathLabel?: string | null;
   /** Workpiece rectangle on the bed (mm). */
   stock?: StockConfig | null;
+  /**
+   * When set, stock is selectable: drag the blank to move, drag handles to
+   * resize. Same object as Material & tool / Prepare stock.
+   */
+  onStockChange?: ((next: StockConfig) => void) | null;
   /** Bit diameter for toolhead marker scale (mm). */
   toolDiameterMm?: number;
   /** Recent motion trail in work mm (short fade). */
@@ -150,6 +177,7 @@ export function MachineView({
   pathProgress = 0,
   pathLabel = null,
   stock = null,
+  onStockChange = null,
   toolDiameterMm = 3.175,
   trail = [],
   liveMoving = false,
@@ -162,15 +190,35 @@ export function MachineView({
   const frameRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const cameraRef = useRef<ViewCamera>(fitCamera(bedMm));
+  const stockRef = useRef<StockConfig | null>(stock);
+  const onStockChangeRef = useRef(onStockChange);
   const [camera, setCamera] = useState<ViewCamera>(() => fitCamera(bedMm));
   const [viewport, setViewport] = useState({ width: 640, height: 400 });
   const [isPanning, setIsPanning] = useState(false);
+  const [stockSelected, setStockSelected] = useState(false);
+  const [stockHover, setStockHover] = useState<StockHit | null>(null);
+  const [isEditingStock, setIsEditingStock] = useState(false);
 
-  const dragRef = useRef<{
-    pointerId: number;
-    lastX: number;
-    lastY: number;
-  } | null>(null);
+  type DragState =
+    | {
+        kind: "pan";
+        pointerId: number;
+        lastX: number;
+        lastY: number;
+      }
+    | {
+        kind: "move-stock";
+        pointerId: number;
+        lastWorkX: number;
+        lastWorkY: number;
+      }
+    | {
+        kind: "resize-stock";
+        pointerId: number;
+        handle: StockHandle;
+      };
+
+  const dragRef = useRef<DragState | null>(null);
   const pinchRef = useRef<{
     dist: number;
     anchorX: number;
@@ -178,6 +226,31 @@ export function MachineView({
   } | null>(null);
 
   cameraRef.current = camera;
+  stockRef.current = stock;
+  onStockChangeRef.current = onStockChange;
+
+  // Drop selection if stock disappears or editing is disabled.
+  useEffect(() => {
+    if (!stock || !onStockChange) {
+      setStockSelected(false);
+      setStockHover(null);
+      setIsEditingStock(false);
+      dragRef.current = null;
+    }
+  }, [stock, onStockChange]);
+
+  // Escape clears stock selection.
+  useEffect(() => {
+    if (!stockSelected) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setStockSelected(false);
+        setStockHover(null);
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [stockSelected]);
 
   // Keep a true-aspect fit when the bed size changes.
   useEffect(() => {
@@ -288,6 +361,28 @@ export function MachineView({
     return () => svg.removeEventListener("wheel", onWheel);
   }, [bedMm, viewport, workAtClient, commitCamera]);
 
+  const handleHitMm = useCallback(() => {
+    const vis = visibleWindow(bedMm, viewport, cameraRef.current.zoom);
+    return HANDLE_HIT_PX / Math.max(1e-6, vis.pxPerMm);
+  }, [bedMm, viewport]);
+
+  const pickStockHit = useCallback(
+    (clientX: number, clientY: number, selected: boolean): StockHit | null => {
+      const current = stockRef.current;
+      if (!current || !onStockChangeRef.current) return null;
+      if (!(current.widthMm > 0 && current.lengthMm > 0)) return null;
+      const work = workAtClient(clientX, clientY);
+      return hitTestStock(
+        current,
+        work.x,
+        work.y,
+        handleHitMm(),
+        selected,
+      );
+    },
+    [workAtClient, handleHitMm],
+  );
+
   const handlePointerDown = useCallback(
     (e: ReactPointerEvent<SVGSVGElement>) => {
       if (e.pointerType === "mouse" && e.button !== 0) return;
@@ -296,40 +391,115 @@ export function MachineView({
       const svg = svgRef.current;
       if (!svg) return;
 
+      const hit = pickStockHit(e.clientX, e.clientY, stockSelected);
+      if (hit) {
+        setStockSelected(true);
+        setIsPanning(false);
+        setIsEditingStock(true);
+        const work = workAtClient(e.clientX, e.clientY);
+        if (hit === "body") {
+          dragRef.current = {
+            kind: "move-stock",
+            pointerId: e.pointerId,
+            lastWorkX: work.x,
+            lastWorkY: work.y,
+          };
+        } else {
+          dragRef.current = {
+            kind: "resize-stock",
+            pointerId: e.pointerId,
+            handle: hit,
+          };
+        }
+        svg.setPointerCapture(e.pointerId);
+        return;
+      }
+
+      if (stockSelected) setStockSelected(false);
+      setStockHover(null);
       dragRef.current = {
+        kind: "pan",
         pointerId: e.pointerId,
         lastX: e.clientX,
         lastY: e.clientY,
       };
       svg.setPointerCapture(e.pointerId);
       setIsPanning(true);
+      setIsEditingStock(false);
     },
-    [],
+    [pickStockHit, stockSelected, workAtClient],
   );
 
   const handlePointerMove = useCallback(
     (e: ReactPointerEvent<SVGSVGElement>) => {
       const drag = dragRef.current;
-      if (!drag || drag.pointerId !== e.pointerId) return;
-      const vis = visibleWindow(bedMm, viewport, cameraRef.current.zoom);
-      const dxPx = e.clientX - drag.lastX;
-      const dyPx = e.clientY - drag.lastY;
-      drag.lastX = e.clientX;
-      drag.lastY = e.clientY;
-      // Grab-drag: content follows the pointer (maps / CAD feel).
-      // Screen +Y is down; work +Y is up — flip the Y delta.
-      const dxMm = (dxPx / Math.max(1, viewport.width)) * vis.width;
-      const dyMm = -(dyPx / Math.max(1, viewport.height)) * vis.height;
-      commitCamera(panByMm(bedMm, viewport, cameraRef.current, dxMm, dyMm));
+      if (!drag || drag.pointerId !== e.pointerId) {
+        // Hover affordances when idle (mouse / pen).
+        if (!drag && e.pointerType !== "touch") {
+          const hit = pickStockHit(e.clientX, e.clientY, stockSelected);
+          setStockHover(hit);
+        }
+        return;
+      }
+
+      if (drag.kind === "pan") {
+        const vis = visibleWindow(bedMm, viewport, cameraRef.current.zoom);
+        const dxPx = e.clientX - drag.lastX;
+        const dyPx = e.clientY - drag.lastY;
+        drag.lastX = e.clientX;
+        drag.lastY = e.clientY;
+        // Grab-drag: content follows the pointer (maps / CAD feel).
+        // Screen +Y is down; work +Y is up — flip the Y delta.
+        const dxMm = (dxPx / Math.max(1, viewport.width)) * vis.width;
+        const dyMm = -(dyPx / Math.max(1, viewport.height)) * vis.height;
+        commitCamera(panByMm(bedMm, viewport, cameraRef.current, dxMm, dyMm));
+        return;
+      }
+
+      const current = stockRef.current;
+      const onChange = onStockChangeRef.current;
+      if (!current || !onChange) return;
+
+      if (drag.kind === "move-stock") {
+        const work = workAtClient(e.clientX, e.clientY);
+        const dx = work.x - drag.lastWorkX;
+        const dy = work.y - drag.lastWorkY;
+        drag.lastWorkX = work.x;
+        drag.lastWorkY = work.y;
+        if (dx === 0 && dy === 0) return;
+        onChange(moveStockBy(current, dx, dy, bedMm.width, bedMm.depth));
+        return;
+      }
+
+      if (drag.kind === "resize-stock") {
+        const work = workAtClient(e.clientX, e.clientY);
+        onChange(
+          resizeStockFromHandle(
+            current,
+            drag.handle,
+            work,
+            bedMm.width,
+            bedMm.depth,
+          ),
+        );
+      }
     },
-    [bedMm, viewport, commitCamera],
+    [
+      bedMm,
+      viewport,
+      commitCamera,
+      pickStockHit,
+      stockSelected,
+      workAtClient,
+    ],
   );
 
-  const endPan = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
+  const endPointer = useCallback((e: ReactPointerEvent<SVGSVGElement>) => {
     const drag = dragRef.current;
     if (!drag || drag.pointerId !== e.pointerId) return;
     dragRef.current = null;
     setIsPanning(false);
+    setIsEditingStock(false);
     try {
       svgRef.current?.releasePointerCapture(e.pointerId);
     } catch {
@@ -354,6 +524,7 @@ export function MachineView({
         pinchRef.current = { dist, anchorX: mid.x, anchorY: mid.y };
         dragRef.current = null;
         setIsPanning(false);
+        setIsEditingStock(false);
       }
     };
 
@@ -383,7 +554,7 @@ export function MachineView({
           pinchRef.current = { dist, anchorX: mid.x, anchorY: mid.y };
         }
       } else if (e.touches.length === 1 && dragRef.current) {
-        // one-finger pan handled via pointer events
+        // one-finger pan / stock edit handled via pointer events
       }
     };
 
@@ -492,8 +663,17 @@ export function MachineView({
   const bedIsSquare = Math.abs(bedMm.width - bedMm.depth) < 0.05;
 
   const stockLabel = stock
-    ? ` · stock ${stock.widthMm}×${stock.lengthMm}×${stock.thicknessMm} mm`
+    ? ` · stock ${stock.widthMm}×${stock.lengthMm}×${stock.thicknessMm} mm @ ${stock.offsetXMm},${stock.offsetYMm}`
     : "";
+
+  const stockHint =
+    stock && onStockChange
+      ? stockSelected
+        ? " · fine-tune drag/handles · Esc clears"
+        : stock.originCorner
+          ? ` · origin ${stock.originCorner.toUpperCase()} · click stock to fine-tune`
+          : " · click stock to fine-tune"
+      : "";
 
   const modeLabel = simulating
     ? " · PREVIEW"
@@ -510,9 +690,25 @@ export function MachineView({
   const stockHatchId = `stock-hatch-${uid}`;
   const bedGlowId = `bed-glow-${uid}`;
 
+  const activeHit = isEditingStock
+    ? dragRef.current?.kind === "resize-stock"
+      ? dragRef.current.handle
+      : dragRef.current?.kind === "move-stock"
+        ? "body"
+        : stockHover
+    : stockHover;
+  const stockCursor = cursorForStockHit(activeHit);
+  const svgCursorStyle = isPanning
+    ? undefined
+    : stockCursor
+      ? ({ cursor: stockCursor } as const)
+      : undefined;
+
+  const handleHalfMm = HANDLE_HIT_PX / Math.max(1e-6, vis.pxPerMm);
+
   return (
     <section
-      className={`machine${liveMoving ? " is-live-moving" : ""}${simulating ? " is-simulating" : ""}${isPanning ? " is-panning" : ""}`}
+      className={`machine${liveMoving ? " is-live-moving" : ""}${simulating ? " is-simulating" : ""}${isPanning ? " is-panning" : ""}${isEditingStock ? " is-editing-stock" : ""}${stockSelected ? " is-stock-selected" : ""}`}
       aria-label="Machine view"
     >
       <div className="machine__frame" ref={frameRef}>
@@ -563,10 +759,14 @@ export function MachineView({
           role="img"
           aria-label="Bed, stock, toolpath, and tool position"
           preserveAspectRatio="none"
+          style={svgCursorStyle}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
-          onPointerUp={endPan}
-          onPointerCancel={endPan}
+          onPointerUp={endPointer}
+          onPointerCancel={endPointer}
+          onPointerLeave={() => {
+            if (!dragRef.current) setStockHover(null);
+          }}
         >
           <defs>
             <pattern
@@ -729,16 +929,19 @@ export function MachineView({
               })}
           </g>
 
-          {stockRect && (
-            <g className="machine__stock">
+          {stockRect && stock && (
+            <g
+              className={`machine__stock${stockSelected ? " is-selected" : ""}${onStockChange ? " is-interactive" : ""}`}
+            >
               <rect
+                className="machine__stock-body"
                 x={stockRect.x}
                 y={stockRect.y}
                 width={stockRect.w}
                 height={stockRect.h}
                 fill="var(--viz-stock-fill)"
                 stroke="var(--viz-stock-stroke)"
-                strokeWidth={1.5}
+                strokeWidth={stockSelected ? 2.25 : 1.5}
                 vectorEffect="non-scaling-stroke"
               />
               <rect
@@ -748,6 +951,7 @@ export function MachineView({
                 height={stockRect.h}
                 fill={`url(#${stockHatchId})`}
                 opacity="0.55"
+                pointerEvents="none"
               />
               <text
                 x={stockRect.x + labelSize * 0.6}
@@ -755,9 +959,39 @@ export function MachineView({
                 className="machine__label"
                 fill="var(--viz-stock-label)"
                 fontSize={labelSize}
+                pointerEvents="none"
               >
                 Stock
               </text>
+              {stockSelected && onStockChange
+                ? STOCK_HANDLES.map((handle) => {
+                    // stockRect is mapped SVG space (Y down): work +Y (N) is the top edge.
+                    const cx = handle.includes("w")
+                      ? stockRect.x
+                      : handle.includes("e")
+                        ? stockRect.x + stockRect.w
+                        : stockRect.x + stockRect.w / 2;
+                    const cy = handle.includes("n")
+                      ? stockRect.y
+                      : handle.includes("s")
+                        ? stockRect.y + stockRect.h
+                        : stockRect.y + stockRect.h / 2;
+                    return (
+                      <rect
+                        key={handle}
+                        className={`machine__stock-handle machine__stock-handle--${handle}`}
+                        x={cx - handleHalfMm}
+                        y={cy - handleHalfMm}
+                        width={handleHalfMm * 2}
+                        height={handleHalfMm * 2}
+                        fill="var(--viz-stock-handle-fill)"
+                        stroke="var(--viz-stock-handle-stroke)"
+                        strokeWidth={1.25}
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    );
+                  })
+                : null}
             </g>
           )}
 
@@ -966,6 +1200,7 @@ export function MachineView({
           Bed {bedMm.width}×{bedMm.depth} mm
           {modeLabel}
           {stockLabel}
+          {stockHint}
           {path.length > 0
             ? ` · ${pathLabel ?? "path"} · ${path.length} segs`
             : ""}
