@@ -290,8 +290,88 @@
     const chapter = findChapter(activeDocId());
     renderToc(chapter.id);
     loadChapter(chapter);
+    setGuideNavOpen(false);
   }
 
-  document.addEventListener("DOMContentLoaded", showActive);
+  function guideLayoutEl() {
+    return document.getElementById("guide-layout");
+  }
+
+  function isGuideDesktop() {
+    return window.matchMedia("(min-width: 900px)").matches;
+  }
+
+  function setGuideNavOpen(open) {
+    const layout = guideLayoutEl();
+    const toggle = document.getElementById("guide-nav-toggle");
+    const backdrop = document.getElementById("guide-sidebar-backdrop");
+    const sidebar = document.getElementById("guide-sidebar");
+    if (!layout) return;
+
+    const desktop = isGuideDesktop();
+    const showDrawer = open && !desktop;
+
+    layout.classList.toggle("is-nav-open", showDrawer);
+    document.body.classList.toggle("guide-nav-lock", showDrawer);
+    if (toggle) {
+      toggle.setAttribute("aria-expanded", showDrawer ? "true" : "false");
+    }
+    if (backdrop) {
+      if (showDrawer) backdrop.removeAttribute("hidden");
+      else backdrop.setAttribute("hidden", "");
+    }
+    if (sidebar) {
+      // Keep chapter links out of the tab order while the drawer is closed.
+      if (desktop || showDrawer) {
+        sidebar.removeAttribute("inert");
+        sidebar.removeAttribute("aria-hidden");
+      } else {
+        sidebar.setAttribute("inert", "");
+        sidebar.setAttribute("aria-hidden", "true");
+      }
+    }
+  }
+
+  function wireGuideNav() {
+    const toggle = document.getElementById("guide-nav-toggle");
+    const closeBtn = document.getElementById("guide-nav-close");
+    const backdrop = document.getElementById("guide-sidebar-backdrop");
+    const sidebar = document.getElementById("guide-sidebar");
+
+    if (toggle) {
+      toggle.addEventListener("click", () => {
+        const layout = guideLayoutEl();
+        setGuideNavOpen(!layout?.classList.contains("is-nav-open"));
+      });
+    }
+    if (closeBtn) closeBtn.addEventListener("click", () => setGuideNavOpen(false));
+    if (backdrop) backdrop.addEventListener("click", () => setGuideNavOpen(false));
+
+    if (sidebar) {
+      sidebar.addEventListener("click", (event) => {
+        const link = event.target.closest("a");
+        if (link) setGuideNavOpen(false);
+      });
+    }
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key !== "Escape") return;
+      const layout = guideLayoutEl();
+      if (layout?.classList.contains("is-nav-open")) setGuideNavOpen(false);
+    });
+
+    // If the viewport grows into desktop, drop the drawer state.
+    const mq = window.matchMedia("(min-width: 900px)");
+    const onMq = () => {
+      if (mq.matches) setGuideNavOpen(false);
+    };
+    if (typeof mq.addEventListener === "function") mq.addEventListener("change", onMq);
+    else if (typeof mq.addListener === "function") mq.addListener(onMq);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    wireGuideNav();
+    showActive();
+  });
   window.addEventListener("hashchange", showActive);
 })();

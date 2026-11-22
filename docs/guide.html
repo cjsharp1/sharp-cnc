@@ -31,9 +31,39 @@
       ></header>
       <script src="js/site-chrome.js"></script>
 
-      <div class="guide-layout">
-        <aside class="guide-sidebar" aria-label="Guide chapters">
-          <h2>Chapters</h2>
+      <div class="guide-layout" id="guide-layout">
+        <div class="guide-toolbar">
+          <button
+            type="button"
+            class="guide-nav-toggle"
+            id="guide-nav-toggle"
+            aria-controls="guide-sidebar"
+            aria-expanded="false"
+          >
+            Chapters
+          </button>
+        </div>
+        <div
+          class="guide-sidebar-backdrop"
+          id="guide-sidebar-backdrop"
+          hidden
+        ></div>
+        <aside
+          class="guide-sidebar"
+          id="guide-sidebar"
+          aria-label="Guide chapters"
+        >
+          <div class="guide-sidebar__head">
+            <h2>Chapters</h2>
+            <button
+              type="button"
+              class="guide-nav-close"
+              id="guide-nav-close"
+              aria-label="Close chapters"
+            >
+              Close
+            </button>
+          </div>
           <ul class="guide-toc" id="guide-toc"></ul>
         </aside>
 
