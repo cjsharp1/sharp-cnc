@@ -3,15 +3,17 @@
   <desc id="d">Command move, measure with ruler, write new steps/mm</desc>
   <defs>
     <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .bg { fill: #f1f3f5; }
       .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
       .num { fill: #b8862d; }
       .ok { fill: #1f6a4a; }
-      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 16px; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 16px; }
       .big { font-size: 28px; font-weight: 700; }
       .act { font-size: 22px; font-weight: 700; }
       .tiny { font-size: 13px; fill: #5a6570; }
-      .w { fill: #ffffff; font-family: system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
       .arrow { stroke: #3a4550; stroke-width: 3; fill: none; marker-end: url(#a); }
     </style>
     <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">

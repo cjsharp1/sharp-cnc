@@ -3,11 +3,13 @@
   <desc id="d">Machine coordinates from home and work coordinates from stock origin</desc>
   <defs>
     <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .bg { fill: #f1f3f5; }
       .bed { fill: #d8e0e8; stroke: #3a4550; stroke-width: 2.5; }
       .stock { fill: #e8c9a0; stroke: #8a5a2b; stroke-width: 2; }
       .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
-      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
       .title { font-size: 18px; font-weight: 700; }
       .m { fill: #3a4550; font-weight: 700; }
       .w { fill: #b85c2a; font-weight: 700; }

@@ -3,6 +3,8 @@
   <desc id="d">Layout of header with connection chip, position and safety above the visualizer, and a tall workspace rail</desc>
   <defs>
     <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .bg { fill: #f1f3f5; }
       .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
       .header { fill: #1a2332; }
@@ -11,14 +13,14 @@
       .rail { fill: #f7efd9; stroke: #3a4550; stroke-width: 1.5; }
       .tab { fill: #ffffff; stroke: #3a4550; stroke-width: 1.25; }
       .tab-on { fill: #3a4550; }
-      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; }
-      .lab-w { fill: #f1f3f5; font-family: system-ui, "Segoe UI", sans-serif; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; }
+      .lab-w { fill: #f1f3f5; font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .small { font-size: 13px; }
       .tiny { font-size: 12px; fill: #5a6570; }
       .title { font-size: 15px; font-weight: 700; }
-      .brand { font-size: 18px; font-weight: 700; fill: #f1f3f5; }
+      .brand { font-family: "Oswald", "Arial Narrow", sans-serif; font-size: 18px; font-weight: 700; fill: #f1f3f5; }
       .callout { fill: #b8862d; }
-      .callout-t { fill: #ffffff; font-size: 12px; font-weight: 700; font-family: system-ui, "Segoe UI", sans-serif; }
+      .callout-t { fill: #ffffff; font-size: 12px; font-weight: 700; font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .chip { fill: #3d4f63; stroke: #f1f3f5; stroke-width: 1; }
     </style>
   </defs>

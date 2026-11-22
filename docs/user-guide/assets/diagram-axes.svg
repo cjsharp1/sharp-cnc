@@ -3,6 +3,8 @@
   <desc id="d">Top-down square bed with X right, Y back, and Z up inset</desc>
   <defs>
     <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .bg { fill: #f1f3f5; }
       .bed { fill: #d8e0e8; stroke: #3a4550; stroke-width: 2.5; }
       .grid { stroke: #b0bec8; stroke-width: 1; }
@@ -10,7 +12,7 @@
       .axis-z { stroke: #1f6a4a; stroke-width: 3.5; fill: none; marker-end: url(#arrowG); }
       .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
       .home { fill: #3a4550; }
-      .lab { font-family: system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
       .title { font-size: 18px; font-weight: 700; }
       .big { font-size: 22px; font-weight: 700; fill: #b8862d; }
       .big-g { font-size: 22px; font-weight: 700; fill: #1f6a4a; }
