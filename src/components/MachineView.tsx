@@ -187,7 +187,7 @@ export function MachineView({
   overlay = null,
 }: MachineViewProps) {
   const uid = useId().replace(/:/g, "");
-  const frameRef = useRef<HTMLDivElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const cameraRef = useRef<ViewCamera>(fitCamera(bedMm));
   const stockRef = useRef<StockConfig | null>(stock);
@@ -259,9 +259,10 @@ export function MachineView({
     setCamera(next);
   }, [bedMm.width, bedMm.depth]);
 
-  // Observe the frame so viewBox aspect matches the on-screen SVG.
+  // Observe the stage (SVG host) so viewBox aspect matches the on-screen SVG,
+  // not the HUD strip below it.
   useEffect(() => {
-    const el = frameRef.current;
+    const el = stageRef.current;
     if (!el) return;
     const measure = () => {
       const r = el.getBoundingClientRect();
@@ -713,7 +714,7 @@ export function MachineView({
       className={`machine${liveMoving ? " is-live-moving" : ""}${simulating ? " is-simulating" : ""}${isPanning ? " is-panning" : ""}${isEditingStock ? " is-editing-stock" : ""}${stockSelected ? " is-stock-selected" : ""}`}
       aria-label="Machine view"
     >
-      <div className="machine__frame" ref={frameRef}>
+      <div className="machine__frame">
         <div className="machine__toolbar" role="toolbar" aria-label="View">
           <button
             type="button"
@@ -800,6 +801,7 @@ export function MachineView({
           </span>
         </div>
 
+        <div className="machine__stage" ref={stageRef}>
         <svg
           ref={svgRef}
           className="machine__svg"
@@ -1125,14 +1127,19 @@ export function MachineView({
             />
           ))}
 
-          {/* Dual origin: work zero (0,0) and machine zero (−WCO) in work space */}
+          {/* Dual origin: work zero (0,0) and machine zero (−WCO) in work space.
+              When WCO XY is ~0 they coincide — one marker + combined label. */}
           {(() => {
             const workOrigin = mapPoint(0, 0);
             const cross = Math.max(6 / vis.pxPerMm, bitRMm * 1.2);
+            const labelDx = cross * 1.05;
+            const labelDy = cross * 0.85;
             const machineWork =
-              wco != null
-                ? mapPoint(-wco.x, -wco.y)
-                : null;
+              wco != null ? mapPoint(-wco.x, -wco.y) : null;
+            const coincident =
+              machineWork != null &&
+              Math.hypot(machineWork.x - workOrigin.x, machineWork.y - workOrigin.y) <
+                Math.max(0.5, cross * 0.35);
             return (
               <g className="machine__origins" aria-hidden>
                 <g className="machine__origin machine__origin--work">
@@ -1155,15 +1162,15 @@ export function MachineView({
                     vectorEffect="non-scaling-stroke"
                   />
                   <text
-                    x={workOrigin.x + cross * 0.7}
-                    y={workOrigin.y - cross * 0.5}
+                    x={workOrigin.x + labelDx}
+                    y={workOrigin.y - labelDy}
                     fill="var(--viz-origin-work, var(--viz-tool-fill))"
                     fontSize={labelSize}
                   >
-                    Work 0
+                    {coincident ? "Work / Machine 0" : "Work 0"}
                   </text>
                 </g>
-                {machineWork ? (
+                {machineWork && !coincident ? (
                   <g className="machine__origin machine__origin--machine">
                     <line
                       x1={machineWork.x - cross}
@@ -1186,8 +1193,8 @@ export function MachineView({
                       vectorEffect="non-scaling-stroke"
                     />
                     <text
-                      x={machineWork.x + cross * 0.7}
-                      y={machineWork.y - cross * 0.5}
+                      x={machineWork.x + labelDx}
+                      y={machineWork.y - labelDy}
                       fill="var(--viz-origin-machine, var(--viz-bed-edge))"
                       fontSize={labelSize}
                     >
@@ -1259,6 +1266,15 @@ export function MachineView({
           </g>
         </svg>
 
+        {simulating && (
+          <div className="machine__preview-badge" role="status">
+            Preview — not sending to CNC
+          </div>
+        )}
+
+        {overlay}
+        </div>
+
         <p className="machine__hud" aria-live="polite">
           Bed {bedMm.width}×{bedMm.depth} mm
           {modeLabel}
@@ -1270,14 +1286,6 @@ export function MachineView({
           {` · Ø${toolDiameterMm} mm`}
           {simZLabel ? ` · ${simZLabel}` : ""}
         </p>
-
-        {simulating && (
-          <div className="machine__preview-badge" role="status">
-            Preview — not sending to CNC
-          </div>
-        )}
-
-        {overlay}
       </div>
     </section>
   );
