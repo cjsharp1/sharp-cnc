@@ -788,6 +788,58 @@ button:focus-visible {
   font-weight: 400;
 }
 
+.step-card__do {
+  margin: 0;
+  padding: 0.85rem 1rem 0.85rem 2.35rem;
+  border: 1px dashed var(--line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--panel) 88%, var(--brass-fill));
+  display: grid;
+  gap: 0.85rem;
+  list-style: decimal;
+}
+
+.step-card__do > li {
+  padding-left: 0.25rem;
+  color: var(--ink);
+}
+
+.step-card__do > li::marker {
+  font-family: var(--font-brand);
+  font-weight: 600;
+  color: var(--brass-hot);
+}
+
+.step-card__do-act {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.step-card__do-see {
+  margin: 0.3rem 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.step-card__do-label {
+  display: inline-block;
+  margin-right: 0.35rem;
+  padding: 0.05rem 0.4rem;
+  border: 1px solid var(--brass-border);
+  border-radius: 3px;
+  background: var(--brass-fill);
+  color: var(--brass-hot);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  vertical-align: 0.05em;
+}
+
 .step-card__figure {
   margin: 0;
 }

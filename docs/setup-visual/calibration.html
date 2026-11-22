@@ -61,8 +61,8 @@
             <span class="step-card__num" aria-hidden="true">1</span>
             <h2>Zero context</h2>
             <p class="step-card__action">
-              Confirm Work / Machine → Zero if needed →
-              <strong>Zeros look good — Next</strong>
+              Confirm Work / Machine → Zero if needed → confirm →
+              <strong>Next</strong>
             </p>
             <p class="step-card__eli5">
               Glance at the numbers first. Work zero = “start of this job.”
@@ -78,6 +78,54 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Menu → <strong>Calibration…</strong> (or
+                <strong>Open Calibration…</strong> from First-run). Connect
+                first if you are not Linked.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Modal opens on <strong>Confirm zero context</strong> with Work
+                and Machine X/Y/Z and State.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Optional: tap <strong>Read $$</strong> so GRBL settings load.
+                Jog on the Move tab if the tip is not at a useful reference.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Meta shows settings count; soft limits ON/off. Positions update
+                as you jog.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                If needed, use <strong>Zero X</strong> /
+                <strong>Zero Y</strong> / <strong>Zero Z</strong> /
+                <strong>Zero XYZ</strong> so work origin matches where the tip
+                sits (zeroing does not move the machine).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Work numbers reset for those axes; Machine numbers stay.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong>Work zero looks right — I completed this step</strong>,
+                then tap <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Axis direction invert</strong>.
+              </p>
+            </li>
+          </ol>
           <a class="step-card__next" href="#c2">Next: Direction →</a>
         </article>
 
@@ -86,7 +134,7 @@
             <span class="step-card__num" aria-hidden="true">2</span>
             <h2>Direction ($3)</h2>
             <p class="step-card__action">
-              Invert wrong axes → <strong>Write $3</strong> → Test ±5 mm
+              Invert wrong axes → <strong>Write $3</strong> → Test ±
             </p>
             <p class="step-card__eli5">
               Make left mean left. If +X moves the wrong way, flip that axis so
@@ -101,6 +149,52 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Clear the bed. Keep Z high. For each axis, tap
+                <strong>Test +X</strong> / <strong>Test −X</strong> (and Y/Z).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Short ~5 mm jog. Looking down on the bed: +X right, +Y back, +Z
+                up. Wrong way = that axis needs invert.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check <strong>Invert X</strong> / Y / Z for any reversed axis.
+                Draft mask updates (bits X=1, Y=2, Z=4).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Draft mask number changes; Write button enables when dirty.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Write $3=…</strong>, then re-run the Test ± buttons.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Current $3 matches the draft; + jogs now match the bed. Activity
+                log shows the write.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Jog direction matches the machine — I completed this
+                  step</strong
+                >, then <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Steps per mm</strong>.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
             Expect: +X right · +Y back · +Z up (looking down on bed)
           </p>
@@ -129,6 +223,53 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Pick axis (<strong>X ($100)</strong>, <strong>Y ($101)</strong>,
+                or <strong>Z ($102)</strong>) and a Command mm distance. Mark a
+                start on the bed/ruler.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Current $100/$101/$102 steps/mm shows above the Move button.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Move +…</strong> for that axis. Measure the real
+                travel with a ruler; type it in
+                <strong>Measured mm (ruler)</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Machine moves the commanded distance (approximately). UI shows
+                Before / After steps/mm (formula: old × commanded ÷ measured).
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Write $1xx=…</strong>. Repeat for X → Y → Z.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Current steps/mm updates to the After value. A second Move +
+                measure should land close to commanded.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Measured and wrote steps/mm — I completed this step</strong
+                >, then <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Soft travel / bed extents</strong>.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
             Repeat X → Y → Z. Formula: old × commanded ÷ measured.
           </p>
@@ -159,6 +300,66 @@
               height="520"
             />
           </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                With Z high, carefully jog each axis toward the far rail and
+                stop with a safety margin (or enter known bed size).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Machine position (MPos) shows the far-end reading; tip still
+                clear of hard stops.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                For each axis, tap <strong>Use MPos</strong> (or type Max X/Y/Z
+                mm). Enable <strong>Enable soft limits ($20=1)</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Max fields fill from machine position; soft-limits checkbox is
+                on.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Write travel + $20</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                $130–$132 and $20 write to GRBL; visualizer bed matches; soft
+                limits show ON after Read $$.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Optional: tap <strong>Bed travel test…</strong>, confirm the
+                safety gate, then Start the corner walk (Abort / Feed Hold
+                cancel).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Safe Z retract, then XY corners with slow approaches. Status:
+                “Bed travel test complete — all corners visited.”
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Soft travel / bed extents set — I completed this step</strong
+                >. Finish the wizard (manual $$ step only if you need a
+                one-off).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Machine phase done. Next job uses
+                <a href="prepare.html">Prepare</a>, not Calibration.
+              </p>
+            </li>
+          </ol>
           <p class="step-card__aside">
             Machine phase done. Next job: connect / home as needed →
             <a href="prepare.html">Prepare</a> (stock, zeros, Z probe) → cut.
