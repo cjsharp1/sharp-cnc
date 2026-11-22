@@ -66,8 +66,10 @@ export function AboutUpdatePanel({
   return (
     <div className="about">
       <p className="about__lead">
-        Personal GRBL controller for one CNC. Version comes from the packaged
-        app build (kept in sync with <code>package.json</code> / Tauri config).
+        Dedicated personal controller for Chris’s Demon Shield + GRBL CNC — one
+        machine only; not a multi-machine CAM or UGS replacement. Version comes
+        from the packaged app build (kept in sync with{" "}
+        <code>package.json</code> / Tauri config).
       </p>
 
       <div className="about__version-row">

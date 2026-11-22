@@ -1,9 +1,11 @@
 # SharpCNC
 
-Personal GRBL controller for one custom CNC. **Windows desktop first** (Tauri + native USB serial); the same React UI also runs in the browser with mock GRBL for practice.
+Personal GRBL controller for **one** custom CNC. **Windows desktop first** (Tauri + native USB serial); the same React UI also runs in the browser with mock GRBL for practice.
 
 **Docs site (GitHub Pages):** after Pages is enabled from the `docs/` folder → [cjsharp1.github.io/sharp-cnc](https://cjsharp1.github.io/sharp-cnc/)  
 **User guide (in repo):** [docs/user-guide/](docs/user-guide/)
+
+> **One machine only.** SharpCNC was built for Chris’s custom CNC — Demon Shield on Arduino running GRBL over USB. It is a dedicated personal controller for that rig, not a multi-machine CAM suite or Universal Gcode Sender replacement. There is **no intention** to support other CNC machines, controllers, or firmwares.
 
 ## Getting started
 
@@ -75,7 +77,7 @@ Web Serial for a second PC is still stubbed; mock GRBL covers UI without hardwar
 
 ## Hardware
 
-Controller: **Demon Shield** on Arduino + GRBL over USB.
+Controller: **Demon Shield** on Arduino + GRBL over USB — the only target SharpCNC is built for.
 
 - Vendor page: [Designs By Phil — Demon Shield](https://www.designsbyphil.com/demon-shield-1.html)
 - Hardware soak playbook: [docs/demon-shield-soak-playbook.md](docs/demon-shield-soak-playbook.md)

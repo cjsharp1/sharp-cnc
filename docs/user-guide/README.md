@@ -1,8 +1,8 @@
 # SharpCNC user guide
 
-Friendly, practical docs for running **one** home CNC: Demon Shield + Arduino + GRBL over USB, controlled from SharpCNC on Windows.
+Friendly, practical docs for running **one** home CNC: Chris’s custom Demon Shield + Arduino + GRBL over USB, controlled from SharpCNC on Windows.
 
-SharpCNC is a personal controller — calibrate the machine once, then for every job connect/home as needed, prepare (stock + zeros + Z probe), load, simulate, and run. It is not a multi-machine CAM suite.
+**Scope:** SharpCNC is a dedicated personal controller for that specific machine. Calibrate once, then for every job connect/home as needed, prepare (stock + zeros + Z probe), load, simulate, and run. It is **not** a multi-machine CAM suite or Universal Gcode Sender replacement, and there is **no intention** to support other CNCs, controllers, or firmwares.
 
 **Browse on GitHub Pages** (same workshop fonts as the app): [docs home](../index.html) · [this guide in the viewer](../guide.html) · **[visual setup](../setup-visual/index.html)**
 
