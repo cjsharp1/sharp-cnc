@@ -41,8 +41,10 @@
           <p class="visual-guide__eyebrow">Every new job · after calibration</p>
           <h1>Per-job prepare</h1>
           <p class="visual-guide__one">
-            Connect · home ($H / limits) · stock · XY zero · Z probe on stock
-            top · then cut. Not a substitute for calibration.
+            Every new piece of wood: link up, home if needed, say where the
+            stock sits, mark the corner start (XY), then touch a probe plate on
+            the top to set height (Z). This is <strong>not</strong> calibration
+            — the machine is already tuned.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#p0">0 Link</a>
@@ -60,6 +62,11 @@
               USB → <strong>Linked</strong> · clear bed →
               <strong>Home ($H)</strong> when the session needs it
             </p>
+            <p class="step-card__eli5">
+              Plug in and (when needed) send the machine to its home corner so
+              it knows where it is. Skip the Calibration wizard if the machine
+              was already tuned.
+            </p>
           </div>
           <figure class="step-card__figure">
             <img
@@ -70,8 +77,8 @@
             />
           </figure>
           <p class="step-card__aside">
-            Machine already calibrated? Skip the Calibration wizard. Soft travel
-            stays until hardware changes.
+            Machine already calibrated? Soft travel stays until hardware
+            changes.
           </p>
           <a class="step-card__next" href="#p1">Next: Stock →</a>
         </article>
@@ -83,6 +90,11 @@
             <p class="step-card__action">
               Job → <strong>Prepare…</strong> → confirm width × length ×
               thickness + corner
+            </p>
+            <p class="step-card__eli5">
+              Stock = the board you’re cutting. Tell SharpCNC how big it is and
+              which corner sits where on the bed so the picture matches the
+              real wood.
             </p>
           </div>
           <figure class="step-card__figure">
@@ -104,6 +116,11 @@
               Jog tip to job origin on stock → <strong>Zero XY</strong> (no
               plate)
             </p>
+            <p class="step-card__eli5">
+              Stock corner / job origin = where X=0 and Y=0 for
+              <em>this</em> cut (often a corner of the wood). Jog the bit tip
+              there and tap Zero XY — no probe plate for this step.
+            </p>
           </div>
           <figure class="step-card__figure">
             <img
@@ -124,6 +141,11 @@
               Plate on <strong>stock top</strong> · enter thickness →
               <strong>Run Z probe</strong> → remove plate →
               <strong>Mark ready</strong> → Simulate → Start
+            </p>
+            <p class="step-card__eli5">
+              Probe plate = a metal pad on top of the wood. The bit gently
+              touches it so the machine knows where the top surface is (Z=0).
+              Remove the plate before you cut — never leave it under the bit.
             </p>
           </div>
           <figure class="step-card__figure">

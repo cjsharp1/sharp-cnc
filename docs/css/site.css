@@ -729,14 +729,14 @@ button:focus-visible {
 .step-card__meta {
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-rows: auto auto;
   column-gap: 0.85rem;
   row-gap: 0.25rem;
   align-items: baseline;
 }
 
 .step-card__num {
-  grid-row: 1 / span 2;
+  grid-row: 1 / -1;
+  align-self: start;
   width: 2.6rem;
   height: 2.6rem;
   display: grid;
@@ -766,6 +766,26 @@ button:focus-visible {
   font-weight: 600;
   color: var(--ink);
   line-height: 1.35;
+}
+
+.step-card__eli5 {
+  grid-column: 2;
+  margin: 0.15rem 0 0;
+  font-size: var(--text-md);
+  font-weight: 400;
+  color: var(--muted);
+  line-height: 1.4;
+  max-width: 36rem;
+}
+
+.visual-hub__eli5,
+.guide-link__eli5 {
+  display: block;
+  margin-top: 0.35rem;
+  color: var(--ink);
+  font-size: var(--text-md);
+  line-height: 1.4;
+  font-weight: 400;
 }
 
 .step-card__figure {

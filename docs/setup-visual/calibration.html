@@ -43,9 +43,10 @@
           </p>
           <h1>Calibration</h1>
           <p class="visual-guide__one">
-            Do this <strong>before</strong> trusting Prepare or cuts. Repeat
-            only after wiring, screws, or travel change. Clear bed. Keep Z high
-            for XY. E-Stop ready.
+            Teach SharpCNC how your machine moves — direction, distance, and
+            safe travel. Do this <strong>before</strong> Prepare or cuts.
+            Repeat only after wiring, screws, or bed size change. Clear bed.
+            Keep Z high for XY. E-Stop ready.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#c1">1 Zero</a>
@@ -62,6 +63,11 @@
             <p class="step-card__action">
               Confirm Work / Machine → Zero if needed →
               <strong>Zeros look good — Next</strong>
+            </p>
+            <p class="step-card__eli5">
+              Glance at the numbers first. Work zero = “start of this job.”
+              Machine zero = “home corner of the bed.” Make sure they make
+              sense before you measure anything.
             </p>
           </div>
           <figure class="step-card__figure">
@@ -81,6 +87,10 @@
             <h2>Direction ($3)</h2>
             <p class="step-card__action">
               Invert wrong axes → <strong>Write $3</strong> → Test ±5 mm
+            </p>
+            <p class="step-card__eli5">
+              Make left mean left. If +X moves the wrong way, flip that axis so
+              the buttons and the bed agree. ($3 is just the flip switch.)
             </p>
           </div>
           <figure class="step-card__figure">
@@ -105,6 +115,11 @@
               Move commanded mm → measure →
               <strong>Write $100 / $101 / $102</strong>
             </p>
+            <p class="step-card__eli5">
+              How many tiny motor clicks make one real millimeter? Command a
+              move, measure with a ruler, and save the fix so “100 mm” on screen
+              is 100 mm on the bed.
+            </p>
           </div>
           <figure class="step-card__figure">
             <img
@@ -128,6 +143,12 @@
               Jog to far end (margin) → Use MPos →
               <strong>Write travel + $20</strong> · optional
               <strong>Bed travel test</strong>
+            </p>
+            <p class="step-card__eli5">
+              Bed travel = how far the machine can go before it runs out of
+              room. Soft limits are invisible fences on the far side (your home
+              switches only cover the near side). The bed test walks the edges
+              safely to prove the fences.
             </p>
           </div>
           <figure class="step-card__figure">
