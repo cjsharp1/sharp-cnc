@@ -76,8 +76,9 @@ Good for UI practice. **Not** a substitute for soak or scrap.
 
 Chris’s model — keep these separate:
 
-1. **Calibration (once per machine**, or after hardware change) — `$3` direction · steps/mm · soft travel · optional **Bed travel test**. Menu → **Calibration…**. Visual: `docs/setup-visual/calibration.html`.
-2. **Prepare → Verify → Run (every new job)** — Connect · home as needed · Prepare (stock · Material XY · Z · load · Mark ready) → Verify (Simulate → Start) → Run. Visual: `docs/setup-visual/prepare.html`.
+0. **Connect (every session)** — Virtual CNC (practice) or COM → Linked. Visual: `docs/setup-visual/connect.html`.
+1. **Calibrate (once per machine**, or after hardware change) — `$3` direction · steps/mm · soft travel · optional **Bed travel test**. Phase switcher → **Calibrate**. Visual: `docs/setup-visual/calibration.html`.
+2. **Prepare → Verify → Run (every new job)** — Prepare (stock · Material XY · Z · load · Mark ready) → Verify (Simulate → Start) → Run. Visuals: `docs/setup-visual/prepare.html` · `verify.html` · `run.html`.
 
 Do **not** skip calibration and jump straight to Prepare on a new or rewired machine. Prepare does not write `$3` / steps / soft travel.
 

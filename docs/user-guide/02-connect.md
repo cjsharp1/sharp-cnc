@@ -2,7 +2,7 @@
 
 **Goal:** A live GRBL session (or Virtual CNC) so position and safety mean something. Nothing else unlocks until you are linked.
 
-**Order:** Connect → [Calibrate once](05-calibration.md) if the machine is new → [Prepare every job](07-prepare-and-z-probe.md) → Verify → Run. Pictures: [first-run bootstrap](../setup-visual/first-run.html) · [calibration](../setup-visual/calibration.html) · [prepare](../setup-visual/prepare.html).
+**Order:** Connect → [Calibrate once](05-calibration.md) if the machine is new → [Prepare every job](07-prepare-and-z-probe.md) → Verify → Run. Pictures: [Connect visual](../setup-visual/connect.html) · [first-run bootstrap](../setup-visual/first-run.html) · [calibrate](../setup-visual/calibration.html) · [prepare](../setup-visual/prepare.html) · [verify](../setup-visual/verify.html) · [run](../setup-visual/run.html).
 
 SharpCNC ↔ GRBL over **USB serial** (Demon Shield). Baud **115200**.
 

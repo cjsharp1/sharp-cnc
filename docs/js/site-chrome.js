@@ -5,7 +5,8 @@
  *   <header class="site-header" data-site-chrome data-page="…" data-base=""></header>
  *   <script src="…/js/site-chrome.js"></script>
  *
- * data-page: home | guide | visual | visual-calibration | visual-prepare | visual-first-run
+ * data-page: home | guide | visual | visual-connect | visual-calibration |
+ *   visual-prepare | visual-verify | visual-run | visual-first-run
  * data-base: "" from docs/, "../" from docs/setup-visual/
  */
 (function () {
@@ -22,8 +23,11 @@
     if (id === "visual") {
       return (
         page === "visual" ||
+        page === "visual-connect" ||
         page === "visual-calibration" ||
         page === "visual-prepare" ||
+        page === "visual-verify" ||
+        page === "visual-run" ||
         page === "visual-first-run"
       );
     }

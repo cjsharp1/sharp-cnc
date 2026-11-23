@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Phase 4 — Run supervise</title>
+  <desc id="d">Slim Run chrome: progress, feed and spindle overrides, Hold Resume Stop</desc>
+  <defs>
+    <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .strip { fill: #1a2332; }
+      .num { fill: #b85c2a; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 13px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .chip { fill: #3a4550; }
+      .hold { fill: #b8862d; }
+      .stop { fill: #a33a2a; }
+      .ok { fill: #1f6a4a; }
+      .bar { fill: #dfe3e8; }
+      .fill { fill: #2f5d7a; }
+    </style>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="22">4</text>
+  <text class="lab" x="100" y="48" font-size="28">Run · supervise</text>
+  <text class="tiny" x="100" y="78">Slim chrome only — overrides + stop · stay at the machine</text>
+
+  <rect class="strip" x="60" y="110" width="840" height="64" rx="10"/>
+  <text class="w" x="90" y="142" dominant-baseline="central" font-size="14">Linked</text>
+  <text class="w" x="200" y="142" dominant-baseline="central" font-size="14">Machine XYZ</text>
+  <text class="w" x="380" y="142" dominant-baseline="central" font-size="14">Material XYZ</text>
+  <text class="w" x="560" y="142" dominant-baseline="central" font-size="14">State · Run</text>
+  <text class="w" x="720" y="142" dominant-baseline="central" font-size="14">E-Stop</text>
+
+  <rect class="card" x="60" y="200" width="420" height="260" rx="14"/>
+  <text class="lab" x="90" y="245" font-size="18">Progress</text>
+  <rect class="bar" x="90" y="270" width="360" height="18" rx="6"/>
+  <rect class="fill" x="90" y="270" width="220" height="18" rx="6"/>
+  <text class="tiny" x="90" y="320">Line 128 / 210 · ~58%</text>
+  <text class="tiny" x="90" y="350">Time estimate when known</text>
+  <text class="tiny" x="90" y="390">Current line readout (optional)</text>
+  <text class="tiny" x="90" y="430">No probe · no load · no Advanced</text>
+
+  <rect class="card" x="510" y="200" width="390" height="260" rx="14"/>
+  <text class="lab" x="540" y="245" font-size="18">Overrides + stop</text>
+  <g transform="translate(540,270)">
+    <rect class="chip" width="150" height="48" rx="8"/>
+    <text class="w" x="75" y="24" text-anchor="middle" dominant-baseline="central" font-size="14">Feed 100%</text>
+  </g>
+  <g transform="translate(710,270)">
+    <rect class="chip" width="150" height="48" rx="8"/>
+    <text class="w" x="75" y="24" text-anchor="middle" dominant-baseline="central" font-size="14">Spindle 100%</text>
+  </g>
+  <g transform="translate(540,340)">
+    <rect class="hold" width="100" height="48" rx="8"/>
+    <text class="w" x="50" y="24" text-anchor="middle" dominant-baseline="central" font-size="14">Hold</text>
+  </g>
+  <g transform="translate(655,340)">
+    <rect class="ok" width="100" height="48" rx="8"/>
+    <text class="w" x="50" y="24" text-anchor="middle" dominant-baseline="central" font-size="13">Resume</text>
+  </g>
+  <g transform="translate(770,340)">
+    <rect class="stop" width="90" height="48" rx="8"/>
+    <text class="w" x="45" y="24" text-anchor="middle" dominant-baseline="central" font-size="14">Stop</text>
+  </g>
+  <text class="tiny" x="540" y="430">Done / Stop → Verify · new blank → Prepare</text>
+</svg>
