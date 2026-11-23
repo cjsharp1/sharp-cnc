@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" role="img" aria-labelledby="t d">
-  <title id="t">Work zero vs machine zero</title>
-  <desc id="d">Machine coordinates from home and work coordinates from stock origin</desc>
+  <title id="t">Material zero vs machine zero</title>
+  <desc id="d">Machine coordinates from home and Material coordinates from stock origin</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -26,7 +26,7 @@
   </defs>
 
   <rect class="bg" width="760" height="400" rx="10"/>
-  <text class="lab title" x="28" y="36">Machine position vs work zero</text>
+  <text class="lab title" x="28" y="36">Machine XYZ vs Material XYZ</text>
   <text class="tiny" x="28" y="56">Two coordinate systems on the same bed</text>
 
   <rect class="bed" x="48" y="78" width="320" height="250" rx="8"/>
@@ -41,15 +41,15 @@
   <line class="axis-m" x1="72" y1="302" x2="72" y2="120"/>
 
   <circle cx="180" cy="256" r="7" fill="#b85c2a"/>
-  <text class="lab w" x="194" y="242">Work 0</text>
+  <text class="lab w" x="194" y="242">Material 0</text>
   <text class="tiny" x="220" y="278">(stock corner)</text>
   <line class="axis-w" x1="180" y1="256" x2="290" y2="256"/>
   <line class="axis-w" x1="180" y1="256" x2="180" y2="180"/>
 
   <rect class="panel" x="400" y="78" width="332" height="250" rx="10"/>
-  <text class="lab" x="420" y="112" font-weight="700">Position panel shows both</text>
+  <text class="lab" x="420" y="112" font-weight="700">Safety strip shows both</text>
   <text class="lab m" x="420" y="148">Machine = from home</text>
-  <text class="lab w" x="420" y="176">Work = from job origin</text>
+  <text class="lab w" x="420" y="176">Material = from blank origin</text>
   <text class="tiny" x="420" y="214">Zero X / Y / Z / XYZ uses</text>
   <text class="tiny" x="420" y="234">G10 L20 — sets origin at the</text>
   <text class="tiny" x="420" y="254">current tool tip.</text>

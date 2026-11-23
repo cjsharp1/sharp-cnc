@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 460" role="img" aria-labelledby="t d">
   <title id="t">SharpCNC UI map</title>
-  <desc id="d">Layout of header with connection chip, position and safety above the visualizer, and a tall workspace rail</desc>
+  <desc id="d">Layout of header, always-on safety strip, visualizer, and phase switcher rail</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -15,8 +15,8 @@
       .tab-on { fill: #3a4550; }
       .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; }
       .lab-w { fill: #f1f3f5; font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
-      .small { font-size: 13px; }
-      .tiny { font-size: 12px; fill: #5a6570; }
+      .small { font-size: 12px; }
+      .tiny { font-size: 11px; fill: #5a6570; }
       .title { font-size: 15px; font-weight: 700; }
       .brand { font-family: "Oswald", "Arial Narrow", sans-serif; font-size: 18px; font-weight: 700; fill: #f1f3f5; }
       .callout { fill: #b8862d; }
@@ -36,39 +36,41 @@
   <rect class="chip" x="178" y="64" width="168" height="26" rx="6"/>
   <text class="lab-w tiny" x="262" y="77" text-anchor="middle" dominant-baseline="central">Linked · COM3 · Connect</text>
   <rect x="530" y="64" width="72" height="26" rx="6" fill="#3d4f63" stroke="#f1f3f5" stroke-width="1"/>
-  <text class="lab-w tiny" x="566" y="77" text-anchor="middle" dominant-baseline="central">v0.2.0</text>
+  <text class="lab-w tiny" x="566" y="77" text-anchor="middle" dominant-baseline="central">v0.5.0</text>
   <rect x="612" y="64" width="88" height="26" rx="6" fill="#3d4f63" stroke="#f1f3f5" stroke-width="1"/>
   <text class="lab-w small" x="656" y="77" text-anchor="middle" dominant-baseline="central">Menu</text>
 
   <rect class="ess" x="56" y="116" width="380" height="72" rx="8"/>
-  <text class="lab title" x="72" y="140">Position + Safety</text>
-  <rect x="72" y="150" width="140" height="26" rx="5" fill="#fff" stroke="#3a4550"/>
-  <text class="lab tiny" x="142" y="163" text-anchor="middle" dominant-baseline="central">Work / Machine XYZ</text>
-  <rect x="224" y="150" width="192" height="26" rx="5" fill="#fff" stroke="#3a4550"/>
-  <text class="lab tiny" x="320" y="163" text-anchor="middle" dominant-baseline="central">E-Stop · Hold · Unlock</text>
+  <text class="lab title" x="72" y="140">Safety strip (always on)</text>
+  <rect x="72" y="150" width="160" height="26" rx="5" fill="#fff" stroke="#3a4550"/>
+  <text class="lab tiny" x="152" y="163" text-anchor="middle" dominant-baseline="central">Material / Machine XYZ</text>
+  <rect x="244" y="150" width="172" height="26" rx="5" fill="#fff" stroke="#3a4550"/>
+  <text class="lab tiny" x="330" y="163" text-anchor="middle" dominant-baseline="central">E-Stop · Hold · Unlock</text>
 
   <rect class="viz" x="56" y="200" width="380" height="208" rx="8"/>
   <text class="lab title" x="72" y="228">Visualizer</text>
-  <text class="lab tiny" x="72" y="248">Bed · stock · toolpath · toolhead</text>
+  <text class="lab tiny" x="72" y="248">Bed · stock · toolpath · Material 0</text>
   <rect x="96" y="264" width="300" height="120" rx="4" fill="#c5d4e0" stroke="#3a4550" stroke-width="1"/>
   <text class="lab tiny" x="246" y="324" text-anchor="middle" dominant-baseline="central">Machine bed view</text>
   <circle cx="246" cy="352" r="8" fill="#b8862d"/>
 
   <rect class="rail" x="452" y="116" width="272" height="292" rx="8"/>
-  <text class="lab title" x="468" y="144">Workspace (tall)</text>
-  <rect class="tab-on" x="468" y="160" width="58" height="26" rx="5"/>
-  <text class="lab-w small" x="497" y="173" text-anchor="middle" dominant-baseline="central">Move</text>
-  <rect class="tab" x="532" y="160" width="58" height="26" rx="5"/>
-  <text class="lab small" x="561" y="173" text-anchor="middle" dominant-baseline="central">Probe</text>
-  <rect class="tab" x="596" y="160" width="50" height="26" rx="5"/>
-  <text class="lab small" x="621" y="173" text-anchor="middle" dominant-baseline="central">Job</text>
-  <rect class="tab" x="652" y="160" width="50" height="26" rx="5"/>
-  <text class="lab small" x="677" y="173" text-anchor="middle" dominant-baseline="central">Log</text>
-  <rect x="468" y="200" width="234" height="72" rx="5" fill="#fff" stroke="#3a4550"/>
-  <text class="lab small" x="585" y="226" text-anchor="middle" dominant-baseline="central">Jog controls</text>
-  <text class="lab tiny" x="585" y="248" text-anchor="middle" dominant-baseline="central">above the fold</text>
-  <text class="lab tiny" x="468" y="300">Then zeros · home · console</text>
-  <text class="lab tiny" x="468" y="322">Rail starts under the header</text>
+  <text class="lab title" x="468" y="140">Phase switcher</text>
+  <rect class="tab" x="468" y="156" width="48" height="22" rx="4"/>
+  <text class="lab tiny" x="492" y="167" text-anchor="middle" dominant-baseline="central">Conn</text>
+  <rect class="tab" x="520" y="156" width="48" height="22" rx="4"/>
+  <text class="lab tiny" x="544" y="167" text-anchor="middle" dominant-baseline="central">Cal</text>
+  <rect class="tab-on" x="572" y="156" width="56" height="22" rx="4"/>
+  <text class="lab-w tiny" x="600" y="167" text-anchor="middle" dominant-baseline="central">Prep</text>
+  <rect class="tab" x="632" y="156" width="42" height="22" rx="4"/>
+  <text class="lab tiny" x="653" y="167" text-anchor="middle" dominant-baseline="central">Ver</text>
+  <rect class="tab" x="678" y="156" width="30" height="22" rx="4"/>
+  <text class="lab tiny" x="693" y="167" text-anchor="middle" dominant-baseline="central">Run</text>
+  <rect x="468" y="192" width="234" height="88" rx="5" fill="#fff" stroke="#3a4550"/>
+  <text class="lab small" x="585" y="222" text-anchor="middle" dominant-baseline="central">Prepare step body</text>
+  <text class="lab tiny" x="585" y="246" text-anchor="middle" dominant-baseline="central">one screen · no scroll</text>
+  <text class="lab tiny" x="468" y="304">Advanced… / Debug = Menu only</text>
+  <text class="lab tiny" x="468" y="326">Not phases · may scroll</text>
 
   <circle class="callout" cx="56" cy="116" r="13"/>
   <text class="callout-t" x="56" y="116" text-anchor="middle" dominant-baseline="central">1</text>

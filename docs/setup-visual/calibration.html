@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC calibration once per machine: $3 direction, steps/mm, soft travel, optional bed travel test."
+      content="SharpCNC Phase 1 Calibrate once per machine: $3 direction, steps/mm, soft travel, optional bed travel test. Then skip to Prepare."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -32,14 +32,16 @@
       <main class="visual-guide">
         <header class="visual-guide__head">
           <p class="visual-guide__eyebrow">
-            Once per machine · Menu → Calibration…
+            Phase 1 · once per machine · phase switcher → Calibrate
           </p>
-          <h1>Calibration</h1>
+          <h1>Calibrate</h1>
           <p class="visual-guide__one">
             Teach SharpCNC how your machine moves — direction, distance, and
             safe travel. Do this <strong>before</strong> Prepare or cuts.
-            Repeat only after wiring, screws, or bed size change. Clear bed.
-            Keep Z high for XY. E-Stop ready.
+            Prefer <strong>Virtual CNC</strong> for the first pass. After Soft
+            travel confirm, next sessions skip to Prepare. Repeat only after
+            wiring, screws, or bed size change. Clear bed. Keep Z high for XY.
+            E-Stop ready.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#c1">1 Zero</a>
@@ -54,19 +56,19 @@
             <span class="step-card__num" aria-hidden="true">1</span>
             <h2>Zero context</h2>
             <p class="step-card__action">
-              Confirm Work / Machine → Zero if needed → confirm →
+              Confirm Material / Machine → Zero if needed → confirm →
               <strong>Next</strong>
             </p>
             <p class="step-card__eli5">
-              Glance at the numbers first. Work zero = “start of this job.”
-              Machine zero = “home corner of the bed.” Make sure they make
-              sense before you measure anything.
+              Glance at the numbers first. Material XYZ = “start of this blank.”
+              Machine XYZ = “home corner of the bed.” Make sure they make sense
+              before you measure anything.
             </p>
           </div>
           <figure class="step-card__figure">
             <img
               src="assets/cal-01-zero.svg"
-              alt="Work and Machine coordinate panels before calibration"
+              alt="Material and Machine coordinate panels before calibration"
               width="960"
               height="520"
             />
@@ -74,44 +76,45 @@
           <ol class="step-card__do">
             <li>
               <p class="step-card__do-act">
-                Menu → <strong>Calibration…</strong> (or
-                <strong>Open Calibration…</strong> from First-run). Connect
-                first if you are not Linked.
+                Phase switcher → <strong>Calibrate</strong> (or Menu →
+                <strong>Calibrate…</strong> / First-run). Connect first if you
+                are not Linked / Virtual.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Modal opens on <strong>Confirm zero context</strong> with Work
-                and Machine X/Y/Z and State.
+                Calibrate opens on <strong>Confirm zero context</strong> with
+                Material and Machine X/Y/Z and State.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Optional: tap <strong>Read $$</strong> so GRBL settings load.
-                Jog on the Move tab if the tip is not at a useful reference.
+                Optional: <strong>Home ($H)</strong> if the session needs it.
+                Use the compact jog in this step if the tip is not at a useful
+                reference.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Meta shows settings count; soft limits ON/off. Positions update
-                as you jog.
+                Positions update as you jog; state stays Idle-capable.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
                 If needed, use <strong>Zero X</strong> /
                 <strong>Zero Y</strong> / <strong>Zero Z</strong> /
-                <strong>Zero XYZ</strong> so work origin matches where the tip
-                sits (zeroing does not move the machine).
+                <strong>Zero XYZ</strong> so material origin matches where the
+                tip sits (zeroing does not move the machine).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Work numbers reset for those axes; Machine numbers stay.
+                Material numbers reset for those axes; Machine numbers stay.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
                 Check
-                <strong>Work zero looks right — I completed this step</strong>,
-                then tap <strong>Next</strong>.
+                <strong
+                  >Material zero looks right — I completed this step</strong
+                >, then tap <strong>Next</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -346,24 +349,25 @@
                 Check
                 <strong
                   >Soft travel / bed extents set — I completed this step</strong
-                >. Finish the wizard (manual $$ step only if you need a
-                one-off).
+                >. Tap <strong>Continue to Prepare</strong>. Raw
+                <code>$$</code> edits live under
+                <strong>Menu → Advanced…</strong> only — not a Calibrate step.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Machine phase done. Next job uses
-                <a href="prepare.html">Prepare</a>, not Calibration.
+                Machine marked calibrated. Next sessions open on
+                <a href="prepare.html">Prepare</a>; Calibrate stays one click
+                away.
               </p>
             </li>
           </ol>
           <p class="step-card__aside">
-            Machine phase done. Next job: connect / home as needed →
-            <a href="prepare.html">Prepare</a> (load file · stock · zeros · Z
-            probe) → Simulate → cut.
-            Manual $$ is wizard step 5 if you need a one-off setting.
+            Calibrated — skip to Prepare next time. Every job:
+            <a href="prepare.html">Prepare</a> (stock · Material XYZ · Z · load)
+            → Mark ready → Verify (Simulate → Start) → Run.
           </p>
           <a class="step-card__next" href="prepare.html"
-            >Done · per-job prepare →</a
+            >Done · Prepare (every job) →</a
           >
         </article>
       </main>

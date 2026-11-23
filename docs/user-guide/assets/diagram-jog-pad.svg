@@ -17,7 +17,7 @@
   </defs>
 
   <rect class="bg" width="640" height="420" rx="10"/>
-  <text class="lab title" x="28" y="36">Jog pad (Move tab)</text>
+  <text class="lab title" x="28" y="36">Jog pad (Prepare / Calibrate)</text>
   <text class="tiny" x="28" y="56">Eight-way XY · separate Z · Stop cancels in-flight jog</text>
 
   <!-- XY pad: labels centered on each 80×80 button (cx = x+40, cy = y+40) -->

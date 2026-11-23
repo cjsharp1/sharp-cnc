@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
-  <title id="t">XY work zero</title>
-  <desc id="d">Jog bit to job origin then Zero XY</desc>
+  <title id="t">XY material zero</title>
+  <desc id="d">Jog bit to material origin then Zero XY</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -18,15 +18,15 @@
     </style>
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
-  <text class="lab" x="40" y="48">Every job · XY work zero</text>
-  <text class="tiny" x="40" y="74">Jog to job origin → Zero XY (G10 L20)</text>
+  <text class="lab" x="40" y="48">Prepare · Material XY zero</text>
+  <text class="tiny" x="40" y="74">Jog to blank origin → Zero XY (G10 L20)</text>
 
   <rect class="bed" x="80" y="120" width="520" height="340" rx="8"/>
   <rect class="stock" x="160" y="180" width="300" height="220" rx="4"/>
   <line class="cross" x1="160" y1="400" x2="200" y2="400"/>
   <line class="cross" x1="160" y1="400" x2="160" y2="360"/>
   <circle class="origin" cx="160" cy="400" r="10"/>
-  <text class="lab" x="190" y="430" font-size="15">Work zero (0,0)</text>
+  <text class="lab" x="190" y="430" font-size="15">Material 0 (0,0)</text>
 
   <rect class="panel" x="640" y="180" width="260" height="220" rx="12"/>
   <circle class="accent" cx="676" cy="220" r="18"/>
@@ -34,6 +34,6 @@
   <text class="lab" x="710" y="226" font-size="16">XY zero</text>
   <text class="tiny" x="668" y="270">1. Jog tip to corner</text>
   <text class="tiny" x="668" y="300">2. Tap Zero XY</text>
-  <text class="tiny" x="668" y="330">3. Work X/Y → 0.00</text>
+  <text class="tiny" x="668" y="330">3. Material X/Y → 0.00</text>
   <text class="lab" x="668" y="380" font-size="16">Then Z probe →</text>
 </svg>

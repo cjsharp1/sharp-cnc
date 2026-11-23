@@ -37,7 +37,7 @@ Power on controller + steppers only when ready to watch motion. Spindle off unti
 
 1. Launch SharpCNC (installer or `npm run tauri dev`).
 2. **Refresh** ports → select COM → **Connect** at **115200**.
-3. Wait for **Linked** and live Work / Machine coordinates.
+3. Wait for **Linked** and live Material / Machine coordinates.
 4. Open **Log** — confirm status polls (`?`) without constant errors.
 
 If Alarm on connect: clear the physical cause, then **Unlock** (`$X`). Do not unlock blindly.
@@ -49,7 +49,7 @@ If Alarm on connect: clear the physical cause, then **Unlock** (`$X`). Do not un
 Homing uses the **zero-side** micro limits. Far rails are **not** assumed to have switches.
 
 1. Jog carefully toward mid-travel if already against a rail (manual nudge with power off if jammed).
-2. In **Move**, use **Home** (sends `$H`) when SharpCNC allows it (Idle, linked, not streaming).
+2. In **Calibrate** or **Prepare**, use **Home** (sends `$H`) when SharpCNC allows it (Idle, linked, not streaming).
 3. Watch each axis approach its home switch and pull off.
 4. Confirm status leaves Alarm; Machine coordinates look consistent with your home corner.
 5. Mark session **homed** in the UI if prompted / shown.
@@ -96,7 +96,7 @@ Far-end protection is **software travel**. Measure the real bed; do not guess.
 
 Also confirm `$6` (probe pin invert) if contact never registers or is always active — see shield probe wiring.
 
-**XY probe / corners** (optional same session): edge/corner cycles in **Move → Probe** with clear approaches.
+**XY probe / corners** (optional same session): edge/corner cycles on Prepare → **Material XY** with clear approaches.
 
 ---
 

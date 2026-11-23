@@ -48,5 +48,5 @@
 
   <rect class="ok" x="80" y="340" width="780" height="100" rx="14"/>
   <text class="w" x="470" y="385" text-anchor="middle" font-size="26">Status = Linked</text>
-  <text class="w" x="470" y="420" text-anchor="middle" font-size="16" font-weight="500">Work / Machine numbers updating</text>
+  <text class="w" x="470" y="420" text-anchor="middle" font-size="16" font-weight="500">Material / Machine numbers updating</text>
 </svg>

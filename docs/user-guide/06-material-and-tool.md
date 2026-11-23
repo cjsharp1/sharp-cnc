@@ -1,8 +1,8 @@
-# 6. Material & tool
+# 6. Material & tool (Prepare)
 
 Tell SharpCNC what is on the bed and which bit is in the spindle. That drives the visualizer, SVG defaults, and clearance intuition.
 
-Open from **Menu → Material & tool…** or scroll the **Job** tab.
+This is the **Stock + tool** step of **Phase 2 · Prepare** (also **Menu → Material & tool…**).
 
 ![Stock on bed](assets/diagram-stock-bed.svg)
 
@@ -14,12 +14,12 @@ Open from **Menu → Material & tool…** or scroll the **Job** tab.
 
 1. Clamp the blank on the bed.  
 2. Jog the tip to a stock corner (usually **SW** / front-left).  
-3. Pick that corner and press **Set XY zero + stock … at tip** (Material & tool or Prepare → XY).  
+3. Pick that corner and press **Set XY zero + stock … at tip** (Prepare → Material XY).  
 4. Enter **Width / Length / Thickness**. Size grows away from the anchored corner; the visualizer updates with the same numbers.
 
-That one action sets work XY zero (`G10 L20`) and stock origin together so the corner under the tip is work (0,0).
+That one action sets material XY zero (`G10 L20`) and stock origin together so the corner under the tip is material (0,0).
 
-Optional: **Trace stock perimeter…** jogs the toolhead around the blank (safe Z, XY only) so you can see SharpCNC knows the boundaries — same flow as in Prepare → XY. Confirm the path is clear before Start.
+Optional: **Trace stock perimeter…** jogs the toolhead around the blank (safe Z, XY only) so you can see SharpCNC knows the boundaries — same flow as in Prepare → Material XY. Confirm the path is clear before Start.
 
 ### Fields
 
@@ -28,8 +28,8 @@ Optional: **Trace stock perimeter…** jogs the toolhead around the blank (safe 
 | **Width X mm** | Stock size along X (from the anchored corner) |
 | **Length Y mm** | Stock size along Y |
 | **Thickness mm** | Stock height (for awareness / future checks) |
-| **Bed frame (optional)** | **SW** / **SE** / **NW** / **NE** against soft-travel bed — does **not** set work zero |
-| **Offset X / Y mm** | Manual fine placement in work mm |
+| **Bed frame (optional)** | Map layout: **NW NE** top row, **SW SE** bottom — against soft-travel bed; does **not** set material zero |
+| **Offset X / Y mm** | Manual fine placement in material mm |
 
 Defaults start around 300 × 200 × 18 mm. Values persist in the app.
 
@@ -57,7 +57,7 @@ Pick a **material** (softwood, hardwood, acrylic, MDF) and **cut style** (engrav
 
 ![Presets to F/S](assets/diagram-feeds-speeds.svg)
 
-These are hobby starting points — always test on scrap. Runtime feed / rapid / spindle **override percents** persist across relaunch and appear under Position / Safety while a job runs (and on the **Move** spindle panel).
+These are hobby starting points — always test on scrap. Runtime feed / rapid / spindle **override percents** persist across relaunch and appear on the safety strip while a job runs (emphasized in **Run**).
 
 ## Checklist before a job
 
@@ -67,6 +67,6 @@ These are hobby starting points — always test on scrap. Runtime feed / rapid /
 4. Optional: **Trace stock perimeter…** to verify the blank bounds.  
 5. Install the bit; enter diameter (and tip angle if V-bit).  
 6. Pick material + cut style; apply suggested F/S to SVG if generating in-app.  
-7. Probe / set Z to the top face you intend in CAM or SVG.
+7. Probe / set Material Z to the top face you intend in CAM or SVG.
 
-Next: [Prepare to run & Z probe](07-prepare-and-z-probe.md).
+Next: [Prepare & Z probe](07-prepare-and-z-probe.md).

@@ -1,83 +1,86 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 320" role="img" aria-labelledby="t d">
   <title id="t">SharpCNC order of operations</title>
-  <desc id="d">Calibration once per machine, then prepare every job</desc>
+  <desc id="d">Connect, Calibrate once, Prepare, Verify, Run</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
       text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
       .bg { fill: #f1f3f5; }
-      .phase { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
-      .cal { fill: #b8862d; }
-      .job { fill: #2f5d7a; }
+      .phase { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .c0 { fill: #5a6570; }
+      .c1 { fill: #b8862d; }
+      .c2 { fill: #2f5d7a; }
+      .c3 { fill: #1f6a4a; }
+      .c4 { fill: #b85c2a; }
       .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 15px; font-weight: 700; }
-      .tiny { font-size: 12px; fill: #5a6570; font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
-      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; font-size: 13px; }
-      .arrow { stroke: #3a4550; stroke-width: 2.5; fill: none; marker-end: url(#a); }
-      .chip { fill: #1a2332; }
+      .tiny { font-size: 11px; fill: #5a6570; font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; font-size: 12px; }
+      .arrow { stroke: #3a4550; stroke-width: 2; fill: none; marker-end: url(#a); }
     </style>
-    <marker id="a" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-      <path d="M0,0 L7,3 L0,6 Z" fill="#3a4550"/>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a4550"/>
     </marker>
   </defs>
   <rect class="bg" width="960" height="320" rx="12"/>
   <text class="lab" x="32" y="36" font-size="20">Order of operations</text>
-  <text class="tiny" x="32" y="58">Calibrate the machine once. Prepare every new job.</text>
+  <text class="tiny" x="32" y="58">Connect → Calibrate (once) → Prepare → Verify → Run · practice on Virtual CNC first</text>
 
-  <!-- Phase A -->
-  <rect class="phase" x="28" y="84" width="420" height="200" rx="12"/>
-  <rect class="cal" x="28" y="84" width="420" height="36" rx="12"/>
-  <rect class="cal" x="28" y="108" width="420" height="12"/>
-  <text class="w" x="48" y="108">1 · Calibration — once per machine</text>
-  <text class="tiny" x="48" y="148">After install, or after wiring / screws / travel change</text>
+  <g transform="translate(28,90)">
+    <rect class="phase" width="150" height="170" rx="10"/>
+    <rect class="c0" width="150" height="32" rx="10"/>
+    <rect class="c0" y="20" width="150" height="12"/>
+    <text class="w" x="75" y="16" text-anchor="middle" dominant-baseline="central">0 · Connect</text>
+    <text class="lab" x="75" y="70" text-anchor="middle" font-size="13">Link session</text>
+    <text class="tiny" x="75" y="96" text-anchor="middle">Virtual CNC</text>
+    <text class="tiny" x="75" y="116" text-anchor="middle">or COM port</text>
+    <text class="tiny" x="75" y="150" text-anchor="middle">Every session</text>
+  </g>
+  <path class="arrow" d="M186 175 H206"/>
 
-  <g transform="translate(48,168)">
-    <rect class="chip" width="78" height="36" rx="8"/>
-    <text class="w" x="39" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">$3 dir</text>
+  <g transform="translate(214,90)">
+    <rect class="phase" width="150" height="170" rx="10"/>
+    <rect class="c1" width="150" height="32" rx="10"/>
+    <rect class="c1" y="20" width="150" height="12"/>
+    <text class="w" x="75" y="16" text-anchor="middle" dominant-baseline="central">1 · Calibrate</text>
+    <text class="lab" x="75" y="70" text-anchor="middle" font-size="13">Machine once</text>
+    <text class="tiny" x="75" y="96" text-anchor="middle">$3 · steps</text>
+    <text class="tiny" x="75" y="116" text-anchor="middle">soft travel</text>
+    <text class="tiny" x="75" y="150" text-anchor="middle">Then skip</text>
   </g>
-  <g transform="translate(140,168)">
-    <rect class="chip" width="96" height="36" rx="8"/>
-    <text class="w" x="48" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Steps/mm</text>
-  </g>
-  <g transform="translate(250,168)">
-    <rect class="chip" width="100" height="36" rx="8"/>
-    <text class="w" x="50" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Soft travel</text>
-  </g>
-  <g transform="translate(364,168)">
-    <rect class="chip" width="60" height="36" rx="8"/>
-    <text class="w" x="30" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Bed?</text>
-  </g>
-  <text class="tiny" x="48" y="236">Menu → Calibration… · optional Bed travel test</text>
-  <text class="tiny" x="48" y="258">Do this before trusting soft limits or cuts</text>
+  <path class="arrow" d="M372 175 H392"/>
 
-  <path class="arrow" d="M460 184 H500"/>
+  <g transform="translate(400,90)">
+    <rect class="phase" width="150" height="170" rx="10"/>
+    <rect class="c2" width="150" height="32" rx="10"/>
+    <rect class="c2" y="20" width="150" height="12"/>
+    <text class="w" x="75" y="16" text-anchor="middle" dominant-baseline="central">2 · Prepare</text>
+    <text class="lab" x="75" y="70" text-anchor="middle" font-size="13">This blank</text>
+    <text class="tiny" x="75" y="96" text-anchor="middle">Stock · Mat XYZ</text>
+    <text class="tiny" x="75" y="116" text-anchor="middle">Z · load</text>
+    <text class="tiny" x="75" y="150" text-anchor="middle">Mark ready</text>
+  </g>
+  <path class="arrow" d="M558 175 H578"/>
 
-  <!-- Phase B — #65 load-job chips + centered labels -->
-  <rect class="phase" x="512" y="84" width="420" height="200" rx="12"/>
-  <rect class="job" x="512" y="84" width="420" height="36" rx="12"/>
-  <rect class="job" x="512" y="108" width="420" height="12"/>
-  <text class="w" x="532" y="108">2 · Every job — Prepare to run</text>
-  <text class="tiny" x="532" y="148">Connect · home · load file · then zeros</text>
+  <g transform="translate(586,90)">
+    <rect class="phase" width="150" height="170" rx="10"/>
+    <rect class="c3" width="150" height="32" rx="10"/>
+    <rect class="c3" y="20" width="150" height="12"/>
+    <text class="w" x="75" y="16" text-anchor="middle" dominant-baseline="central">3 · Verify</text>
+    <text class="lab" x="75" y="70" text-anchor="middle" font-size="13">Last look</text>
+    <text class="tiny" x="75" y="96" text-anchor="middle">Simulate</text>
+    <text class="tiny" x="75" y="116" text-anchor="middle">checklist</text>
+    <text class="tiny" x="75" y="150" text-anchor="middle">Start</text>
+  </g>
+  <path class="arrow" d="M744 175 H764"/>
 
-  <g transform="translate(532,168)">
-    <rect class="chip" width="64" height="36" rx="8"/>
-    <text class="w" x="32" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Load</text>
+  <g transform="translate(772,90)">
+    <rect class="phase" width="160" height="170" rx="10"/>
+    <rect class="c4" width="160" height="32" rx="10"/>
+    <rect class="c4" y="20" width="160" height="12"/>
+    <text class="w" x="80" y="16" text-anchor="middle" dominant-baseline="central">4 · Run</text>
+    <text class="lab" x="80" y="70" text-anchor="middle" font-size="13">Supervise</text>
+    <text class="tiny" x="80" y="96" text-anchor="middle">Overrides</text>
+    <text class="tiny" x="80" y="116" text-anchor="middle">Hold / Stop</text>
+    <text class="tiny" x="80" y="150" text-anchor="middle">Slim chrome</text>
   </g>
-  <g transform="translate(608,168)">
-    <rect class="chip" width="64" height="36" rx="8"/>
-    <text class="w" x="32" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Stock</text>
-  </g>
-  <g transform="translate(684,168)">
-    <rect class="chip" width="56" height="36" rx="8"/>
-    <text class="w" x="28" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">XY</text>
-  </g>
-  <g transform="translate(752,168)">
-    <rect class="chip" width="56" height="36" rx="8"/>
-    <text class="w" x="28" y="18" text-anchor="middle" dominant-baseline="central" font-size="12">Z</text>
-  </g>
-  <g transform="translate(820,168)">
-    <rect class="chip" width="88" height="36" rx="8"/>
-    <text class="w" x="44" y="18" text-anchor="middle" dominant-baseline="central" font-size="11">Sim · Cut</text>
-  </g>
-  <text class="tiny" x="532" y="236">Load G-code/SVG · Prepare… · then Simulate</text>
-  <text class="tiny" x="532" y="258">Not a substitute for calibration</text>
 </svg>

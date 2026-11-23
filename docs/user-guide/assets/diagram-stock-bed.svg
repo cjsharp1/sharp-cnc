@@ -18,7 +18,7 @@
 
   <rect class="bg" width="760" height="480" rx="10"/>
   <text class="lab title" x="28" y="36">Stock on the bed</text>
-  <text class="tiny" x="28" y="56">Pick a corner or type Offset X / Offset Y in Material &amp; tool</text>
+  <text class="tiny" x="28" y="56">Map corners: NW NE top · SW SE bottom · or Offset X / Y</text>
 
   <!-- Square bed — corner labels outside strokes -->
   <rect class="bed" x="120" y="100" width="300" height="300" rx="8"/>

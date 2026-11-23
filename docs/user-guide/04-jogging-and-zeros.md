@@ -1,12 +1,14 @@
 # 4. Jogging & zeros
 
-Open the **Move** tab. This is how you nudge the machine and set a work origin before cutting.
+Jog and material zero live in **Prepare** (day-to-day) and lightly in **Calibrate** (measurement). They are not Run controls.
 
 ![Axis directions](assets/diagram-axes.svg)
 
 Looking down on the bed (same as the visualizer): **+X** right, **+Y** back = up on screen, **+Z** up.
 
 ## Jog pad
+
+Compact jog sits on the Prepare **Material XY** step (and in Calibrate when measuring).
 
 ![Jog pad diagram](assets/diagram-jog-pad.svg)
 
@@ -26,7 +28,7 @@ Start slow near the stock. Use 0.1 mm when touching off Z.
 
 ### Xbox / gamepad
 
-Plug an Xbox-layout controller into the PC. SharpCNC uses the browser Gamepad API (desktop WebView included). Mapping (also under **Move → Xbox / gamepad mapping**):
+Plug an Xbox-layout controller into the PC. SharpCNC uses the browser Gamepad API (desktop WebView included). Mapping:
 
 | Input | Action |
 |-------|--------|
@@ -46,62 +48,61 @@ SharpCNC refuses jogs that would push past known soft travel (when max X/Y/Z are
 
 Your machine has **physical switches only on the zero side**. The far end of each axis is protected by **software** soft limits (`$130`–`$132` + `$20`). Calibrate those — do not rely on crashing into the far rail.
 
-> **Safety:** Soft limits only help when travel values are correct and `$20` is on. Until you finish [Calibration](05-calibration.md), treat far-end travel as unprotected.
+> **Safety:** Soft limits only help when travel values are correct and `$20` is on. Until you finish [Calibration](05-calibration.md), treat far-end travel as unprotected. Practice refusals on **Virtual CNC** first.
 
-## Work zero
+## Material zero (job origin)
 
-![Work zero vs machine zero](assets/diagram-work-zero.svg)
+![Material zero vs machine zero](assets/diagram-work-zero.svg)
 
 **Machine** coordinates are from home / machine 0.  
-**Work** coordinates are from the job origin (usually a stock corner).
+**Material** coordinates are from the job origin on the blank (usually a stock corner).
 
-Buttons under **Work zero** (`G10 L20 · G54`):
+Buttons under material zero (`G10 L20 · G54`):
 
-- **Zero X / Y / Z / XYZ** — declare “here is work origin” for those axes. **Does not move** the machine.
-- **Go to zero → X / Y / Z / All** — asks for confirm, then jogs to work zero. XY paths raise Z to work Z0 first when needed.
+- **Zero X / Y / Z / XYZ** — declare “here is material origin” for those axes. **Does not move** the machine.
+- **Go to zero → X / Y / Z / All** — asks for confirm, then jogs to material zero. XY paths raise Z to material Z0 first when needed.
 
 Confirm dialogs matter: **Confirm move** sends motion; **Cancel** does nothing.
 
-Typical touch-off:
+Typical touch-off (Prepare phase):
 
 1. Jog XY so the bit is over your stock origin.  
-2. Jog Z carefully to touch the surface (paper feel), **or** use the [Prepare to run Z probe](07-prepare-and-z-probe.md).  
+2. Jog Z carefully to touch the surface (paper feel), **or** use the [Prepare Z probe](07-prepare-and-z-probe.md).  
 3. **Zero XYZ** (or Zero Z alone if XY already set).  
 4. Raise Z before running anything.
 
-> **Safety:** Never leave a spinning bit while leaning in to measure. Prefer power-off or spindle-off touch-offs when learning. Prefer the probe wizard for repeatable Z0.
+> **Safety:** Never leave a spinning bit while leaning in to measure. Prefer power-off or spindle-off touch-offs when learning. Prefer the probe wizard for repeatable Material Z0.
 
 ## Homing
 
-**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
-
-## Work offsets (G54–G59)
-
-Open **Menu → Advanced…** (not on the Move tab):
-
-- Select **G54–G59** (sends that modal to GRBL).  
-- **Save** stores the current WCO for that slot in SharpCNC.  
-- **Recall** writes `G10 L2 Pn …` then selects the WCS.
-
-Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54). Most jobs never need Advanced.
+**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. Offered primarily in **Calibrate**, and again in **Prepare** if the session needs it. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
 
 ## XY probe & tool length
 
-Open the **Probe** tab (separate from Move to keep the rail clearer).
+On the Prepare **Material XY** and **Z** steps:
 
-**XY probe** runs `G38.2` along +X/−X or +Y/−Y, or an outside/inside **corner** sequence with bit-radius compensation. **Tool length (Z)** re-zeros work Z on the touch plate after a bit change (same plate thickness as Prepare). Job Z0 for a cut still prefers **Job → Prepare…**.
+**XY probe** runs `G38.2` along +X/−X or +Y/−Y, or an outside/inside **corner** sequence with bit-radius compensation. **Tool length (Z)** / stock-top Z uses the touch plate (same plate thickness as Prepare). Job Z0 for a cut prefers the Prepare Z probe step.
 
-## Console & macros
+## Spindle & feed overrides
 
-Open **Menu → Advanced…**. Send one or more G-code lines when Idle (not while a job streams). Dangerous lines like `$H` / `$RST=` are refused here — use Homing / Calibration instead. Save the draft as a named **macro** for one-click replay.
+- **Spindle warm-up** (On / Off) can sit in Prepare when needed.  
+- **Feed override** / **Spindle override** — GRBL 1.1 realtime percent steps. Emphasized on the safety strip during **Run** / Hold.
 
-## Spindle & feed overrides (Move tab)
+While a job runs, the strip shows **Feed / Rapid / Spindle %** (rapid is 100 / 50 / 25). Soft reset returns tracked overrides to 100%.
 
-Below jog / zero:
+---
 
-- **Spindle RPM** — **On (M3)** sends `M3 S…`; **Off (M5)** stops PWM spindle.  
-- **Feed override** / **Spindle override** — GRBL 1.1 realtime percent steps (−10 / −1 / 100% / +1 / +10). Work during a running job; soft limits unchanged.
+## Advanced appendix
 
-While a job runs, a strip under Position / Safety also shows **Feed / Rapid / Spindle %** (rapid is 100 / 50 / 25). Soft reset returns tracked overrides to 100%.
+Chris should not need this for daily cutting. One door only: **Menu → Advanced…**
 
-Next: [Calibration wizard](05-calibration.md).
+| Control | Why it is Advanced |
+|---------|--------------------|
+| **Console** + send line | Raw GRBL; easy to break a session |
+| **Macros** | Same surface as console |
+| **G54–G59 work offsets** | Multi-fixture WCS; this machine uses Material XYZ / G10 for the blank |
+| **Manual `$$` / `$x=value`** | Free-form EEPROM; Calibrate already covers `$3`, steps/mm, soft travel |
+
+Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54). Dangerous lines like `$H` / `$RST=` are refused in the console — use Homing / Calibration instead.
+
+Next: [Calibration](05-calibration.md).
