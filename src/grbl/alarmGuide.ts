@@ -32,7 +32,7 @@ const SOFT_LIMIT: AlarmGuide = {
         "Spindle off if safe. Do not jog until unlocked — GRBL is alarm-locked.",
     },
     {
-      title: "Check work zero and soft travel",
+      title: "Check material zero and soft travel",
       detail:
         "Confirm WCO and Calibration soft max ($130–$132). Job or jog may be past the configured envelope.",
     },
@@ -111,11 +111,13 @@ const RESET_MOTION: AlarmGuide = {
   steps: [
     {
       title: "Assume position lost",
-      detail: "Soft reset aborted motion. Work/machine may need re-zero or re-home.",
+      detail:
+        "Soft reset aborted motion. Material/machine may need re-zero or re-home.",
     },
     {
       title: "Unlock if locked, then re-establish zeros",
-      detail: "Home if you use switches; otherwise carefully re-set work zero before cutting.",
+      detail:
+        "Home if you use switches; otherwise carefully re-set material zero before cutting.",
     },
   ],
   unlockReadyHint: "Ready to unlock and re-zero?",

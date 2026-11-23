@@ -452,7 +452,7 @@ export default function App() {
         : jobSoftCheck && !jobSoftCheck.ok
           ? (jobSoftCheck.reason ?? "Job outside soft limits")
           : !prepareReady
-            ? "Prepare to run (Menu or Prepare…) — confirm work zero first"
+            ? "Prepare to run (Menu or Prepare…) — confirm material zero first"
             : null;
 
   const simulating =
@@ -1381,7 +1381,7 @@ export default function App() {
         bitRadiusMm: bitRadiusMm(tool.diameterMm),
         timeoutMs: usingMock ? 8000 : 30_000,
       });
-      setXyProbeMessage(`Corner (${mode}) work XY set`);
+      setXyProbeMessage(`Corner (${mode}) material XY set`);
       activityLog.append("event", `XY corner probe (${mode})`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1846,8 +1846,8 @@ export default function App() {
       await client.sendLine(buildSetWorkZeroCommand(axes));
       setZeroMessage(
         axes === "XYZ"
-          ? "Work XYZ zero set at current position (G10 L20)."
-          : `Work ${axes} zero set at current position (G10 L20).`,
+          ? "Material XYZ zero set at current position (G10 L20)."
+          : `Material ${axes} zero set at current position (G10 L20).`,
       );
       if (axes === "XYZ") {
         setPrepareXyZeroed(true);
@@ -1857,7 +1857,7 @@ export default function App() {
         setPrepareZProbed(true);
         setPrepareReady(false);
       }
-      activityLog.append("event", `Work zero ${axes}`);
+      activityLog.append("event", `Material zero ${axes}`);
       await client.requestStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1877,9 +1877,9 @@ export default function App() {
       await client.sendLine("G10 L20 P1 X0 Y0");
       setPrepareXyZeroed(true);
       setPrepareReady(false);
-      setPrepareMessage("Work XY zero set at current position (G10 L20).");
-      setZeroMessage("Work XY zero set at current position (G10 L20).");
-      activityLog.append("event", "Work zero XY (prepare)");
+      setPrepareMessage("Material XY zero set at current position (G10 L20).");
+      setZeroMessage("Material XY zero set at current position (G10 L20).");
+      activityLog.append("event", "Material zero XY (prepare)");
       await client.requestStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1917,12 +1917,12 @@ export default function App() {
       setPrepareXyZeroed(true);
       setPrepareReady(false);
       const label = corner.toUpperCase();
-      const msg = `Work XY zero + stock ${label} at toolhead (G10 L20). Enter width / length from that corner.`;
+      const msg = `Material XY zero + stock ${label} at toolhead (G10 L20). Enter width / length from that corner.`;
       setPrepareMessage(msg);
       setZeroMessage(msg);
       activityLog.append(
         "event",
-        `Work zero XY + stock origin ${label} (toolhead)`,
+        `Material zero XY + stock origin ${label} (toolhead)`,
       );
       await client.requestStatus();
     } catch (err) {
@@ -1959,7 +1959,7 @@ export default function App() {
       setPrepareReady(false);
       const z = outcome.probe.machine.z.toFixed(3);
       setPrepareMessage(
-        `Probe contact at machine Z=${z}. Work Z0 = stock top (plate ${probeConfig.plateThicknessMm} mm).`,
+        `Probe contact at machine Z=${z}. Material Z0 = stock top (plate ${probeConfig.plateThicknessMm} mm).`,
       );
       activityLog.append(
         "event",
@@ -1990,9 +1990,9 @@ export default function App() {
       setPrepareZProbed(true);
       setPrepareReady(false);
       setPrepareMessage(
-        "Manual work Z zero at current tip (paper feel / G10 L20).",
+        "Manual material Z zero at current tip (paper feel / G10 L20).",
       );
-      activityLog.append("event", "Work zero Z (manual prepare)");
+      activityLog.append("event", "Material zero Z (manual prepare)");
       await client.requestStatus();
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -2017,7 +2017,7 @@ export default function App() {
       );
       await client.sendLine(cmd);
       setPrepareMessage(
-        `Retracting to work Z=${probeConfig.retractWorkZMm} mm.`,
+        `Retracting to material Z=${probeConfig.retractWorkZMm} mm.`,
       );
       activityLog.append("event", `Probe retract ${cmd}`);
     } catch (err) {

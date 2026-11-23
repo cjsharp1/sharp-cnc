@@ -682,7 +682,7 @@ export function MachineView({
     ? " · PREVIEW"
     : liveMoving
       ? " · live motion"
-      : " · live WPos";
+      : " · live Material";
 
   const zoomPct = Math.round(camera.zoom * 100);
   const canZoomIn = camera.zoom < MAX_ZOOM - 1e-6;
@@ -1170,7 +1170,7 @@ export function MachineView({
                     fill="var(--viz-origin-work, var(--viz-tool-fill))"
                     fontSize={labelSize}
                   >
-                    {coincident ? "Work / Machine 0" : "Work 0"}
+                    {coincident ? "Material / Machine 0" : "Material 0"}
                   </text>
                 </g>
                 {machineWork && !coincident ? (

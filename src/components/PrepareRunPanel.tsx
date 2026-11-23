@@ -274,7 +274,7 @@ export function PrepareRunPanel({
       <div className="cal__pos" aria-label="Current position">
         <div className="cal__pos-legend" aria-hidden>
           <span />
-          <span>Work</span>
+          <span>Material</span>
           <span>Machine</span>
         </div>
         {(["X", "Y", "Z"] as const).map((ax) => {
@@ -369,7 +369,7 @@ export function PrepareRunPanel({
                     key={c.id}
                     type="button"
                     className={`cal__btn cal__btn--ghost${activeBedCorner === c.id ? " is-active" : ""}`}
-                    title={`${c.title} — soft-travel bed only (does not set work zero)`}
+                    title={`${c.title} — soft-travel bed only (does not set material zero)`}
                     disabled={!canAct}
                     onClick={() => {
                       onPlaceCorner(c.id);
@@ -384,7 +384,7 @@ export function PrepareRunPanel({
           </div>
           {activeOriginCorner ? (
             <p className="cal__meta prep__ok">
-              Work-origin anchor: {activeOriginCorner.toUpperCase()} — size
+              Material-origin anchor: {activeOriginCorner.toUpperCase()} — size
               grows away from that corner.
             </p>
           ) : (
@@ -481,19 +481,19 @@ export function PrepareRunPanel({
       {step.id === "xy" && (
         <div className="cal__body" role="group" aria-labelledby="prep-xy">
           <h3 id="prep-xy" className="cal__step-title">
-            Set work XY zero + stock corner
+            Set material XY zero + stock corner
           </h3>
           <ul className="prep__callouts" aria-label="XY zero steps">
             <li>
               <span className="prep__callout-label">Primary</span>
               Jog tip to a stock corner (usually SW) → pick that corner →{" "}
-              <strong>Set XY zero + stock</strong>. Work origin and stock
+              <strong>Set XY zero + stock</strong>. Material origin and stock
               origin move together. Then enter W / L if you have not yet.
             </li>
             <li>
               <span className="prep__callout-label">No plate</span>
               Keep Z clear of clamps. Does not move the machine — only
-              redefines work XY.
+              redefines material XY.
             </li>
             <li>
               <span className="prep__callout-label">Not homing</span>
@@ -525,7 +525,7 @@ export function PrepareRunPanel({
               onClick={() =>
                 onSetCornerFromToolhead(stock.originCorner ?? "sw")
               }
-              title="G10 L20 P1 X0 Y0 and place stock corner at work origin"
+              title="G10 L20 P1 X0 Y0 and place stock corner at material origin"
             >
               Set XY zero + stock{" "}
               {(stock.originCorner ?? "sw").toUpperCase()} at tip
@@ -596,7 +596,7 @@ export function PrepareRunPanel({
             <li>
               <span className="prep__callout-label">Thickness</span>
               Enter plate thickness (~15–20&nbsp;mm for Chris’s plate). App
-              offsets so the stock face = work Z0.
+              offsets so the stock face = material Z0.
             </li>
             <li>
               <span className="prep__callout-label">Why stock</span>
@@ -716,12 +716,12 @@ export function PrepareRunPanel({
             </li>
             <li>
               <span className="prep__callout-label">Retract</span>
-              Optional jog to work Z {probe.retractWorkZMm} mm (above stock
+              Optional jog to material Z {probe.retractWorkZMm} mm (above stock
               top). Clear clamps from the path.
             </li>
           </ul>
           <label className="cal__field">
-            <span className="cal__field-label">Retract work Z mm</span>
+            <span className="cal__field-label">Retract material Z mm</span>
             <input
               className="cal__input"
               type="number"
@@ -770,7 +770,7 @@ export function PrepareRunPanel({
             Ready to Start
           </h3>
           <p className="cal__hint">
-            Confirming marks work zero as ready for this session so{" "}
+            Confirming marks material zero as ready for this session so{" "}
             <strong>Start</strong> unlocks. Simulate the path first if you have
             not already. Stay at the machine while cutting.
           </p>
@@ -779,7 +779,7 @@ export function PrepareRunPanel({
               Stock confirmed
             </li>
             <li className={toolConfirmed ? "is-ok" : ""}>Tool confirmed</li>
-            <li className={xyZeroed ? "is-ok" : ""}>XY work zero</li>
+            <li className={xyZeroed ? "is-ok" : ""}>XY material zero</li>
             <li className={zProbed ? "is-ok" : ""}>Z probed / zeroed</li>
             <li className={safeZConfirmed ? "is-ok" : ""}>Safe Z / clear</li>
           </ul>

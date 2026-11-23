@@ -77,7 +77,12 @@ export function inferActivityCategory(
   if (/^Serial\b/i.test(t) || /\bconnect/i.test(t) || /^Disconnected\b/i.test(t)) {
     return "connect";
   }
-  if (/\bjog\b/i.test(t) || /\bwork zero\b/i.test(t) || /\bgo-to-zero\b/i.test(t)) {
+  if (
+    /\bjog\b/i.test(t) ||
+    /\bwork zero\b/i.test(t) ||
+    /\bmaterial zero\b/i.test(t) ||
+    /\bgo-to-zero\b/i.test(t)
+  ) {
     return "jog";
   }
   if (

@@ -184,8 +184,8 @@ export function MaterialToolPanel({
           </p>
           <p className="mattool__micro">
             Clamp stock, jog the tip to a corner (usually SW), pick that
-            corner, then set. Work XY and stock origin move together — then
-            type width / length / thickness.
+            corner, then set. Material XY and stock origin move together —
+            then type width / length / thickness.
           </p>
           <div
             className="mattool__corners"
@@ -209,7 +209,7 @@ export function MaterialToolPanel({
             type="button"
             className="mattool__primary-action"
             disabled={!zeroEnabled || !onSetCornerFromToolhead}
-            title="G10 L20 X0 Y0 and place this stock corner at work origin"
+            title="G10 L20 X0 Y0 and place this stock corner at material origin"
             onClick={() => onSetCornerFromToolhead?.(toolheadCorner)}
           >
             Set XY zero + stock {toolheadCorner.toUpperCase()} at tip
@@ -227,7 +227,7 @@ export function MaterialToolPanel({
           ) : null}
           {activeOriginCorner ? (
             <p className="mattool__micro mattool__micro--ok">
-              Anchored at work origin: {activeOriginCorner.toUpperCase()} —
+              Anchored at material origin: {activeOriginCorner.toUpperCase()} —
               size fields grow away from that corner.
             </p>
           ) : null}
@@ -292,7 +292,7 @@ export function MaterialToolPanel({
                   key={id}
                   type="button"
                   className={`mattool__corner${activeBedCorner === id ? " is-active" : ""}`}
-                  title={`${title} — frames stock on soft-travel bed (does not set work zero)`}
+                  title={`${title} — frames stock on soft-travel bed (does not set material zero)`}
                   aria-pressed={activeBedCorner === id}
                   onClick={() => onPlaceCorner(id)}
                 >

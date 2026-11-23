@@ -72,7 +72,7 @@ export function CrashRecoveryPanel({
           <dd>{checkpoint.phase}</dd>
         </div>
         <div>
-          <dt>Work (saved)</dt>
+          <dt>Material (saved)</dt>
           <dd className="recovery__mono">{formatRecoveryPos(checkpoint.work)}</dd>
         </div>
         <div>
@@ -82,7 +82,7 @@ export function CrashRecoveryPanel({
           </dd>
         </div>
         <div>
-          <dt>Work (live)</dt>
+          <dt>Material (live)</dt>
           <dd className="recovery__mono">{formatRecoveryPos(workPos)}</dd>
         </div>
         <div>
