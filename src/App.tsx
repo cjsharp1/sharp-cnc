@@ -10,9 +10,9 @@ import {
   StockPerimeterTestPanel,
   type StockPerimeterRunPhase,
 } from "./components/StockPerimeterTestPanel";
+import { AdvancedPanel } from "./components/AdvancedPanel";
 import { CalibrationPanel } from "./components/CalibrationPanel";
 import { ConnectPanel, type ConnectionPhase } from "./components/ConnectPanel";
-import { ConsolePanel } from "./components/ConsolePanel";
 import { CoordinateReadout } from "./components/CoordinateReadout";
 import { CrashRecoveryPanel } from "./components/CrashRecoveryPanel";
 import {
@@ -40,7 +40,6 @@ import {
   WorkspaceTabs,
   type WorkspaceTabId,
 } from "./components/WorkspaceTabs";
-import { WorkOffsetsPanel } from "./components/WorkOffsetsPanel";
 import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
@@ -320,6 +319,7 @@ export default function App() {
   const [calBusy, setCalBusy] = useState(false);
   const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
   const [calOpen, setCalOpen] = useState(false);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [bedTravelOpen, setBedTravelOpen] = useState(false);
   const [bedTravelPhase, setBedTravelPhase] =
     useState<BedTravelRunPhase>("idle");
@@ -790,6 +790,15 @@ export default function App() {
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [calOpen]);
+
+  useEffect(() => {
+    if (!advancedOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setAdvancedOpen(false);
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [advancedOpen]);
 
   useEffect(() => {
     if (!aboutOpen) return;
@@ -2470,6 +2479,13 @@ export default function App() {
     }
   };
 
+  const openAdvanced = () => {
+    setAdvancedOpen(true);
+    if (connected && settingsGate.ok && !grblSettings) {
+      void handleRefreshSettings();
+    }
+  };
+
   const openBedTravelTest = () => {
     setCalOpen(false);
     setBedTravelOpen(true);
@@ -3016,6 +3032,7 @@ export default function App() {
             onOpenMaterialTool={openMaterialTool}
             onOpenExternalJobs={openExternalJobs}
             onOpenFirstRun={openFirstRun}
+            onOpenAdvanced={openAdvanced}
             onOpenAbout={() => setAboutOpen(true)}
             debugMode={debugMode}
             onDebugModeChange={handleDebugModeChange}
@@ -3209,39 +3226,6 @@ export default function App() {
                       void handleHome();
                     }}
                     onClearHome={handleClearHome}
-                  />
-                  <WorkOffsetsPanel
-                    enabled={jogEnabled}
-                    active={workOffsets.active}
-                    slots={workOffsets.slots}
-                    currentWco={currentWco}
-                    message={offsetsMessage}
-                    onSelect={(id) => {
-                      void handleSelectWcs(id);
-                    }}
-                    onSave={handleSaveOffset}
-                    onRecall={(id) => {
-                      void handleRecallOffset(id);
-                    }}
-                  />
-                  <ConsolePanel
-                    enabled={
-                      canSendConsole(connected, streaming, status.state).ok
-                    }
-                    blockedReason={
-                      canSendConsole(connected, streaming, status.state)
-                        .reason ?? null
-                    }
-                    macros={macros}
-                    lastResult={consoleResult}
-                    onSend={(text) => {
-                      void sendConsoleText(text);
-                    }}
-                    onRunMacro={(macro) => {
-                      void sendConsoleText(macro.body);
-                    }}
-                    onSaveMacro={handleSaveMacro}
-                    onDeleteMacro={handleDeleteMacro}
                   />
                   <SpindleFeedPanel
                     connected={connected}
@@ -3612,14 +3596,94 @@ export default function App() {
                 onApplySoftTravel={(limits, enableSoft) => {
                   void handleApplySoftTravel(limits, enableSoft);
                 }}
-                onWriteManual={(id, value) => {
-                  void handleWriteManual(id, value);
-                }}
                 onZero={(axes) => {
                   void handleZero(axes);
                 }}
                 onClose={() => setCalOpen(false)}
                 onOpenBedTravelTest={openBedTravelTest}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {advancedOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Advanced"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close Advanced"
+            onClick={() => setAdvancedOpen(false)}
+          />
+          <div className="cal-modal__sheet cal-modal__sheet--wide">
+            <header className="cal-modal__head">
+              <div>
+                <p className="cal-modal__eyebrow">Debugging only</p>
+                <h2 className="cal-modal__title">Advanced</h2>
+              </div>
+              <button
+                type="button"
+                className="cal-modal__close"
+                onClick={() => setAdvancedOpen(false)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="cal-modal__body">
+              <AdvancedPanel
+                consoleEnabled={
+                  canSendConsole(connected, streaming, status.state).ok
+                }
+                consoleBlockedReason={
+                  canSendConsole(connected, streaming, status.state).reason ??
+                  null
+                }
+                macros={macros}
+                consoleResult={consoleResult}
+                onSendConsole={(text) => {
+                  void sendConsoleText(text);
+                }}
+                onRunMacro={(macro) => {
+                  void sendConsoleText(macro.body);
+                }}
+                onSaveMacro={handleSaveMacro}
+                onDeleteMacro={handleDeleteMacro}
+                offsetsEnabled={jogEnabled}
+                activeWcs={workOffsets.active}
+                offsetSlots={workOffsets.slots}
+                currentWco={currentWco}
+                offsetsMessage={offsetsMessage}
+                onSelectWcs={(id) => {
+                  void handleSelectWcs(id);
+                }}
+                onSaveOffset={handleSaveOffset}
+                onRecallOffset={(id) => {
+                  void handleRecallOffset(id);
+                }}
+                settingsEnabled={settingsGate.ok && !calBusy}
+                settingsBlockedReason={
+                  !connected
+                    ? "Connect first."
+                    : !settingsGate.ok
+                      ? (settingsGate.reason ?? "Settings locked")
+                      : calBusy
+                        ? "Settings operation in progress…"
+                        : null
+                }
+                settings={grblSettings}
+                settingsBusy={calBusy}
+                settingsMessage={calMessage}
+                onRefreshSettings={() => {
+                  void handleRefreshSettings();
+                }}
+                onWriteManual={(id, value) => {
+                  void handleWriteManual(id, value);
+                }}
               />
             </div>
           </div>

@@ -77,13 +77,13 @@ Typical touch-off:
 
 ## Work offsets (G54–G59)
 
-Under **Work offsets**:
+Open **Menu → Advanced…** (not on the Move tab):
 
 - Select **G54–G59** (sends that modal to GRBL).  
 - **Save** stores the current WCO for that slot in SharpCNC.  
 - **Recall** writes `G10 L2 Pn …` then selects the WCS.
 
-Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54).
+Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54). Most jobs never need Advanced.
 
 ## XY probe & tool length
 
@@ -93,7 +93,7 @@ Open the **Probe** tab (separate from Move to keep the rail clearer).
 
 ## Console & macros
 
-Send one or more G-code lines when Idle (not while a job streams). Dangerous lines like `$H` / `$RST=` are refused here — use Homing / Calibration instead. Save the draft as a named **macro** for one-click replay.
+Open **Menu → Advanced…**. Send one or more G-code lines when Idle (not while a job streams). Dangerous lines like `$H` / `$RST=` are refused here — use Homing / Calibration instead. Save the draft as a named **macro** for one-click replay.
 
 ## Spindle & feed overrides (Move tab)
 

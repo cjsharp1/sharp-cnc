@@ -28,7 +28,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | — | [Calibration visual](../setup-visual/calibration.html) | **Once** · `$3` · steps/mm · soft travel · bed test |
 | — | [Prepare visual](../setup-visual/prepare.html) | **Every job** · load · stock · zeros · Z probe |
 | 3 | [Understanding the UI](03-understanding-the-ui.md) | Essentials strip, visualizer, Move / Job / Log, Menu |
-| 4 | [Jogging & zeros](04-jogging-and-zeros.md) | Jog, home, G54–G59, XY probe, console, overrides |
+| 4 | [Jogging & zeros](04-jogging-and-zeros.md) | Jog, home, material zero, XY probe, overrides (Advanced for console / G54) |
 | 5 | [Calibration](05-calibration.md) | Short appendix · prefer [visual](../setup-visual/calibration.html) |
 | 6 | [Material & tool](06-material-and-tool.md) | Stock size, bed corners, bit diameter |
 | 7 | [Prepare to run & Z probe](07-prepare-and-z-probe.md) | Every-job pre-start, touch plate, G38.2 |
