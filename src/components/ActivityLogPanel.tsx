@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
   DEBUG_BRIDGE_DEFAULT_PORT,
+  activityKindTag,
   debugBridgeBaseUrl,
   entryMatchesFilter,
   formatActivityLine,
+  formatTimestampLocal,
   isDesktopShell,
   type ActivityEntry,
   type ActivityFilter,
@@ -105,6 +107,14 @@ export function ActivityLogPanel({
     );
   };
 
+  const handleExportSerial = () => {
+    downloadBlob(
+      `sharpcnc-serial-${stamp()}.log`,
+      log.exportSerialTranscript(),
+      "text/plain",
+    );
+  };
+
   const handleCopyLast = async () => {
     const slice = log.getLast(copyN);
     const text = slice.map(formatActivityLine).join("\n");
@@ -149,16 +159,25 @@ export function ActivityLogPanel({
                 className="alog__tool"
                 onClick={handleExportText}
                 disabled={entries.length === 0}
-                title="Export filtered log as text"
+                title="Export filtered activity as text (ISO + local timestamps)"
               >
                 Export
               </button>
               <button
                 type="button"
                 className="alog__tool"
+                onClick={handleExportSerial}
+                disabled={entries.length === 0}
+                title="Export TX/RX/ALARM transcript with ISO timestamps for replay"
+              >
+                Serial
+              </button>
+              <button
+                type="button"
+                className="alog__tool"
                 onClick={handleExportJson}
                 disabled={entries.length === 0}
-                title="Export filtered log as JSON"
+                title="Export filtered log as JSON (includes atIso)"
               >
                 JSON
               </button>
@@ -250,16 +269,17 @@ export function ActivityLogPanel({
             {visible.map((entry) => (
               <li
                 key={entry.id}
-                className={`alog__line is-${entry.kind}${entry.chatter ? " is-chatter" : ""}`}
+                className={`alog__line is-${entry.kind}${entry.chatter ? " is-chatter" : ""}${debugMode ? " has-cat" : ""}`}
               >
+                <time
+                  className="alog__time"
+                  dateTime={new Date(entry.at).toISOString()}
+                  title={new Date(entry.at).toISOString()}
+                >
+                  {formatTimestampLocal(entry.at)}
+                </time>
                 <span className="alog__kind">
-                  {entry.kind === "tx"
-                    ? "TX"
-                    : entry.kind === "rx"
-                      ? "RX"
-                      : entry.kind === "alarm"
-                        ? "ALM"
-                        : "EVT"}
+                  {entry.kind === "alarm" ? "ALM" : activityKindTag(entry.kind)}
                 </span>
                 {debugMode && (
                   <span className="alog__cat" title={entry.category}>

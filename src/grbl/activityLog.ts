@@ -37,7 +37,10 @@ export interface ActivityAppendOptions {
 }
 
 export interface ActivityLogOptions {
-  /** Max retained entries (ring). Default 1500. */
+  /**
+   * Max retained entries (ring). Default 4000 — enough for a failed cut plus
+   * status chatter so TX/RX can still be replayed for diagnosis.
+   */
   capacity?: number;
 }
 
@@ -54,6 +57,11 @@ export interface ActivityLog {
   onChange(handler: (entries: readonly ActivityEntry[]) => void): () => void;
   exportText(filter?: ActivityFilter): string;
   exportJson(filter?: ActivityFilter): string;
+  /**
+   * TX/RX (+ alarms) only, ISO timestamps — paste into chat or a ticket to
+   * reconstruct a failed run without UI chrome noise.
+   */
+  exportSerialTranscript(): string;
 }
 
 let nextId = 1;
@@ -154,7 +162,8 @@ export function entryMatchesFilter(
   }
 }
 
-function formatTimestamp(at: number): string {
+/** Local wall-clock for the in-app scroller (compact). */
+export function formatTimestampLocal(at: number): string {
   const d = new Date(at);
   const hh = String(d.getHours()).padStart(2, "0");
   const mm = String(d.getMinutes()).padStart(2, "0");
@@ -163,22 +172,39 @@ function formatTimestamp(at: number): string {
   return `${hh}:${mm}:${ss}.${ms}`;
 }
 
+/** Absolute ISO-8601 for export / agent replay across machines. */
+export function formatTimestampIso(at: number): string {
+  return new Date(at).toISOString();
+}
+
+export function activityKindTag(kind: ActivityKind): string {
+  switch (kind) {
+    case "tx":
+      return "TX";
+    case "rx":
+      return "RX";
+    case "alarm":
+      return "ALARM";
+    default:
+      return "EVT";
+  }
+}
+
 export function formatActivityLine(entry: ActivityEntry): string {
-  const tag =
-    entry.kind === "tx"
-      ? "TX"
-      : entry.kind === "rx"
-        ? "RX"
-        : entry.kind === "alarm"
-          ? "ALARM"
-          : "EVT";
-  return `${formatTimestamp(entry.at)}  ${tag.padEnd(5)}  [${entry.category}]  ${entry.text}`;
+  const tag = activityKindTag(entry.kind);
+  return `${formatTimestampIso(entry.at)}  ${formatTimestampLocal(entry.at)}  ${tag.padEnd(5)}  [${entry.category}]  ${entry.text}`;
+}
+
+/** One line of a serial transcript (TX/RX/ALARM) for failed-run diagnosis. */
+export function formatSerialTranscriptLine(entry: ActivityEntry): string {
+  const tag = activityKindTag(entry.kind).padEnd(5);
+  return `${formatTimestampIso(entry.at)}  ${tag}  ${entry.text}`;
 }
 
 export function createActivityLog(
   options: ActivityLogOptions = {},
 ): ActivityLog {
-  const capacity = options.capacity ?? 1500;
+  const capacity = options.capacity ?? 4000;
   const entries: ActivityEntry[] = [];
   const handlers = new Set<(entries: readonly ActivityEntry[]) => void>();
 
@@ -234,15 +260,29 @@ export function createActivityLog(
       const selected = entries.filter((e) => entryMatchesFilter(e, filter));
       return `${JSON.stringify(
         {
-          schemaVersion: 1,
+          schemaVersion: 2,
           exportedAt: new Date().toISOString(),
           filter,
           count: selected.length,
-          entries: selected,
+          entries: selected.map((e) => ({
+            ...e,
+            atIso: formatTimestampIso(e.at),
+          })),
         },
         null,
         2,
       )}\n`;
+    },
+    exportSerialTranscript() {
+      return entries
+        .filter(
+          (e) =>
+            e.kind === "tx" ||
+            e.kind === "rx" ||
+            e.kind === "alarm",
+        )
+        .map(formatSerialTranscriptLine)
+        .join("\n");
     },
   };
 }

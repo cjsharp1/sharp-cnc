@@ -69,7 +69,7 @@ Use **Menu** for occasional setup and power tools:
 - Calibrate… / Prepare phase… / First-run setup…  
 - **Advanced…** — console, macros, G54–G59, raw `$$` (closed by default; not part of normal cutting)  
 - **Appearance** — Dark or Light (persisted)  
-- **Debug mode** — export / Copy / Debug bridge under Menu · Debug  
+- **Debug mode** — Export / Serial / Copy / Debug bridge under Menu · Debug (TX/RX timestamps always logged)  
 - **About & updates…** — version, GitHub Releases, in-app install
 
 Next: [Jogging & zeros](04-jogging-and-zeros.md).

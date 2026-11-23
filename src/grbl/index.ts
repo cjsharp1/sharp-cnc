@@ -454,9 +454,13 @@ export type {
   ActivityLog,
 } from "./activityLog";
 export {
+  activityKindTag,
   createActivityLog,
   entryMatchesFilter,
   formatActivityLine,
+  formatSerialTranscriptLine,
+  formatTimestampIso,
+  formatTimestampLocal,
   formatTxPayload,
   inferActivityCategory,
   isStatusChatter,
