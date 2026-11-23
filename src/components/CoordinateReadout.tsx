@@ -20,7 +20,7 @@ function AxisRow({
   return (
     <div className="coords__row">
       <span className="coords__axis">{label}</span>
-      <span className="coords__val" title="Work">
+      <span className="coords__val" title="Material">
         {formatAxis(work)}
       </span>
       <span className="coords__val coords__val--muted" title="Machine">
@@ -65,7 +65,7 @@ export function CoordinateReadout({ status }: CoordinateReadoutProps) {
       </header>
       <div className="coords__legend" aria-hidden>
         <span />
-        <span>Work</span>
+        <span>Material</span>
         <span>Machine</span>
       </div>
       {work.map((axis, i) => (

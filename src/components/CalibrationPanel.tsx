@@ -45,7 +45,7 @@ const WIZARD_STEPS: {
 ];
 
 const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
-  zero: "Work zero looks right — I completed this step",
+  zero: "Material zero looks right — I completed this step",
   direction: "Jog direction matches the machine — I completed this step",
   steps: "Measured and wrote steps/mm — I completed this step",
   travel: "Soft travel / bed extents set — I completed this step",
@@ -268,15 +268,15 @@ export function CalibrationPanel({
             Confirm zero context
           </h3>
           <p className="cal__hint">
-            Before measuring steps/mm, confirm work zero (and machine home if
-            you use it). Homing/limit switches are only on the zero side — set
-            work origin at a known reference, then continue.
+            Before measuring steps/mm, confirm material zero (and machine home
+            if you use it). Homing/limit switches are only on the zero side —
+            set material origin at a known reference, then continue.
           </p>
 
           <div className="cal__pos" aria-label="Current position">
             <div className="cal__pos-legend" aria-hidden>
               <span />
-              <span>Work</span>
+              <span>Material</span>
               <span>Machine</span>
             </div>
             {(["X", "Y", "Z"] as const).map((ax) => {
@@ -296,7 +296,11 @@ export function CalibrationPanel({
             </p>
           </div>
 
-          <div className="cal__actions" role="group" aria-label="Set work zero">
+          <div
+            className="cal__actions"
+            role="group"
+            aria-label="Set material zero"
+          >
             {ZERO_BUTTONS.map((btn) => (
               <button
                 key={btn.id}
@@ -304,7 +308,7 @@ export function CalibrationPanel({
                 className="cal__btn"
                 disabled={!zeroEnabled || busy}
                 onClick={() => onZero(btn.id)}
-                title={`Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as work zero (G10 L20)`}
+                title={`Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as material zero (G10 L20)`}
               >
                 {btn.label}
               </button>
@@ -317,9 +321,9 @@ export function CalibrationPanel({
             </p>
           ) : (
             <p className="cal__hint">
-              Zeroing sets the current tool location as work origin — it does
-              not move the machine. Use Move tab jog if you need to reposition
-              first.
+              Zeroing sets the current tool location as material origin — it
+              does not move the machine. Use Move tab jog if you need to
+              reposition first.
             </p>
           )}
 

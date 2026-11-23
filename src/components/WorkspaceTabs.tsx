@@ -10,7 +10,7 @@ const TABS: {
   {
     id: "move",
     label: "Move",
-    purpose: "Jog, home, work zeros, offsets, and spindle",
+    purpose: "Jog, home, material zero, offsets, and spindle",
   },
   {
     id: "probe",

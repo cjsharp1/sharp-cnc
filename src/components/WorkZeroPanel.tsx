@@ -18,8 +18,8 @@ const AXIS_BUTTONS: { id: ZeroAxisSelection; label: string }[] = [
 ];
 
 function goToLabel(axes: ZeroAxisSelection): string {
-  if (axes === "XYZ") return "Go to work zero (Z up, then XY, then Z)";
-  return `Go to work ${axes}=0`;
+  if (axes === "XYZ") return "Go to material zero (Z up, then XY, then Z)";
+  return `Go to material ${axes}=0`;
 }
 
 export function WorkZeroPanel({
@@ -32,13 +32,13 @@ export function WorkZeroPanel({
   onCancelGoTo,
 }: WorkZeroPanelProps) {
   return (
-    <section className="zero" aria-label="Work zeros">
+    <section className="zero" aria-label="Material zero">
       <header className="zero__head">
-        <h2 className="zero__title">Work zero</h2>
+        <h2 className="zero__title">Material zero</h2>
         <span className="zero__meta">G10 L20 · G54</span>
       </header>
 
-      <div className="zero__actions" role="group" aria-label="Set work zero">
+      <div className="zero__actions" role="group" aria-label="Set material zero">
         {AXIS_BUTTONS.map((btn) => (
           <button
             key={btn.id}
@@ -46,14 +46,14 @@ export function WorkZeroPanel({
             className="zero__btn"
             disabled={!enabled || pendingGoTo !== null}
             onClick={() => onZero(btn.id)}
-            title={`Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as work zero`}
+            title={`Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as material zero`}
           >
             {btn.label}
           </button>
         ))}
       </div>
 
-      <div className="zero__goto" role="group" aria-label="Go to work zero">
+      <div className="zero__goto" role="group" aria-label="Go to material zero">
         <p className="zero__goto-label">Go to zero</p>
         <div className="zero__goto-row">
           {(
@@ -81,12 +81,12 @@ export function WorkZeroPanel({
       {pendingGoTo ? (
         <div className="zero__confirm" role="alertdialog" aria-labelledby="zero-confirm-title">
           <p id="zero-confirm-title" className="zero__confirm-title">
-            Move to work {pendingGoTo === "XYZ" ? "XYZ" : pendingGoTo} zero?
+            Move to material {pendingGoTo === "XYZ" ? "XYZ" : pendingGoTo} zero?
           </p>
           <p className="zero__confirm-body">
             {pendingGoTo === "XYZ" || pendingGoTo === "X" || pendingGoTo === "Y"
-              ? "Safe path: raise Z to work Z0, then XY, then finish Z if needed. Confirm to send."
-              : "This jogs Z to work zero. Confirm to send."}
+              ? "Safe path: raise Z to material Z0, then XY, then finish Z if needed. Confirm to send."
+              : "This jogs Z to material zero. Confirm to send."}
           </p>
           <div className="zero__confirm-actions">
             <button
@@ -113,8 +113,8 @@ export function WorkZeroPanel({
         </p>
       ) : (
         <p className="zero__hint">
-          Zeroing sets the current tool location as work origin — it does not
-          move the machine. To also place stock, use{" "}
+          Zeroing sets the current tool location as material origin — it does
+          not move the machine. To also place stock, use{" "}
           <strong>Set XY zero + stock … at tip</strong> in Material &amp; tool
           or Prepare.
         </p>
