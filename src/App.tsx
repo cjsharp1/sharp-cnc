@@ -3343,7 +3343,7 @@ export default function App() {
 
               {taskPhase === "calibrate" && (
                 <div
-                  className="workspace__panel workspace__panel--phase"
+                  className="workspace__panel workspace__panel--phase workspace__panel--calibrate"
                   role="tabpanel"
                   id="phase-panel-calibrate"
                   aria-labelledby="phase-tab-calibrate"
@@ -3357,29 +3357,17 @@ export default function App() {
                       >
                         Machine already calibrated
                       </button>
+                      <span className="phase-cal__skip-hint">
+                        Four guided steps — Home and bed travel are optional.
+                      </span>
                     </div>
                   ) : (
                     <p className="workspace__intro workspace__intro--compact">
-                      Calibrated — re-run anytime. Continue to Prepare when
-                      ready.
+                      Calibrated — re-run anytime, or switch to Prepare.
                     </p>
                   )}
-                  <HomingPanel
-                    enabled={
-                      canHome(status.state, connected, streaming).ok && !homeBusy
-                    }
-                    blockedReason={
-                      canHome(status.state, connected, streaming).reason ?? null
-                    }
-                    homed={homed}
-                    busy={homeBusy}
-                    message={homeMessage}
-                    onHome={() => {
-                      void handleHome();
-                    }}
-                    onClearHome={handleClearHome}
-                  />
                   <CalibrationPanel
+                    dense
                     enabled={settingsGate.ok && !calBusy}
                     blockedReason={
                       !connected
@@ -3418,6 +3406,20 @@ export default function App() {
                     }}
                     onComplete={handleCalibrationComplete}
                     onOpenBedTravelTest={openBedTravelTest}
+                    homing={{
+                      enabled:
+                        canHome(status.state, connected, streaming).ok &&
+                        !homeBusy,
+                      blockedReason:
+                        canHome(status.state, connected, streaming).reason ??
+                        null,
+                      homed,
+                      busy: homeBusy,
+                      message: homeMessage,
+                      onHome: () => {
+                        void handleHome();
+                      },
+                    }}
                   />
                 </div>
               )}

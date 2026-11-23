@@ -3,6 +3,7 @@
  * Run: npx --yes tsx scripts/smoke-task-phase.mts
  */
 import {
+  CALIBRATION_GUIDED_STEPS,
   DEFAULT_CALIBRATION,
   loadCalibrationState,
   resetCalibrationState,
@@ -114,6 +115,12 @@ const mem = new Map<string, string>();
     return mem.size;
   },
 } as Storage;
+
+assert(
+  CALIBRATION_GUIDED_STEPS.join(",") === "zero,direction,steps,travel",
+  "calibrate = four guided steps (no raw $$)",
+);
+assert(CALIBRATION_GUIDED_STEPS.length === 4, "four calibrate steps");
 
 assert(
   loadCalibrationState().calibrationCompleted ===

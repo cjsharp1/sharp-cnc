@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CALIBRATION_DISTANCE_OPTIONS_MM,
+  CALIBRATION_GUIDED_STEPS,
   DEFAULT_CALIBRATION_DISTANCE_MM,
   DEFAULT_JOG_FEED_MM_MIN,
   DIR_TEST_JOG_MM,
@@ -16,6 +17,7 @@ import {
   softLimitsEnabled,
   type Axis,
   type AxisDirInvert,
+  type CalibrationGuidedStepId,
   type GrblSetting,
   type GrblStatus,
   type SoftTravelLimits,
@@ -23,22 +25,22 @@ import {
 } from "../grbl";
 import { useWizardStepGate, WizardStepConfirm } from "./wizardStepGate";
 
-export type CalibrationStepId =
-  | "zero"
-  | "direction"
-  | "steps"
-  | "travel";
+export type CalibrationStepId = CalibrationGuidedStepId;
 
-const WIZARD_STEPS: {
-  id: CalibrationStepId;
-  label: string;
-  short: string;
-}[] = [
-  { id: "zero", label: "Zero context", short: "1 · Zero" },
-  { id: "direction", label: "Direction", short: "2 · Dir" },
-  { id: "steps", label: "Steps/mm", short: "3 · Steps" },
-  { id: "travel", label: "Soft travel", short: "4 · Travel" },
-];
+const STEP_CHROME: Record<
+  CalibrationStepId,
+  { label: string; short: string }
+> = {
+  zero: { label: "Zero context", short: "1 · Zero" },
+  direction: { label: "Direction", short: "2 · Dir" },
+  steps: { label: "Steps/mm", short: "3 · Steps" },
+  travel: { label: "Soft travel", short: "4 · Travel" },
+};
+
+const WIZARD_STEPS = CALIBRATION_GUIDED_STEPS.map((id) => ({
+  id,
+  ...STEP_CHROME[id],
+}));
 
 const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
   zero: "Material zero looks right — I completed this step",
@@ -46,6 +48,16 @@ const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
   steps: "Measured and wrote steps/mm — I completed this step",
   travel: "Soft travel / bed extents set — I completed this step",
 };
+
+/** Compact Home ($H) offered on Zero context — recommended, not a hard gate. */
+export interface CalibrationHomingProps {
+  enabled: boolean;
+  blockedReason?: string | null;
+  homed: boolean;
+  busy?: boolean;
+  message?: string | null;
+  onHome: () => void;
+}
 
 interface CalibrationPanelProps {
   enabled: boolean;
@@ -67,8 +79,12 @@ interface CalibrationPanelProps {
   onClose?: () => void;
   /** Soft travel confirmed — persist calibrated and advance (phase shell). */
   onComplete?: () => void;
-  /** Open the post-calibration full bed travel test (clear entry). */
+  /** Open the post-calibration full bed travel test (recommended, not required). */
   onOpenBedTravelTest?: () => void;
+  /** Optional compact Home on Zero context (recommended). */
+  homing?: CalibrationHomingProps | null;
+  /** Denser chrome for the phase rail (no tall stack). */
+  dense?: boolean;
 }
 
 function settingValue(
@@ -110,6 +126,8 @@ export function CalibrationPanel({
   onClose,
   onComplete,
   onOpenBedTravelTest,
+  homing = null,
+  dense = false,
 }: CalibrationPanelProps) {
   const {
     stepIndex,
@@ -176,6 +194,14 @@ export function CalibrationPanel({
 
   const softOn = settings ? softLimitsEnabled(settings) : false;
 
+  // Guided steps need settings; load quietly (no raw $$ chrome — Advanced has that).
+  useEffect(() => {
+    if (!enabled || busy || settings) return;
+    onRefreshSettings();
+    // Intentionally omit onRefreshSettings — parents often pass inline lambdas.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once when empty
+  }, [enabled, busy, settings]);
+
   useEffect(() => {
     if (step.id !== "travel") return;
     setMaxX(softTravel.maxX !== null ? String(softTravel.maxX) : "");
@@ -200,8 +226,16 @@ export function CalibrationPanel({
 
   const clearConfirm = () => setStepConfirmed(false);
 
+  const finishToPrepare = () => {
+    onComplete?.();
+    onClose?.();
+  };
+
   return (
-    <section className="cal" aria-label="Calibration wizard">
+    <section
+      className={`cal${dense ? " cal--dense" : ""}`}
+      aria-label="Calibration wizard"
+    >
       <nav className="cal__steps" aria-label="Calibration steps">
         {WIZARD_STEPS.map((s, i) => {
           const state =
@@ -232,22 +266,26 @@ export function CalibrationPanel({
         </p>
       ) : null}
 
-      <div className="cal__toolbar">
-        <button
-          type="button"
-          className="cal__btn cal__btn--ghost"
-          disabled={!canAct}
-          onClick={onRefreshSettings}
-          title="Read $$ from GRBL"
-        >
-          Read $$
-        </button>
-        <span className="cal__meta">
-          {settings
-            ? `${settings.size} settings · soft limits ${softOn ? "ON" : "off"}`
+      <p className="cal__meta cal__meta--bar" aria-live="polite">
+        {settings
+          ? `${settings.size} settings · soft limits ${softOn ? "ON" : "off"}`
+          : busy
+            ? "Loading settings…"
             : "Settings not loaded"}
-        </span>
-      </div>
+        {canAct && settings ? (
+          <>
+            {" · "}
+            <button
+              type="button"
+              className="cal__link"
+              onClick={onRefreshSettings}
+              title="Reload GRBL settings for this wizard"
+            >
+              Reload
+            </button>
+          </>
+        ) : null}
+      </p>
 
       {step.id === "zero" && (
         <div className="cal__body" role="group" aria-labelledby="cal-step-zero">
@@ -255,10 +293,27 @@ export function CalibrationPanel({
             Confirm zero context
           </h3>
           <p className="cal__hint">
-            Before measuring steps/mm, confirm material zero (and machine home
-            if you use it). Homing/limit switches are only on the zero side —
-            set material origin at a known reference, then continue.
+            Measurement check only — set material origin at a known reference
+            before steps/mm. Day-to-day blank origin lives in Prepare.
           </p>
+
+          {homing ? (
+            <div className="cal__recommend" role="group" aria-label="Homing">
+              <button
+                type="button"
+                className="cal__btn cal__btn--ghost"
+                disabled={!homing.enabled || !!homing.busy}
+                title={homing.blockedReason ?? "Cycle home ($H)"}
+                onClick={homing.onHome}
+              >
+                {homing.busy ? "Homing…" : "Home ($H)"}
+              </button>
+              <span className="cal__recommend-meta">
+                {homing.homed ? "Homed this session" : "Recommended if you use switches"}
+                {homing.message ? ` · ${homing.message}` : ""}
+              </span>
+            </div>
+          ) : null}
 
           <div className="cal__pos" aria-label="Current position">
             <div className="cal__pos-legend" aria-hidden>
@@ -308,9 +363,7 @@ export function CalibrationPanel({
             </p>
           ) : (
             <p className="cal__hint">
-              Zeroing sets the current tool location as material origin — it
-              does not move the machine. Use Move tab jog if you need to
-              reposition first.
+              Zeroing sets material origin — it does not move the machine.
             </p>
           )}
 
@@ -331,13 +384,11 @@ export function CalibrationPanel({
           aria-labelledby="cal-step-direction"
         >
           <h3 id="cal-step-direction" className="cal__step-title">
-            Axis direction invert
+            Axis direction
           </h3>
           <p className="cal__hint">
-            Swap stepper direction per axis so jog +X / +Y / +Z matches your
-            machine wiring (GRBL <code>$3</code>). Toggle independently, write
-            the mask, then use the short test jogs to confirm before measuring
-            steps/mm.
+            Match jog +X / +Y / +Z to the machine (<code>$3</code>). Toggle,
+            write, then short test jogs before steps/mm.
           </p>
 
           <p className="cal__current">
@@ -353,7 +404,7 @@ export function CalibrationPanel({
                 </span>
               </>
             ) : (
-              <> — click Read $$</>
+              <> — waiting for settings</>
             )}
           </p>
 
@@ -379,12 +430,7 @@ export function CalibrationPanel({
                       }));
                     }}
                   />
-                  <span>
-                    Invert {ax}{" "}
-                    <span className="cal__meta">
-                      (bit {ax === "X" ? "0" : ax === "Y" ? "1" : "2"})
-                    </span>
-                  </span>
+                  <span>Invert {ax}</span>
                 </label>
                 <div
                   className="cal__dir-tests"
@@ -445,12 +491,6 @@ export function CalibrationPanel({
             </div>
           </div>
 
-          <p className="cal__hint">
-            Test jogs move {DIR_TEST_JOG_MM} mm at the current jog feed. Clear
-            the bed, keep Z high for XY checks, and stand ready on E-Stop. If
-            +X moves left instead of right, invert X and write again.
-          </p>
-
           <WizardStepConfirm
             id="cal-confirm-direction"
             checked={isConfirmed}
@@ -471,9 +511,8 @@ export function CalibrationPanel({
             Steps per mm
           </h3>
           <p className="cal__hint">
-            Command a known move, measure the real distance with a ruler, then
-            write the new steps/mm ($100–$102). Confirm axis direction first if
-            jog signs look wrong.
+            Command a known move, measure with a ruler, write steps/mm
+            ($100–$102).
           </p>
 
           <div className="cal__row">
@@ -568,8 +607,7 @@ export function CalibrationPanel({
             <div className="cal__result" aria-live="polite">
               <p className="cal__result-line">
                 Before: <strong>{computed.before.toFixed(3)}</strong>
-              </p>
-              <p className="cal__result-line">
+                {" → "}
                 After: <strong>{computed.after.toFixed(3)}</strong> steps/mm
               </p>
               <button
@@ -602,12 +640,11 @@ export function CalibrationPanel({
           aria-labelledby="cal-step-travel"
         >
           <h3 id="cal-step-travel" className="cal__step-title">
-            Soft travel / bed extents
+            Soft travel
           </h3>
           <p className="cal__hint">
-            Jog to the far end of each axis (or enter known bed size), write
-            $130–$132, and enable soft limits ($20). Bed size updates the
-            visualizer.
+            Far end of each axis (or known bed size) → $130–$132 and soft limits
+            ($20). Updates the visualizer bed frame.
           </p>
 
           <div className="cal__travel">
@@ -707,15 +744,14 @@ export function CalibrationPanel({
             <div className="cal__offer">
               <button
                 type="button"
-                className="cal__btn"
+                className="cal__btn cal__btn--ghost"
                 disabled={!canAct}
                 onClick={onOpenBedTravelTest}
               >
                 Bed travel test…
               </button>
               <p className="cal__offer-hint">
-                After soft travel is set, run the full-bed corner walk (safe Z,
-                cruise, slow approach).
+                Recommended once after soft travel — not required to finish.
               </p>
             </div>
           ) : null}
@@ -753,26 +789,25 @@ export function CalibrationPanel({
                 }}
                 title={
                   isConfirmed
-                    ? "Finish calibration and open the bed travel test"
+                    ? "Mark calibrated, then open bed travel test"
                     : "Confirm this step before finishing"
                 }
               >
-                Done → Bed travel test
+                Bed test…
               </button>
             ) : null}
             <button
               type="button"
               className="cal__btn"
-              onClick={() => {
-                onComplete?.();
-                onClose?.();
-              }}
+              onClick={finishToPrepare}
               disabled={(!onClose && !onComplete) || !isConfirmed}
               title={
-                isConfirmed ? undefined : "Confirm this step before finishing"
+                isConfirmed
+                  ? "Mark calibrated and continue to Prepare"
+                  : "Confirm this step before finishing"
               }
             >
-              Done
+              Continue to Prepare
             </button>
           </>
         ) : (

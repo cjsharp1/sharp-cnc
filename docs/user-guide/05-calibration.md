@@ -8,14 +8,14 @@ Menu → **Calibration…** (also from First-run step 3). Connect first.
 
 | # | Step | Action |
 |---|------|--------|
-| 1 | Zero | Confirm Work / Machine → **Zeros look good — Next** |
+| 1 | Zero context | Confirm Material / Machine → optional **Home ($H)** → confirm → **Next** |
 | 2 | Direction | Invert wrong axes → **Write $3** → Test ±5 mm |
 | 3 | Steps/mm | Move → measure → **Write $100 / $101 / $102** |
-| 4 | Soft travel | Jog far → Use MPos → **Write travel + $20** · optional **Bed travel test…** |
+| 4 | Soft travel | Jog far → Use MPos → **Write travel + $20** → **Continue to Prepare** |
 
-Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibration step).
+Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibrate step). Homing and **Bed travel test…** are recommended, not required to mark calibrated.
 
-After soft travel (or **Done → Bed travel test** / **Menu → Bed travel test…**), SharpCNC can walk all XY soft-limit corners: safe Z retract, cruise in the open bed, slow approach near each edge, optional proximity beep. Confirm the safety gate before Start; Abort / Feed Hold cancel motion.
+After soft travel (or **Bed test…** / **Menu → Bed travel test…**), SharpCNC can walk all XY soft-limit corners: safe Z retract, cruise in the open bed, slow approach near each edge, optional proximity beep. Confirm the safety gate before Start; Abort / Feed Hold cancel motion. Finishing Soft travel marks the machine calibrated and offers **Continue to Prepare**.
 
 > **Safety:** Clear bed. Keep Z high for XY. E-Stop ready.
 

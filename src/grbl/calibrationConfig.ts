@@ -3,6 +3,17 @@
  * Same spirit as first-run completed — surviving disconnects and relaunches.
  */
 
+/** Guided Calibrate phase steps only (raw $$ lives in Advanced). */
+export const CALIBRATION_GUIDED_STEPS = [
+  "zero",
+  "direction",
+  "steps",
+  "travel",
+] as const;
+
+export type CalibrationGuidedStepId =
+  (typeof CALIBRATION_GUIDED_STEPS)[number];
+
 const STORAGE_KEY = "sharpcnc.calibration.v1";
 
 export interface CalibrationState {
