@@ -10,11 +10,11 @@ Friendly, practical docs for running **one** home CNC: Chris’s custom Demon Sh
 
 | Phase | When | What you do |
 |-------|------|-------------|
-| **0 · [Connect](02-connect.md)** | Every session | Link USB **or** practice on **Virtual CNC** first |
-| **1 · [Calibrate](05-calibration.md)** | Once per machine (or after hardware change) | `$3` direction · steps/mm · soft travel · optional bed test. Visual: [calibration](../setup-visual/calibration.html) |
+| **0 · [Connect](02-connect.md)** | Every session | Link USB **or** practice on **Virtual CNC** first. Visual: [connect](../setup-visual/connect.html) |
+| **1 · [Calibrate](05-calibration.md)** | Once per machine (or after hardware change) | `$3` direction · steps/mm · soft travel · optional bed test. Visual: [calibrate](../setup-visual/calibration.html) |
 | **2 · [Prepare](07-prepare-and-z-probe.md)** | Every new job | Stock + tool · Material XYZ · Z probe · load path · Mark ready. Visual: [prepare](../setup-visual/prepare.html) |
-| **3 · Verify** | After Mark ready | Soft-limit check · Simulate · clear-path checklist · **Start** |
-| **4 · Run** | While cutting | Progress · feed/spindle overrides · Hold / Stop |
+| **3 · Verify** | After Mark ready | Soft-limit check · Simulate · clear-path checklist · **Start**. Visual: [verify](../setup-visual/verify.html) |
+| **4 · Run** | While cutting | Progress · feed/spindle overrides · Hold / Stop. Visual: [run](../setup-visual/run.html) |
 
 **Next session after calibration is done:** Connect → Prepare → Verify → Run. Calibrate stays one click away (phase switcher / Menu), not in the daily path.
 
@@ -35,9 +35,12 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | # | Chapter | What you learn |
 |---|---------|----------------|
 | 1 | [Install & run](01-install-and-run.md) | Windows installer, `npm run tauri dev`, mock UI |
-| 2 | [Connect](02-connect.md) | Phase 0 · COM ports · Virtual CNC first · [first-run](../setup-visual/first-run.html) |
-| — | [Calibration visual](../setup-visual/calibration.html) | **Phase 1 · once** · `$3` · steps/mm · soft travel · bed test |
+| 2 | [Connect](02-connect.md) | Phase 0 · COM ports · Virtual CNC first · [visual](../setup-visual/connect.html) · [first-run](../setup-visual/first-run.html) |
+| — | [Connect visual](../setup-visual/connect.html) | **Phase 0** · Virtual or COM · Linked |
+| — | [Calibrate visual](../setup-visual/calibration.html) | **Phase 1 · once** · `$3` · steps/mm · soft travel · bed test |
 | — | [Prepare visual](../setup-visual/prepare.html) | **Phase 2 · every job** · stock · Material XYZ · Z · load |
+| — | [Verify visual](../setup-visual/verify.html) | **Phase 3** · Simulate · checklist · Start |
+| — | [Run visual](../setup-visual/run.html) | **Phase 4** · overrides · Hold / Stop |
 | 3 | [Understanding the UI](03-understanding-the-ui.md) | Safety strip, phase switcher, Material vs Machine, Menu |
 | 4 | [Jogging & zeros](04-jogging-and-zeros.md) | Jog in Prepare/Calibrate, material origin, XY probe · Advanced appendix |
 | 5 | [Calibration](05-calibration.md) | Phase 1 short table · prefer [visual](../setup-visual/calibration.html) |

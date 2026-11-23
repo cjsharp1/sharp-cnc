@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verify · SharpCNC</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <meta
+      name="description"
+      content="SharpCNC Phase 3 Verify: soft-limit check, Simulate, clear-path checklist, dry-run, then Start."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Sora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/site.css" />
+    <script src="../js/theme.js"></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header
+        class="site-header"
+        data-site-chrome
+        data-page="visual-verify"
+        data-base="../"
+      ></header>
+      <script src="../js/site-chrome.js"></script>
+
+      <main class="visual-guide">
+        <header class="visual-guide__head">
+          <p class="visual-guide__eyebrow">
+            Phase 3 · after Mark ready · Start lives here
+          </p>
+          <h1>Verify</h1>
+          <p class="visual-guide__one">
+            Last look before metal: soft-limit check, <strong>Simulate</strong>,
+            clear-path checklist, then <strong>Start</strong>. Entry needs
+            Prepare ready + a loaded job. First-test Stage 3 = no tool, Z high,
+            dry-run ON. Stage 4 scrap uses the same room with a real bit.
+          </p>
+          <nav class="visual-guide__jump" aria-label="Steps">
+            <a href="#v1">1 Soft limits</a>
+            <a href="#v2">2 Simulate</a>
+            <a href="#v3">3 Start</a>
+          </nav>
+        </header>
+
+        <article class="step-card" id="v1">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">1</span>
+            <h2>Soft-limit check</h2>
+            <p class="step-card__action">
+              Confirm path sits on stock and inside travel · Start blocked if
+              outside
+            </p>
+            <p class="step-card__eli5">
+              Soft limits are invisible fences from Calibrate. If the drawing
+              hangs past the bed, Start stays locked — fix stock, Material XYZ,
+              or the file in Prepare.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/verify-01-simulate.svg"
+              alt="Verify pane with soft-limit OK and path on stock; bed corners NW NE top SW SE bottom"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Phase switcher → <strong>Verify</strong> after
+                <strong>Mark ready</strong> in Prepare.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                One dense Verify screen: soft-limit summary, Simulate, checklist,
+                Start. No Prepare scroll stack.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Glance at the visualizer: path on the stock rectangle? Bed
+                corners read map-style — <strong>NW NE</strong> top,
+                <strong>SW SE</strong> bottom. +Y back = up on screen.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Soft-limit line shows OK — or a clear “outside travel” reason
+                that blocks Start.
+              </p>
+            </li>
+          </ol>
+          <a class="step-card__next" href="#v2">Next: Simulate →</a>
+        </article>
+
+        <article class="step-card" id="v2">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">2</span>
+            <h2>Simulate</h2>
+            <p class="step-card__action">
+              <strong>Play</strong> / Pause / Stop · speed · scrubber · banner
+              Preview — not sending to CNC
+            </p>
+            <p class="step-card__eli5">
+              Simulate is a dress rehearsal on screen. The toolhead walks the
+              path; nothing moves on the real machine. Strongly recommended
+              before the first real Start.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/verify-01-simulate.svg"
+              alt="Simulate Play Pause Stop controls and preview banner"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Simulate → Play</strong>. Optional: change speed
+                (0.25×–4×) or scrub start-at-line.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Banner: <strong>Preview — not sending to CNC</strong>. Z cues
+                (Retract / Plunge / Cut). Serial stays idle.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                If the path looks wrong, go back to
+                <a href="prepare.html">Prepare</a> (stock / Material XYZ / load)
+                — do not Start.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                New file or zero change may clear Prepared; re-Mark ready before
+                Verify again.
+              </p>
+            </li>
+          </ol>
+          <a class="step-card__next" href="#v3">Next: Checklist + Start →</a>
+        </article>
+
+        <article class="step-card" id="v3">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">3</span>
+            <h2>Checklist → Start → Run</h2>
+            <p class="step-card__action">
+              Plate removed · clamps clear · path free · dry-run as needed →
+              <strong>Start</strong>
+            </p>
+            <p class="step-card__eli5">
+              Start streams G-code and switches you to Run. Dry-run strips
+              spindle words for an air pass — default on for the first real
+              machine job after Virtual practice.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/verify-02-start.svg"
+              alt="Clear-path checklist dry-run toggle and Start to Run"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Confirm: plate removed, clamps clear, spindle path free. Leave
+                <strong>Dry-run ON</strong> for first-test Stage 3 (no bit, Z
+                high) or first real Start after Virtual.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Checklist items OK; Start enabled only when Linked, Idle-capable,
+                soft-limit OK, Prepare ready.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Hand near Abort / E-Stop. Tap <strong>Start</strong> (UI or
+                Demon Shield). Mid-path: try Hold → Resume once on a practice
+                pass.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Phase switches to <strong>Run</strong>. Dry-run: no spindle
+                spin. Stop / complete returns to Verify (same job) or Prepare if
+                cleared.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Crash recovery (if a checkpoint exists) replaces this screen —
+                still one pane, not stacked under Start.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Resume-from-line / recovery controls before streaming again.
+              </p>
+            </li>
+          </ol>
+          <p class="step-card__aside">
+            Text:
+            <a href="../guide.html#08">Jobs &amp; run</a>
+            ·
+            <a href="../guide.html#13">First-test stages</a>
+            · Stage 4 scrap still Starts from Verify after a real Z probe in
+            Prepare.
+          </p>
+          <a class="step-card__next" href="run.html">Next phase · Run →</a>
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <a href="index.html">Visual setup</a>
+        ·
+        <a href="../guide.html#08">Text reference</a>
+      </footer>
+    </div>
+  </body>
+</html>

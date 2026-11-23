@@ -35,8 +35,10 @@
         <p class="visual-hub__lead">
           SharpCNC walks one job at a time:
           <strong>Connect → Calibrate → Prepare → Verify → Run</strong>.
-          Practice on <strong>Virtual CNC</strong> before real USB. For Chris’s
-          Demon Shield + GRBL machine only — other CNCs are out of scope.
+          Practice on <strong>Virtual CNC</strong> before real USB. Aligns with
+          <a href="../guide.html#13">first-test stages</a> (air → scrap). For
+          Chris’s Demon Shield + GRBL machine only — other CNCs are out of
+          scope.
         </p>
 
         <figure class="visual-hub__order">
@@ -49,6 +51,20 @@
         </figure>
 
         <div class="visual-hub__grid">
+          <a class="visual-hub__card" href="connect.html">
+            <img
+              src="assets/conn-01-virtual.svg"
+              alt="Virtual CNC first in Connect"
+              width="960"
+              height="520"
+            />
+            <strong>0 · Connect</strong>
+            <span>Every session · Virtual CNC or COM · Linked</span>
+            <span class="visual-hub__eli5">
+              Open the chat line. Practice on Virtual first; real COM when
+              ready. First-test Stage 1 = link only.
+            </span>
+          </a>
           <a class="visual-hub__card" href="calibration.html">
             <img
               src="assets/cal-03-steps.svg"
@@ -59,9 +75,8 @@
             <strong>1 · Calibrate</strong>
             <span>Once per machine · $3 · steps/mm · soft travel · bed test</span>
             <span class="visual-hub__eli5">
-              Machine tune-up. Like setting a ruler so “1” means one real
-              millimeter — do it once (or after you change hardware). Next
-              sessions skip to Prepare.
+              Machine tune-up. Make “1 mm” mean one real millimeter — then skip
+              to Prepare next session. Stage 2 air jog trusts this.
             </span>
           </a>
           <a class="visual-hub__card" href="prepare.html">
@@ -72,11 +87,38 @@
               height="520"
             />
             <strong>2 · Prepare</strong>
-            <span>Stock · Material XYZ · Z probe · load · Mark ready → Verify</span>
+            <span>Stock · Material XYZ · Z probe · load · Mark ready</span>
             <span class="visual-hub__eli5">
-              Job setup. Place this sheet of wood, mark Material origin, load
-              the drawing — every cut needs this. Simulate and Start live in
-              Verify.
+              Job setup. Place this board, mark Material origin, load the
+              drawing — every cut needs this.
+            </span>
+          </a>
+          <a class="visual-hub__card" href="verify.html">
+            <img
+              src="assets/verify-01-simulate.svg"
+              alt="Verify Simulate and soft-limit check"
+              width="960"
+              height="520"
+            />
+            <strong>3 · Verify</strong>
+            <span>Soft limits · Simulate · checklist · Start</span>
+            <span class="visual-hub__eli5">
+              Last look before metal. Dress rehearsal on screen, then Start.
+              Stages 3–4 Start from here.
+            </span>
+          </a>
+          <a class="visual-hub__card" href="run.html">
+            <img
+              src="assets/run-01-supervise.svg"
+              alt="Run overrides Hold and Stop"
+              width="960"
+              height="520"
+            />
+            <strong>4 · Run</strong>
+            <span>Progress · feed/spindle % · Hold / Stop</span>
+            <span class="visual-hub__eli5">
+              Slim supervise chrome. Watch the cut; override or stop. Stay at
+              the machine.
             </span>
           </a>
         </div>
@@ -86,11 +128,15 @@
           <a href="first-run.html">First-run wizard</a>
           (connect → home → into Calibrate). Prefer Virtual CNC for the first
           pass. Text:
-          <a href="../guide.html#05">Calibration</a>
+          <a href="../guide.html#02">Connect</a>
+          ·
+          <a href="../guide.html#05">Calibrate</a>
           ·
           <a href="../guide.html#07">Prepare</a>
           ·
-          <a href="../guide.html#08">Jobs &amp; run</a>
+          <a href="../guide.html#08">Verify &amp; Run</a>
+          ·
+          <a href="../guide.html#13">First-test stages</a>
         </p>
       </main>
 

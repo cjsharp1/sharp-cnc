@@ -2,7 +2,7 @@
 
 **When:** every new job (after the machine is already [calibrated](05-calibration.md)). Prepare is **not** calibration — it does not set `$3`, steps/mm, or soft travel.
 
-**Prefer pictures:** [Per-job prepare visual](../setup-visual/prepare.html).
+**Prefer pictures:** [Prepare visual](../setup-visual/prepare.html) · next phase [Verify](../setup-visual/verify.html).
 
 **Session order:** Connect → (Calibrate if needed) → **Prepare** → **Mark ready → Verify** → Simulate → **Start** → **Run**.
 

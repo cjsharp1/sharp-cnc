@@ -2,7 +2,7 @@
 
 Files become motion across phases: **Prepare** (load / generate + place) → **Verify** (soft-limit check, simulate, clear-path checklist, Start) → **Run** (progress, overrides on the safety strip, Hold / Stop). Start is only available in **Verify**.
 
-Visual: [Load the job](../setup-visual/prepare.html#p4) in the per-job prepare guide.
+Visual: [Load the job](../setup-visual/prepare.html#p4) · [Verify](../setup-visual/verify.html) · [Run](../setup-visual/run.html).
 
 ![Job flow](assets/diagram-job-flow.svg)
 

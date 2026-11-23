@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Phase 3 — Verify checklist and Start</title>
+  <desc id="d">Clear-path checklist, dry-run toggle, then Start moves to Run</desc>
+  <defs>
+    <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .num { fill: #1f6a4a; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .ok { fill: #1f6a4a; }
+      .chip { fill: #1a2332; }
+      .go { fill: #b85c2a; }
+      .box { fill: #e8f2ec; stroke: #1f6a4a; stroke-width: 2; }
+    </style>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="22">3</text>
+  <text class="lab" x="100" y="48" font-size="28">Verify · Start</text>
+  <text class="tiny" x="100" y="78">Checklist + dry-run · Start unlocks Run</text>
+
+  <rect class="card" x="80" y="120" width="420" height="320" rx="14"/>
+  <text class="lab" x="110" y="165" font-size="20">Clear-path checklist</text>
+  <g transform="translate(110,190)">
+    <rect class="box" width="360" height="48" rx="8"/>
+    <text class="lab" x="24" y="24" dominant-baseline="central" font-size="15">✓ Plate removed</text>
+  </g>
+  <g transform="translate(110,250)">
+    <rect class="box" width="360" height="48" rx="8"/>
+    <text class="lab" x="24" y="24" dominant-baseline="central" font-size="15">✓ Clamps clear of path</text>
+  </g>
+  <g transform="translate(110,310)">
+    <rect class="box" width="360" height="48" rx="8"/>
+    <text class="lab" x="24" y="24" dominant-baseline="central" font-size="15">✓ Spindle path free</text>
+  </g>
+  <g transform="translate(110,370)">
+    <rect class="chip" width="360" height="44" rx="8"/>
+    <text class="w" x="180" y="22" text-anchor="middle" dominant-baseline="central" font-size="15">Dry-run ON (first real cut)</text>
+  </g>
+
+  <rect class="card" x="540" y="120" width="340" height="320" rx="14"/>
+  <text class="lab" x="570" y="165" font-size="20">Gates before Start</text>
+  <text class="tiny" x="570" y="200">Prepare ready</text>
+  <text class="tiny" x="570" y="228">Job loaded</text>
+  <text class="tiny" x="570" y="256">Soft-limit OK</text>
+  <text class="tiny" x="570" y="284">Linked · Idle</text>
+  <g transform="translate(570,320)">
+    <rect class="go" width="280" height="56" rx="10"/>
+    <text class="w" x="140" y="28" text-anchor="middle" dominant-baseline="central" font-size="20">Start → Run</text>
+  </g>
+  <text class="tiny" x="570" y="410">Hand near Abort · stay at machine</text>
+</svg>

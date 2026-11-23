@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Run · SharpCNC</title>
+    <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
+    <meta
+      name="description"
+      content="SharpCNC Phase 4 Run: progress, feed and spindle overrides, Hold Resume Stop — slim supervise chrome."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Oswald:wght@500;600&family=Sora:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="../css/theme.css" />
+    <link rel="stylesheet" href="../css/site.css" />
+    <script src="../js/theme.js"></script>
+  </head>
+  <body>
+    <div class="site-shell">
+      <header
+        class="site-header"
+        data-site-chrome
+        data-page="visual-run"
+        data-base="../"
+      ></header>
+      <script src="../js/site-chrome.js"></script>
+
+      <main class="visual-guide">
+        <header class="visual-guide__head">
+          <p class="visual-guide__eyebrow">
+            Phase 4 · while streaming or Hold · slim chrome
+          </p>
+          <h1>Run</h1>
+          <p class="visual-guide__one">
+            Supervise the cut — progress, feed / spindle overrides on the safety
+            strip, Hold / Resume / Stop. No probe, load, Calibrate, or Advanced
+            here. Stay at the machine. First-test Stage 4 scrap still Starts from
+            <a href="verify.html">Verify</a>; Run is where you watch it.
+          </p>
+          <nav class="visual-guide__jump" aria-label="Steps">
+            <a href="#r1">1 Progress</a>
+            <a href="#r2">2 Overrides</a>
+            <a href="#r3">3 After</a>
+          </nav>
+        </header>
+
+        <article class="step-card" id="r1">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">1</span>
+            <h2>Progress</h2>
+            <p class="step-card__action">
+              Watch line / % · Material / Machine XYZ on the strip · optional
+              current line
+            </p>
+            <p class="step-card__eli5">
+              Run is the “eyes on the cut” room. The strip always shows Material
+              XYZ (origin on the blank) and Machine XYZ (bed frame) — never
+              “Work” in the UI.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/run-01-supervise.svg"
+              alt="Run phase with safety strip Material and Machine XYZ plus progress bar"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                After <strong>Start</strong> in Verify, confirm the phase
+                switcher shows <strong>Run</strong> and State is Run (or Hold).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Progress (line / %, time if known). Visualizer tracks the
+                toolhead. Strip never hides.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Keep one hand near Abort / E-Stop. Know how to kill spindle
+                power for a real cut (Stage 4).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                UI E-Stop / enclosure Abort are soft reset / hold — not wall
+                power.
+              </p>
+            </li>
+          </ol>
+          <a class="step-card__next" href="#r2">Next: Overrides + stop →</a>
+        </article>
+
+        <article class="step-card" id="r2">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">2</span>
+            <h2>Overrides + Hold / Stop</h2>
+            <p class="step-card__action">
+              Feed % · spindle % · <strong>Hold</strong> / Resume /
+              <strong>Stop</strong> (mirror Demon Shield)
+            </p>
+            <p class="step-card__eli5">
+              Slow the cut with feed override; pause with Hold; abort with Stop.
+              Same ideas as the enclosure buttons when wired.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/run-01-supervise.svg"
+              alt="Feed and spindle overrides with Hold Resume Stop buttons"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Adjust <strong>Feed %</strong> / <strong>Spindle %</strong> on
+                the strip if needed (e.g. 70–90% feed on first scrap).
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Overrides take effect while streaming or in Hold; strip stays
+                visible.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Practice once: <strong>Hold</strong> → <strong>Resume</strong>
+                (UI and enclosure if wired). Then <strong>Stop</strong> /
+                Abort if you need to cancel.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Hold freezes motion; Resume continues; Stop soft-resets /
+                cancels the stream. Alarm → Unlock only when clear.
+              </p>
+            </li>
+          </ol>
+          <p class="step-card__aside">
+            Not in Run: Probe, Calibrate, job load, console / macros / G54–G59
+            (those are <strong>Menu → Advanced…</strong> only).
+          </p>
+          <a class="step-card__next" href="#r3">Next: After the job →</a>
+        </article>
+
+        <article class="step-card" id="r3">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">3</span>
+            <h2>After the job</h2>
+            <p class="step-card__action">
+              Complete / Stop → <strong>Verify</strong> · new blank →
+              <strong>Prepare</strong> · Disconnect → Connect
+            </p>
+            <p class="step-card__eli5">
+              Same job again? Back to Verify. New piece of wood? Prepare. Unplug
+              the session? Connect (Phase 0).
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/overview-flow.svg"
+              alt="Phase overview Connect Calibrate Prepare Verify Run"
+              width="960"
+              height="280"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Job complete or Stop: review in <strong>Verify</strong> (same
+                path) or clear and return to <strong>Prepare</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Streaming ends; Start gated again until ready + soft-limit OK.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                After Stage 4 scrap Pass: still Simulate every new path; keep
+                soft travel honest; never leave a Running job unattended.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Careful real parts only after first-test stages Pass on iron —
+                see
+                <a href="../guide.html#13">First-test stages</a>.
+              </p>
+            </li>
+          </ol>
+          <p class="step-card__aside">
+            Text:
+            <a href="../guide.html#08">Jobs &amp; run</a>
+            ·
+            <a href="../guide.html#11">Safety</a>
+          </p>
+          <a class="step-card__next" href="index.html"
+            >Done · visual hub →</a
+          >
+        </article>
+      </main>
+
+      <footer class="site-footer">
+        <a href="index.html">Visual setup</a>
+        ·
+        <a href="../guide.html#08">Text reference</a>
+      </footer>
+    </div>
+  </body>
+</html>

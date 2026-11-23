@@ -1,0 +1,67 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Phase 3 — Verify Simulate</title>
+  <desc id="d">Soft-limit check and Simulate preview before Start; +Y back is up on screen</desc>
+  <defs>
+    <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .bed { fill: #dfe3e8; stroke: #3a4550; stroke-width: 3; }
+      .stock { fill: #c4a574; stroke: #6b4f2a; stroke-width: 2.5; }
+      .path { fill: none; stroke: #2f5d7a; stroke-width: 3; stroke-dasharray: 8 6; }
+      .panel { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .num { fill: #1f6a4a; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 13px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .chip { fill: #1a2332; }
+      .ok { fill: #1f6a4a; }
+      .warn { fill: #b8862d; }
+      .tool { fill: #b85c2a; }
+    </style>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="22">3</text>
+  <text class="lab" x="100" y="48" font-size="28">Verify · Simulate</text>
+  <text class="tiny" x="100" y="78">Soft-limit OK · preview only — not sending to CNC</text>
+
+  <rect class="bed" x="60" y="110" width="480" height="340" rx="8"/>
+  <text class="tiny" x="80" y="138">Bed · looking down (+Y back = up on screen)</text>
+  <text class="tiny" x="80" y="158">NW</text>
+  <text class="tiny" x="500" y="158" text-anchor="end">NE</text>
+  <text class="tiny" x="80" y="430">SW</text>
+  <text class="tiny" x="500" y="430" text-anchor="end">SE</text>
+  <rect class="stock" x="140" y="200" width="280" height="180" rx="4"/>
+  <path class="path" d="M180 340 L220 240 L320 260 L380 300 L340 340 Z"/>
+  <circle class="tool" cx="220" cy="240" r="10"/>
+  <text class="tiny" x="280" y="290" text-anchor="middle" dominant-baseline="central">Path on stock</text>
+  <text class="tiny" x="420" y="190" text-anchor="middle">+Y</text>
+  <text class="tiny" x="500" y="300" text-anchor="middle">+X</text>
+
+  <rect class="panel" x="580" y="110" width="320" height="340" rx="12"/>
+  <text class="lab" x="610" y="150" font-size="16">Verify pane</text>
+  <g transform="translate(610,170)">
+    <rect class="ok" width="260" height="36" rx="8"/>
+    <text class="w" x="130" y="18" text-anchor="middle" dominant-baseline="central" font-size="13">Soft limits · path OK</text>
+  </g>
+  <g transform="translate(610,220)">
+    <rect class="chip" width="80" height="40" rx="8"/>
+    <text class="w" x="40" y="20" text-anchor="middle" dominant-baseline="central" font-size="13">Play</text>
+  </g>
+  <g transform="translate(700,220)">
+    <rect class="chip" width="80" height="40" rx="8"/>
+    <text class="w" x="40" y="20" text-anchor="middle" dominant-baseline="central" font-size="13">Pause</text>
+  </g>
+  <g transform="translate(790,220)">
+    <rect class="chip" width="80" height="40" rx="8"/>
+    <text class="w" x="40" y="20" text-anchor="middle" dominant-baseline="central" font-size="13">Stop</text>
+  </g>
+  <text class="tiny" x="610" y="290">Speed 0.25× · 1× · 4×</text>
+  <text class="tiny" x="610" y="318">Scrubber · start at line</text>
+  <g transform="translate(610,340)">
+    <rect class="warn" width="260" height="40" rx="8"/>
+    <text class="w" x="130" y="20" text-anchor="middle" dominant-baseline="central" font-size="13">Preview — not CNC</text>
+  </g>
+  <text class="tiny" x="610" y="410">First-test Stage 3: dry-run ON, Z high</text>
+</svg>

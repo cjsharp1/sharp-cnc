@@ -132,12 +132,32 @@
 
   const EXTERNAL = [
     {
-      title: "First-run visual guide",
-      href: "setup-visual/first-run.html",
+      title: "Visual hub (all phases)",
+      href: "setup-visual/index.html",
     },
     {
-      title: "Calibration visual guide",
+      title: "Connect visual",
+      href: "setup-visual/connect.html",
+    },
+    {
+      title: "Calibrate visual",
       href: "setup-visual/calibration.html",
+    },
+    {
+      title: "Prepare visual",
+      href: "setup-visual/prepare.html",
+    },
+    {
+      title: "Verify visual",
+      href: "setup-visual/verify.html",
+    },
+    {
+      title: "Run visual",
+      href: "setup-visual/run.html",
+    },
+    {
+      title: "First-run bootstrap",
+      href: "setup-visual/first-run.html",
     },
     {
       title: "Demon Shield vendor page",
