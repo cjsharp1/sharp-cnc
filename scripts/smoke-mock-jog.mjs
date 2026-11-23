@@ -14,9 +14,11 @@ const SOFT_RESET = 0x18;
 const JOG_CANCEL = 0x85;
 
 function createMiniMock() {
-  let machine = { x: 40, y: 30, z: -1.5 };
-  let wco = { x: 10, y: 5, z: 0 };
+  let machine = { x: 0, y: 0, z: 0 };
+  let wco = { x: 0, y: 0, z: 0 };
   let state = "Idle";
+  let softLimits = true;
+  const max = { x: 1000, y: 1000, z: 200 };
 
   const parseAxes = (cmd) => {
     const out = {};
@@ -24,6 +26,18 @@ function createMiniMock() {
     let m;
     while ((m = re.exec(cmd))) out[m[1].toLowerCase()] = Number(m[2]);
     return out;
+  };
+
+  const violates = (target) => {
+    if (!softLimits) return false;
+    return (
+      target.x < 0 ||
+      target.y < 0 ||
+      target.z < -max.z ||
+      target.x > max.x ||
+      target.y > max.y ||
+      target.z > 0
+    );
   };
 
   return {
@@ -52,6 +66,7 @@ function createMiniMock() {
         }
         if (b === SOFT_RESET) {
           machine = { x: 0, y: 0, z: 0 };
+          wco = { x: 0, y: 0, z: 0 };
           state = "Idle";
           return "reset";
         }
@@ -64,15 +79,21 @@ function createMiniMock() {
       if (/^\$J=/i.test(line)) {
         const abs = /\bG90\b/i.test(line);
         const v = parseAxes(line);
+        const target = { ...machine };
         if (abs) {
-          if (v.x !== undefined) machine.x = wco.x + v.x;
-          if (v.y !== undefined) machine.y = wco.y + v.y;
-          if (v.z !== undefined) machine.z = wco.z + v.z;
+          if (v.x !== undefined) target.x = wco.x + v.x;
+          if (v.y !== undefined) target.y = wco.y + v.y;
+          if (v.z !== undefined) target.z = wco.z + v.z;
         } else {
-          if (v.x !== undefined) machine.x += v.x;
-          if (v.y !== undefined) machine.y += v.y;
-          if (v.z !== undefined) machine.z += v.z;
+          if (v.x !== undefined) target.x = machine.x + v.x;
+          if (v.y !== undefined) target.y = machine.y + v.y;
+          if (v.z !== undefined) target.z = machine.z + v.z;
         }
+        if (violates(target)) {
+          state = "Alarm";
+          return "ALARM:2";
+        }
+        machine = target;
         state = "Idle";
         return "ok";
       }
@@ -98,8 +119,10 @@ function nearly(a, b) {
 void createRequire;
 const mock = createMiniMock();
 
+assert(nearly(mock.work.x, 0) && nearly(mock.work.y, 0), "starts at work 0,0");
+
 mock.handle("$J=G91 G21 X10 F500");
-assert(nearly(mock.machine.x, 50), "jog +X");
+assert(nearly(mock.machine.x, 10), "jog +X");
 
 mock.handle("G10 L20 P1 X0 Y0 Z0");
 assert(nearly(mock.work.x, 0) && nearly(mock.work.y, 0), "work zero");
@@ -113,6 +136,22 @@ assert(nearly(mock.work.x, 0) && nearly(mock.work.y, 0), "goto XY0");
 const status = mock.handle("?");
 assert(status.includes("MPos:"), "status");
 assert(status.includes("WCO:"), "wco");
+
+// Soft reset clears WCO so work stays at 0 (not stale −10/−5).
+mock.handle(new Uint8Array([SOFT_RESET]));
+mock.handle("$J=G91 G21 X10 F500");
+mock.handle("G10 L20 P1 X0 Y0 Z0"); // WCO.x = machine.x = 10
+assert(nearly(mock.wco.x, 10), "wco set");
+assert(nearly(mock.work.x, 0), "work 0 with offset");
+mock.handle(new Uint8Array([SOFT_RESET]));
+assert(nearly(mock.machine.x, 0) && nearly(mock.wco.x, 0), "reset clears MPos+WCO");
+assert(nearly(mock.work.x, 0) && nearly(mock.work.y, 0), "work 0 after reset");
+
+assert(mock.handle("$J=G91 G21 X-1 F500") === "ALARM:2", "soft limit blocks −X");
+assert(mock.state === "Alarm", "alarm state");
+
+mock.handle(new Uint8Array([SOFT_RESET]));
+assert(mock.state === "Idle", "reset clears alarm in mini-mock");
 
 mock.handle(new Uint8Array([JOG_CANCEL]));
 assert(mock.state === "Idle", "cancel");

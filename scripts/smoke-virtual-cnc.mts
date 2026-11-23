@@ -1,5 +1,5 @@
 /**
- * Smoke: Virtual CNC path + routing transport + jog updates MPos like a machine.
+ * Smoke: Virtual CNC path + routing transport + perfect origin + soft limits.
  * Run: npx tsx scripts/smoke-virtual-cnc.mts
  */
 
@@ -12,10 +12,17 @@ import {
   listMockPorts,
 } from "../src/grbl/mockSerial.ts";
 import { createRoutingTransport } from "../src/grbl/routingTransport.ts";
+import { softLimitsEnabled } from "../src/grbl/settings.ts";
+import { fetchGrblSettings } from "../src/grbl/settingsIo.ts";
+import type { GrblStatus } from "../src/grbl/types.ts";
 import type { SerialTransport } from "../src/grbl/transport.ts";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
+}
+
+function nearly(a: number, b: number, eps = 0.05): boolean {
+  return Math.abs(a - b) < eps;
 }
 
 assert(isVirtualCncPath(VIRTUAL_CNC_PATH), "VIRTUAL_CNC_PATH is virtual");
@@ -61,25 +68,36 @@ function createStubDesktop(): SerialTransport {
 const routed = createRoutingTransport(createStubDesktop(), createMockTransport());
 const client = createGrblClient(routed, { softResetOnConnect: true, statusPollMs: 50 });
 
-let lastMpos = { x: 0, y: 0, z: 0 };
+let last: GrblStatus | null = null;
 const unsub = client.onStatus((s) => {
-  lastMpos = { ...s.machine };
+  last = s;
 });
 
 await client.connect({ path: VIRTUAL_CNC_PATH });
 assert(client.transport.isOpen, "Virtual CNC open");
 
-// Wait for post-reset idle status.
-await new Promise((r) => setTimeout(r, 220));
+// Wait for post-reset idle status + WCO report.
+await new Promise((r) => setTimeout(r, 280));
+assert(last, "got status");
+assert(nearly(last.machine.x, 0) && nearly(last.machine.y, 0), "MPos 0,0 after reset");
+assert(nearly(last.work.x, 0) && nearly(last.work.y, 0), "WPos 0,0 after reset");
+if (last.wco) {
+  assert(nearly(last.wco.x, 0) && nearly(last.wco.y, 0), "WCO 0 after reset");
+}
 
-const before = { ...lastMpos };
-await client.sendLine(buildJogCommand({ x: 5, y: -2 }, 500));
+const settings = await fetchGrblSettings(client, { timeoutMs: 2000 });
+assert(softLimitsEnabled(settings) === true, "Virtual CNC soft limits on by default");
+
+// Positive jog stays inside the envelope.
+const before = { ...last.machine };
+await client.sendLine(buildJogCommand({ x: 5, y: 2 }, 500));
 
 const deadline = Date.now() + 3000;
 while (Date.now() < deadline) {
   if (
-    Math.abs(lastMpos.x - (before.x + 5)) < 0.05 &&
-    Math.abs(lastMpos.y - (before.y - 2)) < 0.05
+    last &&
+    nearly(last.machine.x, before.x + 5) &&
+    nearly(last.machine.y, before.y + 2)
   ) {
     break;
   }
@@ -87,13 +105,34 @@ while (Date.now() < deadline) {
 }
 
 assert(
-  Math.abs(lastMpos.x - (before.x + 5)) < 0.05,
-  `jog X moved (got ${lastMpos.x}, want ~${before.x + 5})`,
+  last && nearly(last.machine.x, before.x + 5),
+  `jog X moved (got ${last?.machine.x}, want ~${before.x + 5})`,
 );
 assert(
-  Math.abs(lastMpos.y - (before.y - 2)) < 0.05,
-  `jog Y moved (got ${lastMpos.y}, want ~${before.y - 2})`,
+  last && nearly(last.machine.y, before.y + 2),
+  `jog Y moved (got ${last?.machine.y}, want ~${before.y + 2})`,
 );
+
+// Soft limits: cannot jog into negatives from the origin (after soft-reset).
+await client.softReset();
+await new Promise((r) => setTimeout(r, 200));
+assert(last && last.state !== "Alarm", "idle after soft reset");
+assert(
+  last && nearly(last.work.x, 0) && nearly(last.work.y, 0),
+  `WPos still 0,0 after soft reset (got ${JSON.stringify(last?.work)})`,
+);
+
+await client.sendLine(buildJogCommand({ x: -1 }, 500));
+await new Promise((r) => setTimeout(r, 120));
+assert(last?.state === "Alarm", "soft-limit alarm on negative X jog");
+
+await client.sendLine("$X");
+await new Promise((r) => setTimeout(r, 80));
+assert(last?.state === "Idle", "unlocked after soft-limit");
+
+await client.sendLine(buildJogCommand({ y: -1 }, 500));
+await new Promise((r) => setTimeout(r, 120));
+assert(last?.state === "Alarm", "soft-limit alarm on negative Y jog");
 
 await client.disconnect();
 unsub();

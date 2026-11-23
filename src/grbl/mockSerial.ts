@@ -49,11 +49,35 @@ export function isVirtualCncPath(path: string | null | undefined): boolean {
 
 type MockState = "Idle" | "Jog" | "Run" | "Hold" | "Alarm" | "Home";
 
+/** Machine / work origin for a perfectly calibrated Virtual CNC. */
+const VIRTUAL_ORIGIN: Position3 = { x: 0, y: 0, z: 0 };
+
+/**
+ * Virtual CNC defaults: soft limits on, envelope matches app soft-travel
+ * placeholders (X/Y 1000 mm, Z 200 mm). Real-machine DEFAULT_GRBL_SETTINGS keep
+ * `$20=0` until calibration; the simulator is already "perfect."
+ */
+function seedVirtualCncSettings(target: Map<number, number>): void {
+  target.clear();
+  for (const [k, v] of Object.entries(DEFAULT_GRBL_SETTINGS)) {
+    target.set(Number(k), v);
+  }
+  target.set(20, 1); // soft limits enabled
+  target.set(22, 1); // homing enabled (matches perfect setup)
+  target.set(130, 1000);
+  target.set(131, 1000);
+  target.set(132, 200);
+}
+
 /**
  * Virtual CNC — in-app GRBL simulator (no Demon Shield USB). Selected from the
  * Connect port list like a COM port. Simulates status (MPos/WPos via WCO),
  * jog (`$J=`), work zero (`G10 L20`), job motion (G0/G1), soft-reset, homing
  * stub (`$H`), feed hold / resume, and status reports.
+ *
+ * Perfect calibration: Machine 0 / Work 0 at the work-bed corner after open,
+ * soft-reset, or `$H`. Soft limits keep machine coords in [0, max] on X/Y and
+ * [−maxZ, 0] on Z (same sign convention as the SharpCNC visualizer).
  *
  * Program lines are queued and acknowledged in order so the character-counting
  * streamer behaves like GRBL's RX buffer.
@@ -64,8 +88,8 @@ export function createMockTransport(): SerialTransport {
   const lineHandlers = new Set<(line: string) => void>();
   const eventHandlers = new Set<(event: TransportEvent) => void>();
 
-  let machine: Position3 = { x: 40, y: 30, z: -1.5 };
-  let wco: Position3 = { x: 10, y: 5, z: 0 };
+  let machine: Position3 = { ...VIRTUAL_ORIGIN };
+  let wco: Position3 = { ...VIRTUAL_ORIGIN };
   let state: MockState = "Idle";
   let heldFrom: MockState = "Idle";
   let absolute = true; // G90 vs G91 for program / probe lines
@@ -84,16 +108,15 @@ export function createMockTransport(): SerialTransport {
   let activeWcsP = 1;
   /** Per-WCS absolute WCO storage (G10 L2). */
   const wcsOffsets = new Map<number, Position3>([
-    [1, { x: 10, y: 5, z: 0 }],
+    [1, { ...VIRTUAL_ORIGIN }],
   ]);
   /** Active control pins for `Pn:` (Demon Shield button simulation). */
   let activePins = "";
   let pinClearTimer: ReturnType<typeof setTimeout> | null = null;
   const queue: string[] = [];
   /** Mutable GRBL EEPROM settings for `$$` / `$n=` calibration smoke tests. */
-  const settings = new Map<number, number>(
-    Object.entries(DEFAULT_GRBL_SETTINGS).map(([k, v]) => [Number(k), v]),
-  );
+  const settings = new Map<number, number>();
+  seedVirtualCncSettings(settings);
 
   const pulsePin = (letter: string, holdMs = 120) => {
     if (!activePins.includes(letter)) activePins += letter;
@@ -251,6 +274,32 @@ export function createMockTransport(): SerialTransport {
 
   const softLimitsOn = () => (settings.get(20) ?? 0) >= 1;
 
+  /**
+   * Soft envelope in machine coords after homing:
+   * X/Y ∈ [0, $130/$131], Z ∈ [−$132, 0] (home at top of travel).
+   */
+  const violatesSoftLimits = (target: Position3): boolean => {
+    if (!softLimitsOn()) return false;
+    const maxX = settings.get(130) ?? Infinity;
+    const maxY = settings.get(131) ?? Infinity;
+    const maxZ = settings.get(132) ?? Infinity;
+    return (
+      target.x < 0 ||
+      target.y < 0 ||
+      target.z < -maxZ ||
+      target.x > maxX ||
+      target.y > maxY ||
+      target.z > 0
+    );
+  };
+
+  const raiseSoftLimitAlarm = () => {
+    clearMotion();
+    busy = false;
+    state = "Alarm";
+    emitLine("ALARM:2");
+  };
+
   const applyJog = (cmd: string) => {
     const jogAbsolute = /\bG90\b/i.test(cmd);
     const values = parseAxisValues(cmd);
@@ -268,24 +317,9 @@ export function createMockTransport(): SerialTransport {
       if (values.z !== undefined) target.z = machine.z + values.z;
     }
 
-    if (softLimitsOn()) {
-      const maxX = settings.get(130) ?? Infinity;
-      const maxY = settings.get(131) ?? Infinity;
-      const maxZ = settings.get(132) ?? Infinity;
-      if (
-        target.x < 0 ||
-        target.y < 0 ||
-        target.z < -maxZ ||
-        target.x > maxX ||
-        target.y > maxY ||
-        target.z > 0
-      ) {
-        clearMotion();
-        busy = false;
-        state = "Alarm";
-        emitLine("ALARM:2");
-        return;
-      }
+    if (violatesSoftLimits(target)) {
+      raiseSoftLimitAlarm();
+      return;
     }
 
     busy = true;
@@ -296,6 +330,14 @@ export function createMockTransport(): SerialTransport {
   const forceWcoReport = () => {
     // emitStatus does `+= 1` then `% 7 === 0` — leave counter at 6 so next is 7.
     wcoReportCounter = 6;
+  };
+
+  /** Align Machine 0 and Work 0 (perfect Virtual CNC calibration). */
+  const clearWorkOffsets = () => {
+    wco = { ...VIRTUAL_ORIGIN };
+    wcsOffsets.clear();
+    wcsOffsets.set(activeWcsP, { ...VIRTUAL_ORIGIN });
+    forceWcoReport();
   };
 
   const applyG10L20 = (cmd: string) => {
@@ -361,6 +403,11 @@ export function createMockTransport(): SerialTransport {
     applyAxis("x", values.x);
     applyAxis("y", values.y);
     applyAxis("z", values.z);
+
+    if (violatesSoftLimits(target)) {
+      raiseSoftLimitAlarm();
+      return;
+    }
 
     busy = true;
     animateTo(target, feed, "Run", finishCommand);
@@ -441,13 +488,13 @@ export function createMockTransport(): SerialTransport {
       return;
     }
 
-    // Homing cycle ($H) — continue below after jog/settings.
+    // Homing cycle ($H) — Virtual CNC lands at Machine 0 / Work 0.
     if (/^\$H$/i.test(trimmed)) {
       busy = true;
       state = "Home";
-      animateTo({ x: 0, y: 0, z: 0 }, 2000, "Home", () => {
-        machine = { x: 0, y: 0, z: 0 };
-        // After home, GRBL zeros machine; WCO preserved so work coords shift.
+      animateTo({ ...VIRTUAL_ORIGIN }, 2000, "Home", () => {
+        machine = { ...VIRTUAL_ORIGIN };
+        clearWorkOffsets();
         finishCommand();
       });
       return;
@@ -594,7 +641,8 @@ export function createMockTransport(): SerialTransport {
     clearMotion();
     queue.length = 0;
     busy = false;
-    machine = { x: 0, y: 0, z: 0 };
+    machine = { ...VIRTUAL_ORIGIN };
+    clearWorkOffsets();
     absolute = true;
     spindleOn = false;
     feedOverridePct = 100;
@@ -727,19 +775,18 @@ export function createMockTransport(): SerialTransport {
       clearMotion();
       queue.length = 0;
       busy = false;
-      machine = { x: 40, y: 30, z: -1.5 };
-      wco = { x: 10, y: 5, z: 0 };
+      machine = { ...VIRTUAL_ORIGIN };
+      activeWcsP = 1;
+      clearWorkOffsets();
       absolute = true;
       state = "Idle";
       statusTick = 0;
       spindleProgrammed = 0;
       spindleOn = false;
       feedOverridePct = 100;
+      rapidOverridePct = 100;
       spindleOverridePct = 100;
-      settings.clear();
-      for (const [k, v] of Object.entries(DEFAULT_GRBL_SETTINGS)) {
-        settings.set(Number(k), v);
-      }
+      seedVirtualCncSettings(settings);
       emit({ type: "open" });
       emitLine("Grbl 1.1h ['$' for help]");
     },
