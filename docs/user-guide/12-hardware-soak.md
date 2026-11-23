@@ -19,6 +19,8 @@ Vendor board notes: [Designs By Phil — Demon Shield](https://www.designsbyphil
 7. Prove PWM spindle on/off and overrides with the bit clear.  
 8. **Simulate**, then scrap cut, then the real part.
 
+For the beginner pass/fail ladder (connect only → jog in air → no-tool raised Z → scrap), use **[First-test stages](13-first-test-stages.md)**.
+
 Stay at the machine. Soft limits replace far-end mechanical switches on this build.
 
 Back to the [guide index](README.md).

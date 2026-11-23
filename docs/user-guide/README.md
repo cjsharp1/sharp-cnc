@@ -48,6 +48,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | 10 | [Debug bridge](10-debug-bridge.md) | Menu · Debug, logs, export, localhost agent status |
 | 11 | [Safety](11-safety.md) | Always-on strip, soft limits, Virtual practice, unlock |
 | 12 | [Hardware soak](12-hardware-soak.md) | Demon Shield home, `$3`, soft limits, probe, buttons, PWM |
+| 13 | [First-test stages](13-first-test-stages.md) | Connect → air jog → no-tool raised Z → scrap; pass/fail each stage |
 
 ## Quick start (experienced)
 

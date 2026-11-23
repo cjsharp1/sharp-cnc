@@ -71,6 +71,9 @@ assert(
 );
 const exported = log.exportText("raw");
 assert(exported.includes("ALARM:1") && exported.includes("hello"), "export");
+assert(/T\d{2}:\d{2}:\d{2}\.\d{3}Z/.test(exported), "export includes ISO time");
+const serialOut = log.exportSerialTranscript();
+assert(serialOut.includes("ALARM:1") && !serialOut.includes("hello"), "serial transcript");
 
 // --- Mock Alarm / unlock / instrument ---------------------------------------
 
