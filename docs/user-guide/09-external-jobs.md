@@ -1,17 +1,17 @@
 # 9. External jobs folder
 
-Keep job files in a folder SharpCNC watches, then click to open them into the normal Job / SVG loaders.
+Keep job files in a folder SharpCNC watches, then click to open them into the normal Prepare loaders (G-code / SVG).
 
 ![External jobs diagram](assets/diagram-external-jobs.svg)
 
 ## Open the panel
 
 - **Menu → External jobs…**, or  
-- **Job** tab → **External jobs** section
+- **Prepare → Load** → **External folder / Drive…**
 
 ## Recent jobs
 
-The **Job** tab keeps a **Recent** list of opened files with path **thumbnails**. Click to reopen; Remove drops one entry. Text is cached locally (large files truncated).
+**Prepare → Load** keeps a **Recent** list of opened files with path **thumbnails**. Click to reopen; Remove drops one entry. Text is cached locally (large files truncated).
 
 ## Watched local folder (works today)
 
