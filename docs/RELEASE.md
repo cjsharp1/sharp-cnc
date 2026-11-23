@@ -31,6 +31,7 @@ Critical smokes (pre-test pack):
 | `smoke-parse-status` | Status parsing / Ov: / Pn: |
 | `smoke-jog-zero` | Soft limits + jog / zero helpers |
 | `smoke-gcode-stream` | Streamer start / pause / stop |
+| `smoke-real-grbl` | Recorded GRBL 1.1 fixtures + mock-vs-real diffs ([mock-vs-real-grbl.md](mock-vs-real-grbl.md)) |
 | `smoke-activity-safety` | E-Stop / unlock / alarm paths |
 | `smoke-calibration` | Steps/mm, `$3`, soft travel writes |
 | `smoke-bed-travel` | Full-bed corner walk planner + mock jogs |
