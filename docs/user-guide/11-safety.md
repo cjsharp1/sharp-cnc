@@ -6,7 +6,7 @@ The **safety strip** stays visible in every phase — including before connect (
 
 ![Alarm lock banner](assets/alarm-lock.webp)
 
-![After E-Stop](assets/estop.webp)
+![Safety strip with E-Stop (every phase)](assets/estop.webp)
 
 ## Controls on the safety strip
 

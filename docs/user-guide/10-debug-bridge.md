@@ -4,7 +4,7 @@ When something odd happens on the real machine, SharpCNC can share **read-only**
 
 Debug / Log is **not** a task phase — it lives under **Menu · Debug** (beside Advanced).
 
-![Debug bridge on Log tab](assets/debug-bridge.webp)
+![Activity log with Debug bridge (Menu · Debug)](assets/debug-bridge.webp)
 
 ## Debug mode (show / hide toolkit)
 
