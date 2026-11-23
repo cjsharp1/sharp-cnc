@@ -62,7 +62,7 @@ Use **tabs** for day-to-day jog / run / logs. Use **Menu** for setup that you do
 - Material & tool…  
 - External jobs…  
 - Calibration… (full wizard modal)  
-- Prepare to run… (pre-start / Z probe wizard)  
+- Prepare phase… (inline stock / material XY / Z / load)  
 - **Advanced…** — console, macros, G54–G59, raw `$$` (debugging only; closed by default)  
 - **Appearance** — Dark or Light (persisted). Workshop steel & brass in both modes; visualizer grid and toolpath stay readable.  
 - **Debug mode** — toggle (persisted; default off). When on, the Log tab shows Export / Copy / Debug bridge and the menu label reads **Menu · Debug**.  
