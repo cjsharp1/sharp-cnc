@@ -6,8 +6,6 @@ import {
   DIR_TEST_JOG_MM,
   MAX_TRAVEL_SETTING_FOR_AXIS,
   SETTING_DIR_PORT_INVERT,
-  SETTING_LABELS,
-  SETTING_SOFT_LIMITS,
   STEPS_SETTING_FOR_AXIS,
   buildJogCommand,
   computeStepsPerMm,
@@ -29,8 +27,7 @@ export type CalibrationStepId =
   | "zero"
   | "direction"
   | "steps"
-  | "travel"
-  | "manual";
+  | "travel";
 
 const WIZARD_STEPS: {
   id: CalibrationStepId;
@@ -41,7 +38,6 @@ const WIZARD_STEPS: {
   { id: "direction", label: "Direction", short: "2 · Dir" },
   { id: "steps", label: "Steps/mm", short: "3 · Steps" },
   { id: "travel", label: "Soft travel", short: "4 · Travel" },
-  { id: "manual", label: "Manual", short: "5 · Manual" },
 ];
 
 const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
@@ -49,7 +45,6 @@ const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
   direction: "Jog direction matches the machine — I completed this step",
   steps: "Measured and wrote steps/mm — I completed this step",
   travel: "Soft travel / bed extents set — I completed this step",
-  manual: "Reviewed manual settings — I completed this step",
 };
 
 interface CalibrationPanelProps {
@@ -68,7 +63,6 @@ interface CalibrationPanelProps {
   onWriteSteps: (axis: Axis, before: number, after: number) => void;
   onWriteDirInvert: (mask: number) => void;
   onApplySoftTravel: (limits: SoftTravelLimits, enableSoft: boolean) => void;
-  onWriteManual: (id: number, value: number) => void;
   onZero: (axes: ZeroAxisSelection) => void;
   onClose?: () => void;
   /** Open the post-calibration full bed travel test (clear entry). */
@@ -110,7 +104,6 @@ export function CalibrationPanel({
   onWriteSteps,
   onWriteDirInvert,
   onApplySoftTravel,
-  onWriteManual,
   onZero,
   onClose,
   onOpenBedTravelTest,
@@ -150,10 +143,6 @@ export function CalibrationPanel({
     softTravel.maxZ !== null ? String(softTravel.maxZ) : "",
   );
   const [enableSoft, setEnableSoft] = useState(true);
-
-  // Manual editor
-  const [editId, setEditId] = useState("100");
-  const [editValue, setEditValue] = useState("");
 
   const stepsId = STEPS_SETTING_FOR_AXIS[axis];
   const currentSteps = settingValue(settings, stepsId);
@@ -203,11 +192,6 @@ export function CalibrationPanel({
     if (!Number.isFinite(n) || n <= 0) return null;
     return n;
   };
-
-  const sortedSettings = useMemo(() => {
-    if (!settings) return [];
-    return [...settings.values()].sort((a, b) => a.id - b.id);
-  }, [settings]);
 
   const canAct = enabled && !busy;
 
@@ -732,126 +716,6 @@ export function CalibrationPanel({
               </p>
             </div>
           ) : null}
-        </div>
-      )}
-
-      {step.id === "manual" && (
-        <div
-          className="cal__body"
-          role="group"
-          aria-labelledby="cal-step-manual"
-        >
-          <h3 id="cal-step-manual" className="cal__step-title">
-            Manual settings
-          </h3>
-          <p className="cal__hint">
-            Advanced fallback: view/edit any GRBL setting (`$$` / `$x=value`),
-            including <code>$3</code> direction mask. Prefer the guided steps
-            for direction, steps/mm, and soft travel.
-          </p>
-
-          <div className="cal__row">
-            <label className="cal__field">
-              <span className="cal__field-label">Setting #</span>
-              <input
-                className="cal__input"
-                type="number"
-                inputMode="numeric"
-                min="0"
-                step="1"
-                value={editId}
-                disabled={!canAct}
-                onChange={(e) => setEditId(e.target.value)}
-              />
-            </label>
-            <label className="cal__field">
-              <span className="cal__field-label">Value</span>
-              <input
-                className="cal__input"
-                type="number"
-                inputMode="decimal"
-                step="any"
-                value={editValue}
-                disabled={!canAct}
-                onChange={(e) => setEditValue(e.target.value)}
-                placeholder="e.g. 250"
-              />
-            </label>
-          </div>
-
-          <div className="cal__actions">
-            <button
-              type="button"
-              className="cal__btn"
-              disabled={!canAct}
-              onClick={() => {
-                const id = Number(editId);
-                const value = Number(editValue);
-                if (!Number.isInteger(id) || id < 0 || !Number.isFinite(value)) {
-                  return;
-                }
-                onWriteManual(id, value);
-              }}
-            >
-              Write $x=value
-            </button>
-            {SETTING_LABELS[Number(editId)] ? (
-              <span className="cal__meta">{SETTING_LABELS[Number(editId)]}</span>
-            ) : null}
-          </div>
-
-          <div className="cal__table-wrap">
-            <table className="cal__table">
-              <thead>
-                <tr>
-                  <th>$</th>
-                  <th>Value</th>
-                  <th>Label</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sortedSettings.length === 0 ? (
-                  <tr>
-                    <td colSpan={3}>Read $$ to load settings</td>
-                  </tr>
-                ) : (
-                  sortedSettings.map((s) => (
-                    <tr
-                      key={s.id}
-                      className={
-                        s.id === SETTING_DIR_PORT_INVERT ||
-                        s.id === SETTING_SOFT_LIMITS ||
-                        s.id === STEPS_SETTING_FOR_AXIS.X ||
-                        s.id === STEPS_SETTING_FOR_AXIS.Y ||
-                        s.id === STEPS_SETTING_FOR_AXIS.Z ||
-                        s.id === MAX_TRAVEL_SETTING_FOR_AXIS.X ||
-                        s.id === MAX_TRAVEL_SETTING_FOR_AXIS.Y ||
-                        s.id === MAX_TRAVEL_SETTING_FOR_AXIS.Z
-                          ? "is-key"
-                          : undefined
-                      }
-                      onClick={() => {
-                        setEditId(String(s.id));
-                        setEditValue(String(s.value));
-                      }}
-                    >
-                      <td>{s.id}</td>
-                      <td>{s.value}</td>
-                      <td>{SETTING_LABELS[s.id] ?? ""}</td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          <WizardStepConfirm
-            id="cal-confirm-manual"
-            checked={isConfirmed}
-            disabled={!canAct}
-            label={STEP_CONFIRM_LABELS.manual}
-            onChange={setStepConfirmed}
-          />
         </div>
       )}
 

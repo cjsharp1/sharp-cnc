@@ -48,7 +48,7 @@ Four focused tabs (arrow keys move between them):
 
 | Tab | Contents |
 |-----|----------|
-| **Move** | Jog, work zero, homing, G54–G59 offsets, console + macros, spindle / overrides |
+| **Move** | Jog, material zero, homing, spindle / overrides |
 | **Probe** | XY edge / corner probe and tool-length Z (clutter pulled out of Move) |
 | **Job** | Material & tool, External jobs, SVG → G-code, Load / Prepare / scrubber / dry run / Start / Simulate |
 | **Log** | Live activity (TX/RX/events); with **Debug mode** on — export, Copy, Debug bridge |
@@ -63,6 +63,7 @@ Use **tabs** for day-to-day jog / run / logs. Use **Menu** for setup that you do
 - External jobs…  
 - Calibration… (full wizard modal)  
 - Prepare to run… (pre-start / Z probe wizard)  
+- **Advanced…** — console, macros, G54–G59, raw `$$` (debugging only; closed by default)  
 - **Appearance** — Dark or Light (persisted). Workshop steel & brass in both modes; visualizer grid and toolpath stay readable.  
 - **Debug mode** — toggle (persisted; default off). When on, the Log tab shows Export / Copy / Debug bridge and the menu label reads **Menu · Debug**.  
 - **About & updates…** — installed version, check GitHub Releases, What’s new, **Install update & relaunch** (desktop), or download NSIS / open the release page. In-app install applies the signed setup in place; fallback is run the newer NSIS over the existing install.

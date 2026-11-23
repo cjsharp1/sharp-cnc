@@ -9,6 +9,7 @@ interface AppMenuProps {
   onOpenMaterialTool: () => void;
   onOpenExternalJobs: () => void;
   onOpenFirstRun?: () => void;
+  onOpenAdvanced?: () => void;
   onOpenAbout?: () => void;
   /** When true, Log tab shows Export / Copy / Debug bridge chrome. */
   debugMode: boolean;
@@ -28,6 +29,7 @@ export function AppMenu({
   onOpenMaterialTool,
   onOpenExternalJobs,
   onOpenFirstRun,
+  onOpenAdvanced,
   onOpenAbout,
   debugMode,
   onDebugModeChange,
@@ -128,7 +130,7 @@ export function AppMenu({
             Calibration…
           </button>
           <p className="appmenu__hint">
-            Guided wizard: zero, axis direction, steps/mm, soft travel, manual.
+            Guided wizard: zero, axis direction, steps/mm, soft travel.
           </p>
           {onOpenBedTravelTest ? (
             <>
@@ -181,6 +183,26 @@ export function AppMenu({
           <p className="appmenu__hint">
             Pre-start wizard: stock, tool, XY zero, Z probe, then Start.
           </p>
+          {onOpenAdvanced ? (
+            <>
+              <div className="appmenu__divider" role="separator" />
+              <button
+                type="button"
+                role="menuitem"
+                className="appmenu__item"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenAdvanced();
+                }}
+              >
+                Advanced…
+              </button>
+              <p className="appmenu__hint">
+                Console, macros, G54–G59, and raw $$ settings — for debugging
+                only.
+              </p>
+            </>
+          ) : null}
           <div className="appmenu__divider" role="separator" />
           <div className="appmenu__theme" role="group" aria-label="Color theme">
             <span className="appmenu__theme-label">Appearance</span>
