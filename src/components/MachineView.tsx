@@ -94,6 +94,11 @@ interface MachineViewProps {
    * work zero at (0,0) and machine zero at (−WCO.x, −WCO.y) in work space.
    */
   wco?: Position3 | null;
+  /**
+   * When false, hide the material (work) origin marker. Machine origin still
+   * draws when WCO is known. Used for Calibrate (machine/bed only).
+   */
+  showMaterialOrigin?: boolean;
   /** Optional overlay (e.g. simulate controls). */
   overlay?: ReactNode;
 }
@@ -184,6 +189,7 @@ export function MachineView({
   simulating = false,
   simActivity = null,
   wco = null,
+  showMaterialOrigin = true,
   overlay = null,
 }: MachineViewProps) {
   const uid = useId().replace(/:/g, "");
@@ -807,7 +813,11 @@ export function MachineView({
           className="machine__svg"
           viewBox={`${vb.x} ${vb.y} ${vb.w} ${vb.h}`}
           role="img"
-          aria-label="Bed, stock, toolpath, and tool position"
+          aria-label={
+            stock
+              ? "Bed, stock, toolpath, and tool position"
+              : "Bed, toolpath, and tool position"
+          }
           preserveAspectRatio="none"
           style={svgCursorStyle}
           onPointerDown={handlePointerDown}
@@ -1131,7 +1141,8 @@ export function MachineView({
           ))}
 
           {/* Dual origin: work zero (0,0) and machine zero (−WCO) in work space.
-              When WCO XY is ~0 they coincide — one marker + combined label. */}
+              When WCO XY is ~0 they coincide — one marker + combined label.
+              Calibrate can hide the material origin (machine/bed only). */}
           {(() => {
             const workOrigin = mapPoint(0, 0);
             const cross = Math.max(6 / vis.pxPerMm, bitRMm * 1.2);
@@ -1143,61 +1154,71 @@ export function MachineView({
               machineWork != null &&
               Math.hypot(machineWork.x - workOrigin.x, machineWork.y - workOrigin.y) <
                 Math.max(0.5, cross * 0.35);
+            const drawMaterial = showMaterialOrigin;
+            const drawMachineAlone =
+              machineWork != null && (!drawMaterial || !coincident);
+            const drawCombined =
+              drawMaterial && coincident && machineWork != null;
+            if (!drawMaterial && !drawMachineAlone && !drawCombined) {
+              return null;
+            }
             return (
               <g className="machine__origins" aria-hidden>
-                <g className="machine__origin machine__origin--work">
-                  <line
-                    x1={workOrigin.x - cross}
-                    y1={workOrigin.y}
-                    x2={workOrigin.x + cross}
-                    y2={workOrigin.y}
-                    stroke="var(--viz-origin-work, var(--viz-tool-fill))"
-                    strokeWidth={1.5}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <line
-                    x1={workOrigin.x}
-                    y1={workOrigin.y - cross}
-                    x2={workOrigin.x}
-                    y2={workOrigin.y + cross}
-                    stroke="var(--viz-origin-work, var(--viz-tool-fill))"
-                    strokeWidth={1.5}
-                    vectorEffect="non-scaling-stroke"
-                  />
-                  <text
-                    x={workOrigin.x + labelDx}
-                    y={workOrigin.y - labelDy}
-                    fill="var(--viz-origin-work, var(--viz-tool-fill))"
-                    fontSize={labelSize}
-                  >
-                    {coincident ? "Material / Machine 0" : "Material 0"}
-                  </text>
-                </g>
-                {machineWork && !coincident ? (
+                {drawMaterial ? (
+                  <g className="machine__origin machine__origin--work">
+                    <line
+                      x1={workOrigin.x - cross}
+                      y1={workOrigin.y}
+                      x2={workOrigin.x + cross}
+                      y2={workOrigin.y}
+                      stroke="var(--viz-origin-work, var(--viz-tool-fill))"
+                      strokeWidth={1.5}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <line
+                      x1={workOrigin.x}
+                      y1={workOrigin.y - cross}
+                      x2={workOrigin.x}
+                      y2={workOrigin.y + cross}
+                      stroke="var(--viz-origin-work, var(--viz-tool-fill))"
+                      strokeWidth={1.5}
+                      vectorEffect="non-scaling-stroke"
+                    />
+                    <text
+                      x={workOrigin.x + labelDx}
+                      y={workOrigin.y - labelDy}
+                      fill="var(--viz-origin-work, var(--viz-tool-fill))"
+                      fontSize={labelSize}
+                    >
+                      {drawCombined ? "Material / Machine 0" : "Material 0"}
+                    </text>
+                  </g>
+                ) : null}
+                {drawMachineAlone ? (
                   <g className="machine__origin machine__origin--machine">
                     <line
-                      x1={machineWork.x - cross}
-                      y1={machineWork.y}
-                      x2={machineWork.x + cross}
-                      y2={machineWork.y}
+                      x1={machineWork!.x - cross}
+                      y1={machineWork!.y}
+                      x2={machineWork!.x + cross}
+                      y2={machineWork!.y}
                       stroke="var(--viz-origin-machine, var(--viz-bed-edge))"
                       strokeWidth={1.5}
                       strokeDasharray="3 2"
                       vectorEffect="non-scaling-stroke"
                     />
                     <line
-                      x1={machineWork.x}
-                      y1={machineWork.y - cross}
-                      x2={machineWork.x}
-                      y2={machineWork.y + cross}
+                      x1={machineWork!.x}
+                      y1={machineWork!.y - cross}
+                      x2={machineWork!.x}
+                      y2={machineWork!.y + cross}
                       stroke="var(--viz-origin-machine, var(--viz-bed-edge))"
                       strokeWidth={1.5}
                       strokeDasharray="3 2"
                       vectorEffect="non-scaling-stroke"
                     />
                     <text
-                      x={machineWork.x + labelDx}
-                      y={machineWork.y - labelDy}
+                      x={machineWork!.x + labelDx}
+                      y={machineWork!.y - labelDy}
                       fill="var(--viz-origin-machine, var(--viz-bed-edge))"
                       fontSize={labelSize}
                     >
