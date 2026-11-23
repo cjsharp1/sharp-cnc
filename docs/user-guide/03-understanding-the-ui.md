@@ -47,7 +47,7 @@ Axis convention (matches the guides): **+X** right, **+Y** back = up on screen, 
 
 ## Phase switcher (right rail)
 
-A persistent stepper: **Connect · Calibrate · Prepare · Verify · Run**. Incomplete phases ahead stay disabled with a one-line reason (“Mark material ready first”). Completed **Calibrate** stays unlocked for re-entry.
+A persistent stepper: **Connect · Calibrate · Prepare · Verify · Run**. Incomplete phases ahead stay disabled with a one-line reason (“Mark material ready first”). Completed **Calibrate** stays unlocked for re-entry. Drag the thin handle between the visualizer and the rail to widen or narrow the panel (saved for next time). On narrow windows the layout stacks and the handle hides.
 
 | Phase | What the pane shows |
 |-------|---------------------|

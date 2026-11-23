@@ -1,4 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+  type KeyboardEvent as ReactKeyboardEvent,
+  type PointerEvent as ReactPointerEvent,
+} from "react";
 import { AboutUpdatePanel } from "./components/AboutUpdatePanel";
 import { ActivityLogPanel } from "./components/ActivityLogPanel";
 import { AppMenu } from "./components/AppMenu";
@@ -110,12 +118,16 @@ import {
   loadOverridePercents,
   loadProbeConfig,
   loadRecentJobs,
+  loadShellRailWidth,
   loadSoftTravel,
   loadStock,
   loadTool,
   loadUiTheme,
   loadVerifyRunState,
   loadWorkOffsets,
+  clampShellRailWidthForStage,
+  MAX_SHELL_RAIL_WIDTH_PX,
+  MIN_SHELL_RAIL_WIDTH_PX,
   markStartedOnRealMachine,
   packagedAppVersion,
   phaseAfterConnect,
@@ -150,6 +162,7 @@ import {
   saveSoftTravel,
   saveStock,
   saveTool,
+  saveShellRailWidth,
   saveUiTheme,
   applyUiTheme,
   saveWorkOffsets,
@@ -395,6 +408,11 @@ export default function App() {
   const [debugMode, setDebugMode] = useState(() => loadDebugMode());
   /** Color theme — persisted; default dark workshop. */
   const [theme, setTheme] = useState<UiTheme>(() => loadUiTheme());
+  /** Right phase-rail width — persisted; drag the splitter to adjust. */
+  const [railWidthPx, setRailWidthPx] = useState(() => loadShellRailWidth());
+  const [railResizing, setRailResizing] = useState(false);
+  const stageRef = useRef<HTMLDivElement | null>(null);
+  const railWidthRef = useRef(railWidthPx);
   const [bridgeEnabled, setBridgeEnabled] = useState(false);
   const [bridgeStatus, setBridgeStatus] = useState<DebugBridgeStatus | null>(
     null,
@@ -413,6 +431,81 @@ export default function App() {
     setTheme(next);
     saveUiTheme(next);
     applyUiTheme(next);
+  };
+
+  const applyRailWidth = (nextPx: number, stageWidthPx?: number) => {
+    const stageW =
+      stageWidthPx ?? stageRef.current?.getBoundingClientRect().width ?? 0;
+    const clamped = clampShellRailWidthForStage(nextPx, stageW);
+    railWidthRef.current = clamped;
+    setRailWidthPx(clamped);
+    return clamped;
+  };
+
+  useEffect(() => {
+    const onResize = () => {
+      const stageW = stageRef.current?.getBoundingClientRect().width ?? 0;
+      if (stageW <= 0) return;
+      if (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches) {
+        return;
+      }
+      const next = clampShellRailWidthForStage(railWidthRef.current, stageW);
+      if (next !== railWidthRef.current) {
+        railWidthRef.current = next;
+        setRailWidthPx(next);
+        saveShellRailWidth(next);
+      }
+    };
+    window.addEventListener("resize", onResize);
+    onResize();
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+
+  const handleRailResizePointerDown = (
+    event: ReactPointerEvent<HTMLDivElement>,
+  ) => {
+    if (typeof window !== "undefined" && window.matchMedia("(max-width: 900px)").matches) {
+      return;
+    }
+    event.preventDefault();
+    const handle = event.currentTarget;
+    handle.setPointerCapture(event.pointerId);
+    setRailResizing(true);
+    const startX = event.clientX;
+    const startWidth = railWidthRef.current;
+    const stageWidth = stageRef.current?.getBoundingClientRect().width ?? 0;
+
+    const onMove = (ev: PointerEvent) => {
+      // Splitter is left of the rail: drag left → wider rail.
+      applyRailWidth(startWidth + (startX - ev.clientX), stageWidth);
+    };
+    const onUp = (ev: PointerEvent) => {
+      if (handle.hasPointerCapture(ev.pointerId)) {
+        handle.releasePointerCapture(ev.pointerId);
+      }
+      handle.removeEventListener("pointermove", onMove);
+      handle.removeEventListener("pointerup", onUp);
+      handle.removeEventListener("pointercancel", onUp);
+      setRailResizing(false);
+      saveShellRailWidth(railWidthRef.current);
+    };
+    handle.addEventListener("pointermove", onMove);
+    handle.addEventListener("pointerup", onUp);
+    handle.addEventListener("pointercancel", onUp);
+  };
+
+  const handleRailResizeKeyDown = (
+    event: ReactKeyboardEvent<HTMLDivElement>,
+  ) => {
+    const step = event.shiftKey ? 32 : 16;
+    let next: number | null = null;
+    if (event.key === "ArrowLeft") next = railWidthRef.current + step;
+    else if (event.key === "ArrowRight") next = railWidthRef.current - step;
+    else if (event.key === "Home") next = MIN_SHELL_RAIL_WIDTH_PX;
+    else if (event.key === "End") next = MAX_SHELL_RAIL_WIDTH_PX;
+    if (next === null) return;
+    event.preventDefault();
+    saveShellRailWidth(applyRailWidth(next));
   };
 
   /** Simulator timeouts + mock alarm UI when Virtual CNC is selected (desktop or browser). */
@@ -3124,7 +3217,15 @@ export default function App() {
         </div>
       </header>
 
-      <div className="shell__stage">
+      <div
+        ref={stageRef}
+        className={`shell__stage${railResizing ? " is-resizing-rail" : ""}`}
+        style={
+          {
+            "--shell-rail-width": `${railWidthPx}px`,
+          } as CSSProperties
+        }
+      >
         <div className="shell__main">
           <section className="shell__chrome" aria-label="Position and safety">
             <div className="shell__chrome-row">
@@ -3254,6 +3355,19 @@ export default function App() {
             }
           />
         </div>
+
+        <div
+          className="shell__splitter"
+          role="separator"
+          aria-orientation="vertical"
+          aria-label="Resize phase panel"
+          aria-valuenow={railWidthPx}
+          aria-valuemin={MIN_SHELL_RAIL_WIDTH_PX}
+          aria-valuemax={MAX_SHELL_RAIL_WIDTH_PX}
+          tabIndex={0}
+          onPointerDown={handleRailResizePointerDown}
+          onKeyDown={handleRailResizeKeyDown}
+        />
 
         <aside className="shell__rail">
           <section className="workspace" aria-label="Task phase">
