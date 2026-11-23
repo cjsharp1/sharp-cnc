@@ -3181,12 +3181,23 @@ button {
 
 .alog__line {
   display: grid;
-  grid-template-columns: 2.2rem 2rem minmax(0, 1fr);
+  grid-template-columns: 6.6rem 2.2rem minmax(0, 1fr);
   gap: 0.35rem;
   align-items: baseline;
   font-family: var(--font-mono);
   font-size: 0.7rem;
   line-height: 1.35;
+}
+
+.alog__line.has-cat {
+  grid-template-columns: 6.6rem 2.2rem 2rem minmax(0, 1fr);
+}
+
+.alog__time {
+  color: var(--steel-dim);
+  opacity: 0.85;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .alog__kind {

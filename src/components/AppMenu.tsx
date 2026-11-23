@@ -261,7 +261,7 @@ export function AppMenu({
           </label>
           <p className="appmenu__hint">
             {debugMode
-              ? "On — Activity log shows Export, Copy, and Debug bridge."
+              ? "On — Activity log shows Export, Serial, Copy, and Debug bridge."
               : "Off — keep the activity log clean for everyday use."}
           </p>
           {onOpenAbout ? (

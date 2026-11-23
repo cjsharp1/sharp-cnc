@@ -19,9 +19,11 @@ Turn **Debug mode** off again to hide that chrome (and stop the localhost bridge
 
 ## With Debug mode on (no bridge required)
 
-- Live TX / RX / events / alarms  
+- Live TX / RX / events / alarms with **timestamps** on every line  
 - Filters: All · Events · TX/RX · Alarms · Raw  
-- **Export** (`.log`) · **JSON** · **Copy last** 50 / 100 / 200 lines  
+- **Export** (`.log`, ISO + local timestamps) · **Serial** (TX/RX/ALARM transcript for failed-run replay) · **JSON** (includes `atIso`) · **Copy last** 50 / 100 / 200 lines  
+
+Serial TX/RX logging is **always on** under the hood (USB and Virtual CNC). Beginner phase UI stays clean — open **Menu → Activity log…** to view; turn on **Debug mode** only when you need Export / Serial / JSON.
 
 Paste or attach those into chat if the bridge is off.
 
