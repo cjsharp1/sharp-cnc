@@ -930,7 +930,25 @@ button {
 .phase-cal__skip {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
+.phase-cal__skip-hint {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.workspace__panel--calibrate {
   gap: 0.45rem;
+}
+
+.workspace__panel--calibrate .cal {
+  /* Phase body is the wizard only — avoid double chrome padding. */
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .phase-prepare__actions {
@@ -3085,9 +3103,36 @@ button {
   gap: 0.7rem;
 }
 
+.cal--dense {
+  gap: 0.45rem;
+}
+
+.cal--dense .cal__body {
+  gap: 0.45rem;
+}
+
+.cal--dense .cal__hint {
+  font-size: var(--text-xs);
+  line-height: 1.35;
+}
+
+.cal--dense .cal__step-title {
+  font-size: var(--text-base);
+}
+
+.cal--dense .cal__pos {
+  padding: 0.45rem 0.55rem;
+  gap: 0.18rem;
+}
+
+.cal--dense .wizard-gate {
+  margin-top: 0.4rem;
+  padding-top: 0.4rem;
+}
+
 .cal__steps {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.35rem;
 }
 
@@ -3252,6 +3297,45 @@ button {
   font-size: var(--text-sm);
   color: var(--steel-dim);
   font-family: var(--font-mono);
+}
+
+.cal__meta--bar {
+  margin: 0;
+  font-size: var(--text-xs);
+}
+
+.cal__link {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: var(--brass-hot);
+  font: inherit;
+  text-decoration: underline;
+  text-underline-offset: 0.12em;
+  cursor: pointer;
+}
+
+.cal__link:hover {
+  color: var(--ink);
+}
+
+.cal__recommend {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+  padding: 0.4rem 0.5rem;
+  border: 1px dashed var(--border-soft);
+  background: var(--inset-bg-soft);
+}
+
+.cal__recommend-meta {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  line-height: 1.35;
+  flex: 1 1 10rem;
 }
 
 .cal__body {
@@ -4241,7 +4325,11 @@ button {
   }
 
   .cal__steps {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .cal__step-label {
+    font-size: 0.62rem;
   }
 }
 

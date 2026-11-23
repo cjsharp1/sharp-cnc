@@ -498,8 +498,12 @@ export {
   saveFirstRunCompleted,
 } from "./firstRunConfig";
 
-export type { CalibrationState } from "./calibrationConfig";
+export type {
+  CalibrationGuidedStepId,
+  CalibrationState,
+} from "./calibrationConfig";
 export {
+  CALIBRATION_GUIDED_STEPS,
   DEFAULT_CALIBRATION,
   loadCalibrationState,
   resetCalibrationState,
