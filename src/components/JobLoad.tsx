@@ -7,8 +7,9 @@ import type {
   SimSpeedRate,
   StreamPhase,
   StreamProgress,
+  VerifyChecklistState,
 } from "../grbl";
-import { isGcodeFileName } from "../grbl";
+import { VERIFY_CHECKLIST, isGcodeFileName } from "../grbl";
 import { SimControls } from "./SimControls";
 
 export type JobRunPhase = StreamPhase | "idle";
@@ -57,6 +58,17 @@ interface JobLoadProps {
    * run = progress + hold/stop; full = legacy all-in-one.
    */
   variant?: JobLoadVariant;
+  /** Soft-limit summary for Verify (already checked in App). */
+  softLimitOk?: boolean | null;
+  softLimitReason?: string | null;
+  /** Session clear-path checklist (Verify). */
+  verifyChecklist?: VerifyChecklistState;
+  onVerifyChecklistChange?: (next: VerifyChecklistState) => void;
+  /** Soft “simulate once” nudge — not a hard gate after dismiss. */
+  showSimNudge?: boolean;
+  onDismissSimNudge?: () => void;
+  /** Virtual CNC practice hint on Verify. */
+  usingVirtualCnc?: boolean;
 }
 
 function phaseLabel(phase: JobRunPhase): string {
@@ -110,6 +122,13 @@ export function JobLoad({
   onDryRunChange,
   onResumeToolChange,
   variant = "full",
+  softLimitOk = null,
+  softLimitReason = null,
+  verifyChecklist,
+  onVerifyChecklistChange,
+  showSimNudge = false,
+  onDismissSimNudge,
+  usingVirtualCnc = false,
 }: JobLoadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
@@ -118,12 +137,13 @@ export function JobLoad({
   const showLoad = variant === "full" || variant === "prepare";
   /** Prepare-to-run lives in the Prepare phase wizard — only legacy full shows the button. */
   const showPrepareBtn = variant === "full";
-  const showSim =
-    variant === "full" || variant === "verify";
+  const showSim = variant === "full" || variant === "verify";
   const showStart = variant === "full" || variant === "verify";
-  const showRunControls =
-    variant === "full" || variant === "run" || variant === "verify";
+  /** Pause / Resume / Stop belong in Run (and legacy full). Verify only Starts. */
+  const showRunControls = variant === "full" || variant === "run";
   const showScrubber = variant === "full" || variant === "verify";
+  const showVerifyExtras = variant === "verify";
+  const dense = variant === "verify" || variant === "run";
 
   const phase: JobRunPhase = progress?.phase ?? "idle";
   const streaming =
@@ -200,9 +220,30 @@ export function JobLoad({
       ? job.lines[Math.min(scrubIndex, maxScrub)]
       : null;
 
+  const streamLineIndex =
+    progress?.absoluteLine != null
+      ? Math.min(
+          Math.max(0, progress.absoluteLine),
+          Math.max(0, (job?.lines.length ?? 1) - 1),
+        )
+      : progress
+        ? Math.min(
+            Math.max(0, progress.ackedLines),
+            Math.max(0, progress.totalLines - 1),
+          )
+        : 0;
+  const currentStreamLine =
+    job && streaming && job.lines.length > 0
+      ? job.lines[streamLineIndex]
+      : null;
+
   return (
     <section
-      className={`job${dragOver && showLoad ? " is-dragover" : ""}`}
+      className={`job${dense ? " job--dense" : ""}${
+        dragOver && showLoad ? " is-dragover" : ""
+      }${variant === "run" ? " job--run" : ""}${
+        variant === "verify" ? " job--verify" : ""
+      }`}
       aria-label={
         variant === "run"
           ? "Job run"
@@ -227,7 +268,7 @@ export function JobLoad({
           {job
             ? `${lineText}${timeEstimate ? ` · ${timeEstimate.label}` : ""}${
                 showLoad ? " · drop .nc / .gcode to replace" : ""
-              }`
+              }${dryRun && variant === "run" ? " · dry run" : ""}`
             : showLoad
               ? "Load or drop .nc / .gcode"
               : "No file loaded"}
@@ -245,6 +286,19 @@ export function JobLoad({
             e.target.value = "";
           }}
         />
+      ) : null}
+
+      {showVerifyExtras && softLimitOk != null ? (
+        <p
+          className={
+            softLimitOk ? "job__softok" : "job__warn-text"
+          }
+          role="status"
+        >
+          {softLimitOk
+            ? "Path fits soft travel."
+            : (softLimitReason ?? "Path outside soft limits")}
+        </p>
       ) : null}
 
       {(job || progress) && (
@@ -274,6 +328,12 @@ export function JobLoad({
             >
               <div className="job__bar-fill" style={{ width: `${percent}%` }} />
             </div>
+          )}
+          {currentStreamLine && (
+            <p className="job__stream-line" title={currentStreamLine}>
+              <span className="job__stream-label">G-code</span>
+              <code>{currentStreamLine}</code>
+            </p>
           )}
           {progress?.lastError && (
             <p className="job__error">{progress.lastError}</p>
@@ -357,6 +417,48 @@ export function JobLoad({
             onPause={onSimPause}
             onStop={onSimStop}
           />
+        )}
+
+      {showVerifyExtras && showSimNudge && onDismissSimNudge && (
+        <div className="job__nudge" role="status">
+          <p>
+            {usingVirtualCnc
+              ? "Simulate once here before Start on the real machine."
+              : "Simulate once on Virtual CNC before Start on the real machine."}
+          </p>
+          <button
+            type="button"
+            className="job__btn job__btn--ghost"
+            onClick={onDismissSimNudge}
+          >
+            Got it
+          </button>
+        </div>
+      )}
+
+      {showVerifyExtras &&
+        verifyChecklist &&
+        onVerifyChecklistChange &&
+        !streaming && (
+          <fieldset className="job__checklist">
+            <legend className="job__checklist-legend">Before Start</legend>
+            {VERIFY_CHECKLIST.map((item) => (
+              <label key={item.id} className="job__check">
+                <input
+                  type="checkbox"
+                  checked={verifyChecklist[item.id]}
+                  disabled={simulating}
+                  onChange={(e) =>
+                    onVerifyChecklistChange({
+                      ...verifyChecklist,
+                      [item.id]: e.target.checked,
+                    })
+                  }
+                />
+                {item.label}
+              </label>
+            ))}
+          </fieldset>
         )}
 
       <div className="job__actions">

@@ -1,5 +1,5 @@
 /**
- * Smoke: task-phase gates + calibration persistence + connect landing.
+ * Smoke: task-phase gates + calibration persistence + connect landing + Verify/Run prefs.
  * Run: npx --yes tsx scripts/smoke-task-phase.mts
  */
 import {
@@ -19,6 +19,18 @@ import {
   type TaskPhaseContext,
   type TaskPhaseId,
 } from "../src/grbl/taskPhase.ts";
+import {
+  DEFAULT_VERIFY_RUN,
+  VERIFY_CHECKLIST,
+  dismissSimNudge,
+  emptyVerifyChecklist,
+  initialDryRun,
+  loadVerifyRunState,
+  markStartedOnRealMachine,
+  resetVerifyRunState,
+  saveDryRunPreferred,
+  verifyChecklistComplete,
+} from "../src/grbl/verifyRunConfig.ts";
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -145,5 +157,52 @@ assert(loadCalibrationState().calibrationCompleted === true, "reload");
 const reset = resetCalibrationState();
 assert(reset.calibrationCompleted === false, "reset");
 assert(loadCalibrationState().calibrationCompleted === false, "reset reload");
+
+/* --- Slice E: Verify checklist + dry-run / real-machine prefs ------------ */
+assert(VERIFY_CHECKLIST.length === 3, "verify checklist = 3");
+assert(
+  VERIFY_CHECKLIST.map((c) => c.id).join(",") === "plate,clamps,path",
+  "checklist ids",
+);
+const emptyChecks = emptyVerifyChecklist();
+assert(!verifyChecklistComplete(emptyChecks), "checklist empty blocks Start");
+assert(
+  verifyChecklistComplete({ plate: true, clamps: true, path: true }),
+  "checklist complete",
+);
+
+resetVerifyRunState();
+assert(
+  loadVerifyRunState().hasStartedOnRealMachine ===
+    DEFAULT_VERIFY_RUN.hasStartedOnRealMachine,
+  "default verify-run",
+);
+assert(
+  initialDryRun(loadVerifyRunState(), false) === true,
+  "first real Start → dry-run on",
+);
+assert(
+  initialDryRun(loadVerifyRunState(), true) === true,
+  "virtual uses preferred (default on)",
+);
+saveDryRunPreferred(false);
+assert(
+  initialDryRun(loadVerifyRunState(), true) === false,
+  "virtual remembers dry-run off",
+);
+assert(
+  initialDryRun(loadVerifyRunState(), false) === true,
+  "real still forced on until first Start",
+);
+markStartedOnRealMachine();
+assert(loadVerifyRunState().hasStartedOnRealMachine === true, "marked real");
+assert(
+  initialDryRun(loadVerifyRunState(), false) === false,
+  "after real Start, prefer last dry-run",
+);
+dismissSimNudge();
+assert(loadVerifyRunState().simNudgeDismissed === true, "sim nudge dismissed");
+resetVerifyRunState();
+assert(loadVerifyRunState().hasStartedOnRealMachine === false, "verify-run reset");
 
 console.log("smoke-task-phase: ok");

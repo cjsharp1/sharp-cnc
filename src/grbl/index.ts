@@ -522,6 +522,24 @@ export {
 export type { PrepareGuidedStepId } from "./prepareConfig";
 export { PREPARE_GUIDED_STEPS } from "./prepareConfig";
 
+export type {
+  VerifyChecklistId,
+  VerifyChecklistState,
+  VerifyRunState,
+} from "./verifyRunConfig";
+export {
+  DEFAULT_VERIFY_RUN,
+  VERIFY_CHECKLIST,
+  dismissSimNudge,
+  emptyVerifyChecklist,
+  initialDryRun,
+  loadVerifyRunState,
+  markStartedOnRealMachine,
+  resetVerifyRunState,
+  saveDryRunPreferred,
+  verifyChecklistComplete,
+} from "./verifyRunConfig";
+
 export type { UiTheme } from "./themeConfig";
 export {
   DEFAULT_UI_THEME,
