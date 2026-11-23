@@ -34,7 +34,6 @@ import {
 import { RecentJobsPanel } from "./components/RecentJobsPanel";
 import { SafetyControls } from "./components/SafetyControls";
 import { SimControls } from "./components/SimControls";
-import { SpindleFeedPanel } from "./components/SpindleFeedPanel";
 import { SvgJobPanel } from "./components/SvgJobPanel";
 import { PhaseSwitcher } from "./components/PhaseSwitcher";
 import {
@@ -59,7 +58,6 @@ import {
   buildSelectWcsCommand,
   buildSetWorkZeroCommand,
   buildSpindleOffCommand,
-  buildSpindleOnCommand,
   canHome,
   canJogOrZero,
   canProbe,
@@ -80,6 +78,8 @@ import {
   DEFAULT_SIM_SPEED,
   createSessionClient,
   currentWcoFromStatus,
+  dismissSimNudge,
+  emptyVerifyChecklist,
   estimateJobTimeFromJob,
   feedOverrideByte,
   fetchGrblSettings,
@@ -88,6 +88,7 @@ import {
   gateForPhase,
   guideForAlarm,
   importSvg,
+  initialDryRun,
   isDesktopShell,
   isGrblResetBanner,
   isIncompleteRecovery,
@@ -112,13 +113,17 @@ import {
   loadStock,
   loadTool,
   loadUiTheme,
+  loadVerifyRunState,
   loadWorkOffsets,
+  markStartedOnRealMachine,
   packagedAppVersion,
   phaseAfterConnect,
   phaseAfterStreamEnds,
   resolveAppVersion,
   saveCalibrationCompleted,
+  saveDryRunPreferred,
   saveFirstRunCompleted,
+  verifyChecklistComplete,
   OFFLINE_STATUS,
   parseAlarmLine,
   parseConsoleLines,
@@ -193,6 +198,7 @@ import {
   type TaskPhaseId,
   type ToolConfig,
   type UiTheme,
+  type VerifyChecklistState,
   type WcsId,
   type WorkOffsetsStore,
   type ZeroAxisSelection,
@@ -289,7 +295,15 @@ export default function App() {
   const [macros, setMacros] = useState<GcodeMacro[]>(() => loadMacros());
   const [consoleResult, setConsoleResult] = useState<string | null>(null);
   const [scrubIndex, setScrubIndex] = useState(0);
-  const [dryRun, setDryRun] = useState(false);
+  const [verifyRunPrefs, setVerifyRunPrefs] = useState(() =>
+    loadVerifyRunState(),
+  );
+  const [dryRun, setDryRun] = useState(() =>
+    initialDryRun(loadVerifyRunState(), false),
+  );
+  const [verifyChecklist, setVerifyChecklist] = useState<VerifyChecklistState>(
+    () => emptyVerifyChecklist(),
+  );
   const [recovery, setRecovery] = useState<JobRecoveryCheckpoint | null>(() => {
     const cp = loadJobRecoveryCheckpoint();
     return isIncompleteRecovery(cp) ? cp : null;
@@ -467,6 +481,7 @@ export default function App() {
         )
       : null;
 
+  const checklistOk = verifyChecklistComplete(verifyChecklist);
   const startGate = canStartJob(status.state, connected);
   const startBlockedReason = !job
     ? null
@@ -478,9 +493,11 @@ export default function App() {
           ? (jobSoftCheck.reason ?? "Job outside soft limits")
           : !prepareReady
             ? "Mark material ready in Prepare before Start"
-            : taskPhase !== "verify" && taskPhase !== "run"
+            : taskPhase !== "verify"
               ? "Start only from Verify"
-              : null;
+              : !checklistOk
+                ? "Confirm plate removed, clamps clear, and path free"
+                : null;
 
   const simulating =
     sim.phase === "playing" || sim.phase === "paused" || sim.phase === "done";
@@ -531,6 +548,12 @@ export default function App() {
   useEffect(() => {
     dryRunRef.current = dryRun;
   }, [dryRun]);
+
+  /** First real-machine Start defaults dry-run on; Virtual CNC uses last preference. */
+  useEffect(() => {
+    if (streaming) return;
+    setDryRun(initialDryRun(verifyRunPrefs, usingVirtualCnc));
+  }, [usingVirtualCnc, verifyRunPrefs.hasStartedOnRealMachine]);
 
   // Smooth live WPos + optional motion trail; drive pre-run sim on rAF.
   useEffect(() => {
@@ -2082,6 +2105,16 @@ export default function App() {
     setPrepareZProbed(false);
     setPrepareReady(false);
     setPrepareMessage(null);
+    setVerifyChecklist(emptyVerifyChecklist());
+  };
+
+  const handleDryRunChange = (enabled: boolean) => {
+    setDryRun(enabled);
+    setVerifyRunPrefs(saveDryRunPreferred(enabled));
+  };
+
+  const handleDismissSimNudge = () => {
+    setVerifyRunPrefs(dismissSimNudge());
   };
 
   const handleSimPlay = () => {
@@ -2120,7 +2153,8 @@ export default function App() {
     setSvgDraft(null);
     resetSimForPath(loaded.path);
     setScrubIndex(0);
-    setDryRun(false);
+    setDryRun(initialDryRun(loadVerifyRunState(), usingVirtualCnc));
+    setVerifyChecklist(emptyVerifyChecklist());
     setStreamProgress({
       phase: "idle",
       sentLines: 0,
@@ -2276,7 +2310,7 @@ export default function App() {
     resetSimForPath([]);
     setStreamProgress(null);
     setScrubIndex(0);
-    setDryRun(false);
+    setDryRun(initialDryRun(loadVerifyRunState(), usingVirtualCnc));
     resetPrepareSession();
     activityLog.append("event", "Job cleared");
   };
@@ -2303,10 +2337,17 @@ export default function App() {
       return;
     }
 
-    if (taskPhase !== "verify" && taskPhase !== "run") {
+    if (taskPhase !== "verify") {
       setErrorMessage("Start only from Verify.");
       setTaskPhase(
         prepareReady && job ? "verify" : "prepare",
+      );
+      return;
+    }
+
+    if (!verifyChecklistComplete(verifyChecklist)) {
+      setErrorMessage(
+        "Confirm plate removed, clamps clear, and spindle path free.",
       );
       return;
     }
@@ -2345,6 +2386,10 @@ export default function App() {
     activityLog.append(
       "event",
       `Job start: ${job.name}${dryRun ? " (dry run)" : ""}${startAt > 0 ? ` @ line ${startAt + 1}` : ""}`,
+    );
+    saveDryRunPreferred(dryRun);
+    setVerifyRunPrefs(
+      !usingVirtualCnc ? markStartedOnRealMachine() : loadVerifyRunState(),
     );
     try {
       await streamer.start(sourceLines);
@@ -2920,32 +2965,6 @@ export default function App() {
     saveTool(next);
   };
 
-  const handleSpindleOn = async (rpm: number) => {
-    const client = clientRef.current;
-    if (!client || !client.transport.isOpen) return;
-    try {
-      const cmd = buildSpindleOnCommand(rpm);
-      await client.sendLine(cmd);
-      activityLog.append("event", `Spindle ${cmd}`);
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setErrorMessage(message);
-    }
-  };
-
-  const handleSpindleOff = async () => {
-    const client = clientRef.current;
-    if (!client || !client.transport.isOpen) return;
-    try {
-      const cmd = buildSpindleOffCommand();
-      await client.sendLine(cmd);
-      activityLog.append("event", "Spindle M5");
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setErrorMessage(message);
-    }
-  };
-
   const persistOverrides = (
     feed: number,
     rapid: number,
@@ -3111,7 +3130,10 @@ export default function App() {
             </div>
             <OverridesStrip
               visible={
-                streaming || status.state === "Run" || status.state === "Hold"
+                taskPhase === "run" ||
+                streaming ||
+                status.state === "Run" ||
+                status.state === "Hold"
               }
               feedPercent={liveFeedPercent}
               rapidPercent={liveRapidPercent}
@@ -3547,108 +3569,109 @@ export default function App() {
 
               {taskPhase === "verify" && (
                 <div
-                  className="workspace__panel workspace__panel--phase"
+                  className="workspace__panel workspace__panel--phase workspace__panel--verify"
                   role="tabpanel"
                   id="phase-panel-verify"
                   aria-labelledby="phase-tab-verify"
                 >
-                  <p className="workspace__intro workspace__intro--compact">
-                    Soft-limit check, simulate, then Start. Start moves you to
-                    Run.
-                  </p>
-                  {jobSoftCheck ? (
-                    <p
-                      className={
-                        jobSoftCheck.ok
-                          ? "workspace__intro workspace__intro--compact"
-                          : "job__warn-text"
-                      }
-                      role="status"
-                    >
-                      {jobSoftCheck.ok
-                        ? "Path fits soft travel."
-                        : (jobSoftCheck.reason ?? "Path outside soft limits")}
-                    </p>
-                  ) : null}
                   {recoveryVisible && recovery ? (
-                    <CrashRecoveryPanel
-                      checkpoint={recovery}
-                      connected={connected}
-                      machineState={status.state}
-                      alarmMessage={alarmMessage}
-                      workPos={status.work}
-                      machinePos={status.machine}
-                      jobLoaded={!!job}
-                      jobMatches={!!job && job.name === recovery.jobName}
-                      onUnlock={() => {
-                        void handleUnlock();
-                      }}
-                      onResumeFromCheckpoint={handleRecoveryResume}
-                      onSafeAbort={() => {
-                        void handleSafeAbortRecovery();
-                      }}
-                      onDismiss={() => dismissRecovery(true)}
-                    />
-                  ) : null}
-                  <JobLoad
-                    variant="verify"
-                    job={job}
-                    progress={streamProgress}
-                    connected={connected}
-                    machineState={status.state}
-                    startBlockedReason={startBlockedReason}
-                    simPhase={sim.phase}
-                    simProgress={sim.progress}
-                    simSpeed={simSpeed}
-                    onSimSpeedChange={setSimSpeed}
-                    simZMm={simulating ? sim.position.z : null}
-                    simActivity={simulating ? sim.activity : null}
-                    simDisabled={streaming}
-                    simDisabledReason={
-                      streaming
-                        ? "Stop the running job before simulating."
-                        : null
-                    }
-                    onSimPlay={handleSimPlay}
-                    onSimPause={handleSimPause}
-                    onSimStop={handleSimStop}
-                    onLoadFile={handleLoadFile}
-                    onClear={handleClearJob}
-                    onStart={() => {
-                      void handleStartJob();
-                    }}
-                    onPause={() => {
-                      void handlePauseJob();
-                    }}
-                    onResume={() => {
-                      void handleResumeJob();
-                    }}
-                    onStop={() => {
-                      void handleStopJob();
-                    }}
-                    prepareReady={prepareReady}
-                    scrubIndex={scrubIndex}
-                    onScrubIndexChange={setScrubIndex}
-                    timeEstimate={jobTimeEstimate}
-                    dryRun={dryRun}
-                    onDryRunChange={setDryRun}
-                    onResumeToolChange={() => {
-                      void handleResumeToolChange();
-                    }}
-                  />
+                    <>
+                      <p className="workspace__intro workspace__intro--compact">
+                        Crash recovery — clear the path, then resume or abort.
+                      </p>
+                      <CrashRecoveryPanel
+                        checkpoint={recovery}
+                        connected={connected}
+                        machineState={status.state}
+                        alarmMessage={alarmMessage}
+                        workPos={status.work}
+                        machinePos={status.machine}
+                        jobLoaded={!!job}
+                        jobMatches={!!job && job.name === recovery.jobName}
+                        onUnlock={() => {
+                          void handleUnlock();
+                        }}
+                        onResumeFromCheckpoint={handleRecoveryResume}
+                        onSafeAbort={() => {
+                          void handleSafeAbortRecovery();
+                        }}
+                        onDismiss={() => dismissRecovery(true)}
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <p className="workspace__intro workspace__intro--compact">
+                        Soft-limit check, simulate, confirm clear path, then
+                        Start → Run.
+                      </p>
+                      <JobLoad
+                        variant="verify"
+                        job={job}
+                        progress={streamProgress}
+                        connected={connected}
+                        machineState={status.state}
+                        startBlockedReason={startBlockedReason}
+                        softLimitOk={jobSoftCheck?.ok ?? null}
+                        softLimitReason={jobSoftCheck?.reason ?? null}
+                        simPhase={sim.phase}
+                        simProgress={sim.progress}
+                        simSpeed={simSpeed}
+                        onSimSpeedChange={setSimSpeed}
+                        simZMm={simulating ? sim.position.z : null}
+                        simActivity={simulating ? sim.activity : null}
+                        simDisabled={streaming}
+                        simDisabledReason={
+                          streaming
+                            ? "Stop the running job before simulating."
+                            : null
+                        }
+                        onSimPlay={handleSimPlay}
+                        onSimPause={handleSimPause}
+                        onSimStop={handleSimStop}
+                        onLoadFile={handleLoadFile}
+                        onClear={handleClearJob}
+                        onStart={() => {
+                          void handleStartJob();
+                        }}
+                        onPause={() => {
+                          void handlePauseJob();
+                        }}
+                        onResume={() => {
+                          void handleResumeJob();
+                        }}
+                        onStop={() => {
+                          void handleStopJob();
+                        }}
+                        prepareReady={prepareReady}
+                        scrubIndex={scrubIndex}
+                        onScrubIndexChange={setScrubIndex}
+                        timeEstimate={jobTimeEstimate}
+                        dryRun={dryRun}
+                        onDryRunChange={handleDryRunChange}
+                        verifyChecklist={verifyChecklist}
+                        onVerifyChecklistChange={setVerifyChecklist}
+                        showSimNudge={!verifyRunPrefs.simNudgeDismissed}
+                        onDismissSimNudge={handleDismissSimNudge}
+                        usingVirtualCnc={usingVirtualCnc}
+                        onResumeToolChange={() => {
+                          void handleResumeToolChange();
+                        }}
+                      />
+                    </>
+                  )}
                 </div>
               )}
 
               {taskPhase === "run" && (
                 <div
-                  className="workspace__panel workspace__panel--phase"
+                  className="workspace__panel workspace__panel--phase workspace__panel--run"
                   role="tabpanel"
                   id="phase-panel-run"
                   aria-labelledby="phase-tab-run"
                 >
                   <p className="workspace__intro workspace__intro--compact">
-                    Supervise the cut. Overrides live on the safety strip.
-                    Pause / Resume / Stop here.
+                    Progress, current line, Hold / Stop. Feed and spindle
+                    overrides stay on the safety strip.
                   </p>
                   <JobLoad
                     variant="run"
@@ -3675,26 +3698,6 @@ export default function App() {
                     dryRun={dryRun}
                     onResumeToolChange={() => {
                       void handleResumeToolChange();
-                    }}
-                  />
-                  <SpindleFeedPanel
-                    connected={connected}
-                    feedRate={status.feedRate}
-                    spindleSpeed={status.spindleSpeed}
-                    feedOverridePercent={feedOverridePercent}
-                    spindleOverridePercent={spindleOverridePercent}
-                    busyAlarm={status.state === "Alarm"}
-                    onSpindleOn={(rpm) => {
-                      void handleSpindleOn(rpm);
-                    }}
-                    onSpindleOff={() => {
-                      void handleSpindleOff();
-                    }}
-                    onFeedOverride={(step) => {
-                      void handleFeedOverride(step);
-                    }}
-                    onSpindleOverride={(step) => {
-                      void handleSpindleOverride(step);
                     }}
                   />
                 </div>

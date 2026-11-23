@@ -1,6 +1,6 @@
 # 8. Jobs, SVG & run
 
-The **Job** tab is where files become motion. Flow: **load** (or generate) → see the path on the bed/stock → **Prepare** (stock / XY / Z probe) → verify placement → optional perimeter → **Simulate** → **Start**.
+Files become motion across phases: **Prepare** (load / generate + place) → **Verify** (soft-limit check, simulate, clear-path checklist, Start) → **Run** (progress, overrides on the safety strip, Hold / Stop). Start is only available in Verify.
 
 Visual: [Load the job](../setup-visual/prepare.html#p1) in the per-job prepare guide.
 
