@@ -109,6 +109,52 @@ assert(zFree.ok, "unknown Z max not blocked on positive move");
 const zMin = checkSoftLimits({ x: 10, y: 10, z: 0 }, { z: -1 }, limits);
 assert(!zMin.ok, "Z soft min still enforced");
 
+// Soft-limit clamp (shared by UI / keyboard / Xbox): shrink or drop, never past min/max.
+function clampJogDelta(machine, delta, lim) {
+  const out = {};
+  let clamped = false;
+  const axes = [
+    ["X", "x", lim.maxX, lim.min.x],
+    ["Y", "y", lim.maxY, lim.min.y],
+    ["Z", "z", lim.maxZ, lim.min.z],
+  ];
+  for (const [, key, max, min] of axes) {
+    const d = delta[key];
+    if (d === undefined || d === 0) continue;
+    let next = machine[key] + d;
+    if (next < min) {
+      next = min;
+      clamped = true;
+    }
+    if (max !== null && next > max) {
+      next = max;
+      clamped = true;
+    }
+    const cd = next - machine[key];
+    if (Math.abs(cd) > 1e-6) out[key] = cd;
+    else if (Math.abs(d) > 1e-6) clamped = true;
+  }
+  return {
+    delta: out,
+    clamped,
+    target: {
+      x: machine.x + (out.x ?? 0),
+      y: machine.y + (out.y ?? 0),
+      z: machine.z + (out.z ?? 0),
+    },
+  };
+}
+
+const clampOrigin = clampJogDelta({ x: 0, y: 0, z: 0 }, { x: -10 }, limits);
+assert(clampOrigin.clamped && !clampOrigin.delta.x, "clamp drops −X at origin");
+assert(clampOrigin.target.x === 0, "clamp target stays 0");
+
+const clampPartial = clampJogDelta({ x: 0.5, y: 0, z: 0 }, { x: -2 }, limits);
+assert(
+  Math.abs((clampPartial.delta.x ?? 0) - -0.5) < 1e-9,
+  "clamp shrinks to soft min",
+);
+
 assert(buildSetWorkZeroCommand("XYZ") === "G10 L20 P1 X0 Y0 Z0", "zero xyz");
 assert(buildSetWorkZeroCommand("X") === "G10 L20 P1 X0", "zero x");
 

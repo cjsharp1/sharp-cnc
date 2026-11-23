@@ -110,7 +110,7 @@ export {
   writeGrblSettings,
 } from "./settingsIo";
 
-export type { JogDelta, JogMode, SoftLimitCheck } from "./jog";
+export type { JogDelta, JogMode, SoftLimitCheck, SoftLimitClamp } from "./jog";
 export {
   DEFAULT_JOG_FEED_MM_MIN,
   JOG_CANCEL_BYTE,
@@ -119,6 +119,7 @@ export {
   MAX_JOG_FEED_MM_MIN,
   buildJogCommand,
   checkSoftLimits,
+  clampJogDelta,
   continuousJogDelta,
   jogDeltaFromAxes,
 } from "./jog";

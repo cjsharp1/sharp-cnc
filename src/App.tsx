@@ -67,6 +67,7 @@ import {
   checkJobSoftLimits,
   checkLatestRelease,
   checkSoftLimits,
+  clampJogDelta,
   clampScrubIndex,
   clearJobRecoveryCheckpoint,
   continuousJogDelta,
@@ -188,6 +189,7 @@ import {
   type SimSpeedRate,
   type BedTravelPlan,
   type StockPerimeterPlan,
+  type Position3,
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
@@ -218,6 +220,9 @@ export default function App() {
   const streamerRef = useRef<GcodeStreamer | null>(null);
   const continuousTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const continuousAxesRef = useRef<JogAxisMap | null>(null);
+  /** Pending machine target after in-flight jogs (soft-limit clamp cursor). */
+  const jogSoftCursorRef = useRef<Position3 | null>(null);
+  const softTravelRef = useRef<SoftTravelLimits>(loadSoftTravel());
   const statusRef = useRef<GrblStatus>(OFFLINE_STATUS);
   const streamPhaseRef = useRef<StreamPhase>("idle");
   const externalControlsRef = useRef<ExternalControlAdapter>(
@@ -710,6 +715,15 @@ export default function App() {
 
     const unsub = client.onStatus((next) => {
       statusRef.current = next;
+      // Reconcile soft-limit cursor once motion settles (or on alarm/offline).
+      if (
+        next.state === "Idle" ||
+        next.state === "Alarm" ||
+        next.state === "Offline" ||
+        next.state === "Hold"
+      ) {
+        jogSoftCursorRef.current = null;
+      }
       setStatus(next);
       if (next.state === "Alarm" && next.raw) {
         const parsed = parseAlarmLine(next.raw);
@@ -1071,6 +1085,7 @@ export default function App() {
 
   const stopContinuousJog = async () => {
     continuousAxesRef.current = null;
+    jogSoftCursorRef.current = null;
     if (continuousTimerRef.current) {
       clearInterval(continuousTimerRef.current);
       continuousTimerRef.current = null;
@@ -1522,6 +1537,7 @@ export default function App() {
   const settingsGate = canWriteSettings(status.state, connected, streaming);
 
   const updateSoftTravel = (next: SoftTravelLimits) => {
+    softTravelRef.current = next;
     setSoftTravel(next);
     saveSoftTravel(next);
   };
@@ -1786,33 +1802,50 @@ export default function App() {
       return;
     }
 
-    const delta = continuous
+    const rawDelta = continuous
       ? continuousJogDelta(axes, feedMmMin, CONTINUOUS_JOG_MS / 1000)
       : jogDeltaFromAxes(axes, stepMm);
+
+    if (
+      (rawDelta.x === undefined || rawDelta.x === 0) &&
+      (rawDelta.y === undefined || rawDelta.y === 0) &&
+      (rawDelta.z === undefined || rawDelta.z === 0)
+    ) {
+      return;
+    }
+
+    // Prefer pending soft-limit cursor so overlapping continuous bursts
+    // (Xbox stick / hold mode) cannot command past [min, max] while MPos lags.
+    const machine = jogSoftCursorRef.current ?? statusRef.current.machine;
+    const limits = softTravelRef.current;
+    const clamped = clampJogDelta(machine, rawDelta, limits);
+    const delta = clamped.delta;
 
     if (
       (delta.x === undefined || delta.x === 0) &&
       (delta.y === undefined || delta.y === 0) &&
       (delta.z === undefined || delta.z === 0)
     ) {
-      return;
-    }
-
-    const check = checkSoftLimits(statusRef.current.machine, delta, softTravel);
-    if (!check.ok) {
-      setSoftLimitHint(check.reason ?? "Soft limit");
+      setSoftLimitHint(clamped.reason ?? "At soft limit");
       if (continuous) await stopContinuousJog();
       return;
     }
 
-    setSoftLimitHint(null);
+    if (clamped.clamped) {
+      setSoftLimitHint(clamped.reason ?? "Soft limit");
+    } else {
+      setSoftLimitHint(null);
+    }
+
     try {
       const cmd = buildJogCommand(delta, feedMmMin);
+      jogSoftCursorRef.current = clamped.targetMachine;
       await client.sendLine(cmd);
       if (!continuous) {
         activityLog.append("event", `Jog ${cmd.replace(/^\$J=/, "")}`);
       }
     } catch (err) {
+      jogSoftCursorRef.current = null;
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
       if (continuous) await stopContinuousJog();

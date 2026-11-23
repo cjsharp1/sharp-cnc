@@ -115,6 +115,86 @@ export function checkSoftLimits(
   return { ok: true, targetMachine: target };
 }
 
+export interface SoftLimitClamp {
+  /** Delta after clamping into soft travel (axes may be dropped if already at limit). */
+  delta: JogDelta;
+  /** True when any axis was shortened or dropped to stay inside limits. */
+  clamped: boolean;
+  /** Human-readable hint when motion was limited or fully blocked. */
+  reason?: string;
+  /** Target machine position after applying the clamped delta. */
+  targetMachine: Position3;
+}
+
+function jogDeltaIsEmpty(delta: JogDelta): boolean {
+  return (
+    (delta.x === undefined || delta.x === 0) &&
+    (delta.y === undefined || delta.y === 0) &&
+    (delta.z === undefined || delta.z === 0)
+  );
+}
+
+/**
+ * Clamp a jog delta so the resulting machine position stays in soft travel
+ * [min, max] per axis (max may be unknown → that side is not clipped).
+ *
+ * Used by every jog source (UI pad, keyboard hold, Xbox/gamepad) so continuous
+ * bursts cannot command past 0 or past max even when MPos status lags.
+ */
+export function clampJogDelta(
+  machine: Position3,
+  delta: JogDelta,
+  limits: SoftTravelLimits,
+): SoftLimitClamp {
+  const out: JogDelta = {};
+  let clamped = false;
+  let reason: string | undefined;
+  const axes: Axis[] = ["X", "Y", "Z"];
+
+  for (const axis of axes) {
+    const key = axis.toLowerCase() as keyof Position3;
+    const d = delta[key];
+    if (d === undefined || d === 0) continue;
+
+    const min = minForAxis(limits, axis);
+    const max = maxForAxis(limits, axis);
+    const start = machine[key];
+    let next = start + d;
+
+    if (next < min - 1e-9) {
+      next = min;
+      clamped = true;
+      reason = `${axis} soft min (${min} mm)`;
+    }
+    if (max !== null && next > max + 1e-9) {
+      next = max;
+      clamped = true;
+      reason = `${axis} soft max (${max} mm)`;
+    }
+
+    const clampedD = next - start;
+    if (Math.abs(clampedD) > 1e-6) {
+      out[key] = clampedD;
+    } else if (Math.abs(d) > 1e-6) {
+      clamped = true;
+      if (!reason) reason = `${axis} at soft limit`;
+    }
+  }
+
+  const targetMachine: Position3 = {
+    x: machine.x + (out.x ?? 0),
+    y: machine.y + (out.y ?? 0),
+    z: machine.z + (out.z ?? 0),
+  };
+
+  if (jogDeltaIsEmpty(out) && !jogDeltaIsEmpty(delta) && !reason) {
+    reason = "At soft limit";
+    clamped = true;
+  }
+
+  return { delta: out, clamped, reason, targetMachine };
+}
+
 export function jogDeltaFromAxes(
   axes: Partial<Record<Axis, 1 | -1>>,
   stepMm: number,
