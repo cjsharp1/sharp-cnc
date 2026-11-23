@@ -33,8 +33,8 @@
         <section class="hero" aria-labelledby="hero-brand">
           <h1 class="hero__brand" id="hero-brand">SharpCNC</h1>
           <p class="hero__lead">
-            Personal GRBL controller for one specific CNC — calibrate once,
-            prepare every job, then cut with a live machine view.
+            Personal GRBL controller for one specific CNC — Connect → Calibrate
+            → Prepare → Verify → Run, with a live machine view.
           </p>
           <p class="hero__sub">
             Built for Chris’s Demon Shield + GRBL machine only — not a
@@ -160,27 +160,28 @@
               </p>
             </li>
             <li>
-              <h3>Connect to the machine</h3>
+              <h3>Connect (Phase 0)</h3>
               <p>
-                Power the CNC safely, plug USB into the Demon Shield / Arduino,
-                refresh ports, pick the COM port, and Connect at
-                <strong>115200</strong> baud. Wait for <strong>Linked</strong>
-                and live Work / Machine coordinates.
+                Prefer <strong>Virtual CNC</strong> for a first practice pass.
+                For real iron: power the CNC safely, plug USB into the Demon
+                Shield / Arduino, refresh ports, pick the COM port, and Connect
+                at <strong>115200</strong> baud. Wait for
+                <strong>Linked</strong> and live Material / Machine coordinates.
               </p>
             </li>
             <li>
-              <h3>Calibrate once, then prepare each job</h3>
+              <h3>Calibrate once, then Prepare → Verify → Run</h3>
               <p>
-                <strong>1 · Calibration</strong> (once per machine, or after
+                <strong>1 · Calibrate</strong> (once per machine, or after
                 hardware change):
                 <a href="setup-visual/calibration.html">$3 · steps/mm · soft travel</a>
                 — fresh install can bootstrap via
-                <a href="setup-visual/first-run.html">First-run</a>
-                (connect → home → into calibration).
+                <a href="setup-visual/first-run.html">First-run</a>. Next
+                sessions skip to Prepare.
                 <strong>2 · Every job:</strong>
                 <a href="setup-visual/prepare.html">Prepare</a>
-                (load G-code/SVG · stock · XY zero · Z probe) → verify on bed →
-                Simulate → Start. Keep E-Stop within reach.
+                (stock · Material XYZ · Z · load · Mark ready) → Verify
+                (Simulate → Start) → Run. Keep E-Stop within reach.
               </p>
             </li>
           </ol>
@@ -189,31 +190,32 @@
         <section class="section" aria-labelledby="visual-title">
           <h2 class="section__title" id="visual-title">Visual setup</h2>
           <p class="section__lead">
-            Order first: teach the machine once (calibrate), then set up each
-            piece of wood before you cut (prepare). Ikea-style diagrams with
-            kid-simple “what is this?” lines.
+            Task phases: Connect → Calibrate (once) → Prepare → Verify → Run.
+            Practice on Virtual CNC first. Ikea-style diagrams with kid-simple
+            “what is this?” lines.
           </p>
           <div class="guide-grid">
             <a class="guide-link" href="setup-visual/calibration.html">
-              <strong>1 · Calibration</strong>
+              <strong>1 · Calibrate</strong>
               <span>Once per machine · $3 · steps/mm · soft travel</span>
               <span class="guide-link__eli5"
-                >Machine tune-up — make “1 mm” mean one real millimeter.</span
+                >Machine tune-up — make “1 mm” mean one real millimeter. Then
+                skip to Prepare next session.</span
               >
             </a>
             <a class="guide-link" href="setup-visual/prepare.html">
-              <strong>2 · Per-job prepare</strong>
-              <span>Load · stock · XY zero · Z probe · then cut</span>
+              <strong>2 · Prepare</strong>
+              <span>Stock · Material XYZ · Z · load · Mark ready → Verify</span>
               <span class="guide-link__eli5"
-                >Job setup — load the drawing, place this board, mark where the
-                bit starts.</span
+                >Job setup — place this board, mark Material origin, load the
+                drawing; Simulate/Start live in Verify.</span
               >
             </a>
             <a class="guide-link" href="setup-visual/index.html">
               <strong>Visual hub</strong>
-              <span>Order diagram + both guides</span>
+              <span>Connect → Calibrate → Prepare → Verify → Run</span>
               <span class="guide-link__eli5"
-                >Calibrate once, prepare every job — pictures first.</span
+                >Practice on Virtual CNC first — pictures guide each phase.</span
               >
             </a>
           </div>
@@ -232,27 +234,27 @@
             </a>
             <a class="guide-link" href="guide.html#02">
               <strong>Connect</strong>
-              <span>COM ports, baud, Linked status</span>
+              <span>Phase 0 · Virtual CNC first · COM ports</span>
             </a>
             <a class="guide-link" href="guide.html#03">
               <strong>Understanding the UI</strong>
-              <span>Visualizer, Move / Job / Log, Menu</span>
+              <span>Safety strip, phase switcher, Material vs Machine</span>
             </a>
             <a class="guide-link" href="guide.html#04">
               <strong>Jogging &amp; zeros</strong>
-              <span>Jog pad, soft limits, work zeros</span>
+              <span>Jog in Prepare, Material XYZ, Advanced appendix</span>
             </a>
             <a class="guide-link" href="guide.html#05">
-              <strong>Calibration</strong>
-              <span>Steps/mm, soft travel, manual $$</span>
+              <strong>Calibrate</strong>
+              <span>Phase 1 · steps/mm · soft travel · then skip</span>
             </a>
             <a class="guide-link" href="guide.html#07">
               <strong>Prepare &amp; Z probe</strong>
-              <span>Touch plate, G38.2, pre-start</span>
+              <span>Phase 2 · Material XYZ · Mark ready → Verify</span>
             </a>
             <a class="guide-link" href="guide.html#08">
-              <strong>Jobs &amp; SVG</strong>
-              <span>Load, simulate, start / pause / stop</span>
+              <strong>Jobs &amp; run</strong>
+              <span>Load in Prepare · Simulate/Start in Verify · Run</span>
             </a>
             <a class="guide-link" href="guide.html#11">
               <strong>Safety</strong>

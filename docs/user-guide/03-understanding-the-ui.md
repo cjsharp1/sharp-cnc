@@ -1,6 +1,6 @@
 # 3. Understanding the UI
 
-The window is built so you always see **connection**, **position**, and **safety**, with a large machine view and a slim workspace for Move / Job / Log.
+The window always shows **connection**, **Material / Machine position**, and **safety**. The big stage is the machine view. The right rail is a **phase body** — only the controls for the current task.
 
 ![UI map](assets/diagram-ui-map.svg)
 
@@ -10,62 +10,66 @@ The window is built so you always see **connection**, **position**, and **safety
 
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
-- **Connection chip** — compact Linked / Offline status, port, Connect / Disconnect / Reset (sits with the brand and Menu)
-- **Version chip** (e.g. `v0.1.0`) — opens **About & updates**; lights an Update badge when a newer GitHub Release exists
-- **Menu** — Material & tool, External jobs, Calibration, Bed travel test, Trace stock perimeter, Prepare to run, **Appearance** (dark / light), **Debug mode**, and **About & updates…** (version footer in the menu)
+- **Connection chip** — compact Linked / Offline / Virtual status, port, Connect / Disconnect / Reset
+- **Version chip** — opens **About & updates**; Update badge when a newer GitHub Release exists
+- **Menu** — Material & tool, External jobs, Calibrate, Bed travel test, Trace stock perimeter, Prepare, **Advanced…**, **Appearance**, **Debug mode**, **About & updates…**
 
 ![Menu open](assets/menu-open.webp)
 
-## Left column (under the header)
+## Always-on safety strip
 
-Above the visualizer, two boxes side by side:
+Above the visualizer (every phase, including before connect):
 
-1. **Position** — Work and Machine X / Y / Z plus machine state (Idle, Jog, Run, Hold, Alarm, …)  
-2. **Safety** — E-Stop, Hold, Resume, Reset, Unlock (+ guided alarm steps when locked)  
+| Strip item | Role |
+|------------|------|
+| **Connect** | Port / Virtual CNC, Connect / Disconnect — Phase 0 lives here until linked |
+| **Machine XYZ** | MPos — bed / soft-travel frame |
+| **Material XYZ** | Job origin on the blank (WPos under the hood). Label **Material**, never “Work” |
+| **State** | Idle / Jog / Run / Hold / Alarm |
+| **Stop / Hold / Resume / Unlock** | E-Stop primary; Unlock after alarm |
+| **Live overrides** | Feed % / spindle % — emphasized in Run / Hold |
 
-While Running / Held, a **live overrides** strip appears under those boxes (feed %, rapid % 100/50/25, spindle %).
-
-Keep an eye on position and safety while jogging or running. If state flips to **Alarm** or **Hold**, stop and read the banner before continuing.
+**Machine XYZ** = where the machine thinks the tool is on the bed.  
+**Material XYZ** = where the tool is relative to the origin you set on the blank.
 
 ## Visualizer (main stage)
 
 Shows:
 
 - Bed size from soft travel (default **1000 × 1000 mm** until you calibrate)
-- Stock rectangle (from Material & tool / Prepare — set corner from toolhead, then W/L/T; optional drag fine-tune)
+- Stock rectangle (from Prepare / Material & tool — set corner from toolhead, then W/L/T)
 - Loaded toolpath (job or SVG preview)
 - Toolhead (bit Ø sized) with a short motion trail while jogging / running
-- **Dual origin** markers — **Work 0** at the job origin and **Machine 0** from WCO
-- Optional **Simulate** overlay when a job path is loaded — preview only, not serial motion (playback speed + Z/lift cues)
+- **Dual origin** markers — **Material 0** at the job origin and **Machine 0** from WCO
+- Optional **Simulate** overlay when a path is loaded — preview only, not serial motion
 
-Labels on the view call out bed size, stock, path name, and whether you are in preview or live motion.
+Axis convention (matches the guides): **+X** right, **+Y** back = up on screen, **+Z** up. Bed corners use map layout: **NW NE** on the top row, **SW SE** on the bottom.
 
-## Workspace tabs (right rail)
+## Phase switcher (right rail)
 
-The tabbed panel stretches from just under the header to the bottom of the window so **Move → Jog** stays reachable without scrolling the panel first.
+A persistent stepper: **Connect · Calibrate · Prepare · Verify · Run**. Incomplete phases ahead stay disabled with a one-line reason (“Mark material ready first”). Completed **Calibrate** stays unlocked for re-entry.
 
-Four focused tabs (arrow keys move between them):
+| Phase | What the pane shows |
+|-------|---------------------|
+| **Connect** | Ports, baud note, Connect, Virtual CNC |
+| **Calibrate** | Four dense guided steps (one screen each) |
+| **Prepare** | Stepped wizard: stock+tool → Material XY → Z → load → Mark ready |
+| **Verify** | Soft-limit summary, Simulate, checklist, **Start** |
+| **Run** | Progress + overrides + Pause / Resume / Stop |
 
-| Tab | Contents |
-|-----|----------|
-| **Move** | Jog, material zero, homing, spindle / overrides |
-| **Probe** | XY edge / corner probe and tool-length Z (clutter pulled out of Move) |
-| **Job** | Material & tool, External jobs, SVG → G-code, Load / Prepare / scrubber / dry run / Start / Simulate |
-| **Log** | Live activity (TX/RX/events); with **Debug mode** on — export, Copy, Debug bridge |
+**No scroll for primary phase controls** — each step fits on one screen. The visualizer and safety strip stay fixed; only the phase body swaps.
 
-Each tab shows a one-line purpose under the tab list. Job can show a small badge (`Ready`, `Run`, `Held`, `SVG`, …).
+**Not phases:** Log / Debug (Menu · Debug) and **Advanced…** (Menu). Those are intentional hides and may scroll.
 
-## Menu vs tabs
+## Menu
 
-Use **tabs** for day-to-day jog / run / logs. Use **Menu** for setup that you do occasionally:
+Use **Menu** for occasional setup and power tools:
 
-- Material & tool…  
-- External jobs…  
-- Calibration… (full wizard modal)  
-- Prepare phase… (inline stock / material XY / Z / load)  
-- **Advanced…** — console, macros, G54–G59, raw `$$` (debugging only; closed by default)  
-- **Appearance** — Dark or Light (persisted). Workshop steel & brass in both modes; visualizer grid and toolpath stay readable.  
-- **Debug mode** — toggle (persisted; default off). When on, the Log tab shows Export / Copy / Debug bridge and the menu label reads **Menu · Debug**.  
-- **About & updates…** — installed version, check GitHub Releases, What’s new, **Install update & relaunch** (desktop), or download NSIS / open the release page. In-app install applies the signed setup in place; fallback is run the newer NSIS over the existing install.
+- Material & tool… / External jobs… / Trace stock perimeter… / Bed travel test…  
+- Calibrate… / Prepare phase… / First-run setup…  
+- **Advanced…** — console, macros, G54–G59, raw `$$` (closed by default; not part of normal cutting)  
+- **Appearance** — Dark or Light (persisted)  
+- **Debug mode** — export / Copy / Debug bridge under Menu · Debug  
+- **About & updates…** — version, GitHub Releases, in-app install
 
 Next: [Jogging & zeros](04-jogging-and-zeros.md).

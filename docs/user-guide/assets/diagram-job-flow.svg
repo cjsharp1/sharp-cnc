@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 340" role="img" aria-labelledby="t d">
-  <title id="t">Job load and run flow</title>
-  <desc id="d">Load or generate, simulate, then start pause stop on the machine</desc>
+  <title id="t">Prepare Verify Run job flow</title>
+  <desc id="d">Load in Prepare, simulate and Start in Verify, supervise in Run</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -21,41 +21,34 @@
 
   <rect class="bg" width="820" height="340" rx="10"/>
   <text class="lab title" x="28" y="36">From file to cutting</text>
-  <text class="tiny" x="28" y="56">Load → prepare → simulate → start</text>
+  <text class="tiny" x="28" y="56">Prepare → Verify → Run</text>
 
-  <rect class="box" x="28" y="84" width="120" height="110" rx="12"/>
-  <text class="lab" x="88" y="128" text-anchor="middle">Load</text>
-  <text class="tiny" x="88" y="152" text-anchor="middle">.nc / SVG</text>
-  <text class="tiny" x="88" y="170" text-anchor="middle">→ job</text>
+  <rect class="box" x="28" y="84" width="130" height="110" rx="12"/>
+  <text class="lab" x="93" y="122" text-anchor="middle">Prepare</text>
+  <text class="tiny" x="93" y="146" text-anchor="middle">Load · place</text>
+  <text class="tiny" x="93" y="164" text-anchor="middle">Mark ready</text>
 
-  <path class="line" d="M158 140 H180"/>
+  <path class="line" d="M168 140 H190"/>
 
-  <rect class="box" x="188" y="84" width="120" height="110" rx="12"/>
-  <text class="lab" x="248" y="128" text-anchor="middle">Prepare</text>
-  <text class="tiny" x="248" y="152" text-anchor="middle">XY + Z probe</text>
-  <text class="tiny" x="248" y="170" text-anchor="middle">Mark ready</text>
+  <rect class="sim" x="198" y="84" width="150" height="110" rx="12"/>
+  <text class="lab" x="273" y="122" text-anchor="middle">Verify</text>
+  <text class="tiny" x="273" y="146" text-anchor="middle">Simulate · checklist</text>
+  <text class="tiny" x="273" y="164" text-anchor="middle">Start</text>
 
-  <path class="line" d="M318 140 H340"/>
+  <path class="line" d="M358 140 H380"/>
 
-  <rect class="sim" x="348" y="84" width="130" height="110" rx="12"/>
-  <text class="lab" x="413" y="128" text-anchor="middle">Simulate</text>
-  <text class="tiny" x="413" y="152" text-anchor="middle">Preview only</text>
-  <text class="tiny" x="413" y="170" text-anchor="middle">No serial</text>
+  <rect class="run" x="388" y="84" width="150" height="110" rx="12"/>
+  <text class="lab" x="463" y="122" text-anchor="middle">Run</text>
+  <text class="tiny" x="463" y="146" text-anchor="middle">Overrides · progress</text>
+  <text class="tiny" x="463" y="164" text-anchor="middle">Hold / Stop</text>
 
-  <path class="line" d="M488 140 H510"/>
+  <path class="line" d="M548 140 H580"/>
 
-  <rect class="run" x="518" y="84" width="130" height="110" rx="12"/>
-  <text class="lab" x="583" y="128" text-anchor="middle">Start</text>
-  <text class="tiny" x="583" y="152" text-anchor="middle">Stream GRBL</text>
-  <text class="tiny" x="583" y="170" text-anchor="middle">Pause / Stop</text>
+  <rect class="box" x="588" y="100" width="100" height="78" rx="12"/>
+  <text class="lab" x="638" y="146" text-anchor="middle">Done</text>
 
-  <path class="line" d="M658 140 H690"/>
-
-  <rect class="box" x="698" y="100" width="90" height="78" rx="12"/>
-  <text class="lab" x="743" y="146" text-anchor="middle">Done</text>
-
-  <text class="tiny" x="28" y="240">Always Simulate first when you are unsure about the path, stock placement, or soft limits.</text>
-  <text class="tiny" x="28" y="262">Start is blocked while Alarm-locked, while a job is already running, or if the path exceeds soft travel.</text>
-  <text class="tiny" x="28" y="284">E-Stop = feed hold + soft reset. Demon Shield hardware buttons should stay reachable too.</text>
+  <text class="tiny" x="28" y="240">Always Simulate in Verify when unsure about path, stock placement, or soft limits.</text>
+  <text class="tiny" x="28" y="262">Start is blocked while Alarm-locked, while streaming, or if the path exceeds soft travel.</text>
+  <text class="tiny" x="28" y="284">Practice once on Virtual CNC before the first real cut. E-Stop + Demon Shield buttons stay reachable.</text>
   <text class="tiny" x="28" y="306">Keep hands clear of the spindle and moving axes while Running.</text>
 </svg>

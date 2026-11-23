@@ -19,7 +19,7 @@
     </style>
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
-  <text class="lab" x="40" y="48">Every job · Load the file</text>
+  <text class="lab" x="40" y="48">Prepare · Load the file</text>
   <text class="tiny" x="40" y="74">G-code or SVG → path appears on the stock in the visualizer</text>
 
   <rect class="bed" x="60" y="110" width="500" height="360" rx="8"/>
@@ -33,7 +33,7 @@
   <rect class="panel" x="600" y="130" width="300" height="320" rx="12"/>
   <circle class="accent" cx="636" cy="170" r="18"/>
   <text class="w" x="636" y="170" text-anchor="middle" dominant-baseline="central" font-size="14">1</text>
-  <text class="lab" x="668" y="176" font-size="16">Job tab</text>
+  <text class="lab" x="668" y="176" font-size="16">Prepare · Load</text>
 
   <g transform="translate(628,210)">
     <rect class="chip" width="120" height="36" rx="8"/>

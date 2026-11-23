@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC order of operations: calibrate once, then prepare every job."
+      content="SharpCNC task phases: Connect, Calibrate once, Prepare every job, Verify, Run."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -33,17 +33,16 @@
         <p class="visual-hub__eyebrow">Assembly-style instructions</p>
         <h1 class="visual-hub__title">Visual setup</h1>
         <p class="visual-hub__lead">
-          <strong>Calibrate once</strong> — teach the machine how far a
-          millimeter is and which way is forward.
-          <strong>Prepare every job</strong> — tell it where
-          <em>this</em> piece of wood sits before you cut. For Chris’s Demon
-          Shield + GRBL machine only — other CNCs are out of scope.
+          SharpCNC walks one job at a time:
+          <strong>Connect → Calibrate → Prepare → Verify → Run</strong>.
+          Practice on <strong>Virtual CNC</strong> before real USB. For Chris’s
+          Demon Shield + GRBL machine only — other CNCs are out of scope.
         </p>
 
         <figure class="visual-hub__order">
           <img
             src="assets/order-of-ops.svg"
-            alt="Order of operations: 1 Calibration once per machine, then 2 Prepare every job"
+            alt="Order of operations: Connect, Calibrate once, Prepare, Verify, Run"
             width="960"
             height="320"
           />
@@ -57,11 +56,12 @@
               width="960"
               height="520"
             />
-            <strong>1 · Calibration</strong>
+            <strong>1 · Calibrate</strong>
             <span>Once per machine · $3 · steps/mm · soft travel · bed test</span>
             <span class="visual-hub__eli5">
               Machine tune-up. Like setting a ruler so “1” means one real
-              millimeter — do it once (or after you change hardware).
+              millimeter — do it once (or after you change hardware). Next
+              sessions skip to Prepare.
             </span>
           </a>
           <a class="visual-hub__card" href="prepare.html">
@@ -71,11 +71,12 @@
               width="960"
               height="520"
             />
-            <strong>2 · Per-job prepare</strong>
-            <span>Connect · home · load · stock · XY zero · Z probe · cut</span>
+            <strong>2 · Prepare</strong>
+            <span>Stock · Material XYZ · Z probe · load · Mark ready → Verify</span>
             <span class="visual-hub__eli5">
-              Job setup. Load the drawing, place this sheet of wood, mark where
-              it starts — every cut needs this.
+              Job setup. Place this sheet of wood, mark Material origin, load
+              the drawing — every cut needs this. Simulate and Start live in
+              Verify.
             </span>
           </a>
         </div>
@@ -83,11 +84,13 @@
         <p class="visual-hub__foot">
           Fresh install bootstrap:
           <a href="first-run.html">First-run wizard</a>
-          (connect → home → into calibration). Each guide section has numbered
-          operator steps with an expected outcome. Text:
+          (connect → home → into Calibrate). Prefer Virtual CNC for the first
+          pass. Text:
           <a href="../guide.html#05">Calibration</a>
           ·
           <a href="../guide.html#07">Prepare</a>
+          ·
+          <a href="../guide.html#08">Jobs &amp; run</a>
         </p>
       </main>
 

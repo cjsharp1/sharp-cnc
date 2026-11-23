@@ -4,7 +4,7 @@ SharpCNC can load jobs from **Google Drive** once an OAuth client ID is configur
 
 ## What works without credentials
 
-1. Menu → **External jobs…** (or Job tab → External jobs).
+1. Menu → **External jobs…** (or Prepare → Load → External).
 2. **Pick…** a local folder containing `.nc` / `.gcode` / `.svg`.
 3. Path is persisted; **Auto-refresh** re-lists every ~2.5s.
 4. Click a file to open it into the existing Job / SVG loaders.

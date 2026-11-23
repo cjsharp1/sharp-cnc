@@ -6,7 +6,7 @@ Use this before tagging a cut you will run on wood. Brand spelling: **SharpCNC**
 
 - [ ] Latest `main` is green (or your release branch is rebased onto it)
 - [ ] Version bumped in `package.json`, `src-tauri/tauri.conf.json`, **and** `src-tauri/Cargo.toml` (keep them equal; `smoke-app-update` checks)
-- [ ] User guide / Pages still match UI labels (especially Move / Probe / Job)
+- [ ] User guide / Pages still match UI labels (phase switcher: Connect · Calibrate · Prepare · Verify · Run; Material vs Machine)
 - [ ] No secrets in the tree (Drive client IDs stay in env / local `.env`)
 
 ## 1. Critical smoke gates (no hardware)

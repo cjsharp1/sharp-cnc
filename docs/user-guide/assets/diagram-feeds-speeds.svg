@@ -48,7 +48,7 @@
   <path class="arrow" d="M360 200 V228"/>
 
   <rect class="run" x="180" y="236" width="400" height="76" rx="10"/>
-  <text class="lab" x="200" y="266" font-weight="700">Runtime (Move tab)</text>
+  <text class="lab" x="200" y="266" font-weight="700">Runtime (Run strip)</text>
   <text class="tiny" x="200" y="288">Feed override 0x90–0x94 · Spindle override 0x99–0x9D</text>
   <text class="tiny" x="200" y="306">Manual M3 / M5 · soft limits unchanged</text>
 </svg>

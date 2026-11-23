@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
   <title id="t">Calibration 1 — Zero context</title>
-  <desc id="d">Confirm Work and Machine coordinates before measuring</desc>
+  <desc id="d">Confirm Material and Machine coordinates before measuring</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -22,10 +22,10 @@
   <circle class="num" cx="56" cy="56" r="28"/>
   <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">1</text>
   <text class="lab big" x="100" y="50">Zero context</text>
-  <text class="lab act" x="100" y="84">Check Work / Machine → Zero if needed → Next</text>
+  <text class="lab act" x="100" y="84">Check Material / Machine → Zero if needed → Next</text>
 
   <rect class="card" x="100" y="150" width="360" height="260" rx="14"/>
-  <text class="lab" x="280" y="200" text-anchor="middle" font-weight="700">Work (G54)</text>
+  <text class="lab" x="280" y="200" text-anchor="middle" font-weight="700">Material (G54)</text>
   <text class="mono" x="280" y="250" text-anchor="middle">X 0.000</text>
   <text class="mono" x="280" y="290" text-anchor="middle">Y 0.000</text>
   <text class="mono" x="280" y="330" text-anchor="middle">Z 0.000</text>

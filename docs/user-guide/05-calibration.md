@@ -1,10 +1,12 @@
-# 5. Calibration
+# 5. Calibration (Phase 1)
 
 **When:** once per machine, or after wiring / screws / travel change. **Before** trusting Prepare or cuts. Not a per-job step.
 
+**After done:** next sessions skip Calibrate and open on **Prepare**. Re-enter anytime from the phase switcher or Menu → Calibrate….
+
 **Prefer pictures:** [Calibration visual guide](../setup-visual/calibration.html) (zeros · `$3` · steps/mm · soft travel · bed test).
 
-Menu → **Calibration…** (also from First-run step 3). Connect first.
+Phase switcher → **Calibrate** (also from First-run). Connect first.
 
 | # | Step | Action |
 |---|------|--------|
@@ -15,9 +17,9 @@ Menu → **Calibration…** (also from First-run step 3). Connect first.
 
 Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibrate step). Homing and **Bed travel test…** are recommended, not required to mark calibrated.
 
-After soft travel (or **Bed test…** / **Menu → Bed travel test…**), SharpCNC can walk all XY soft-limit corners: safe Z retract, cruise in the open bed, slow approach near each edge, optional proximity beep. Confirm the safety gate before Start; Abort / Feed Hold cancel motion. Finishing Soft travel marks the machine calibrated and offers **Continue to Prepare**.
+Finishing Soft travel (all four steps confirmed) — or explicitly confirming “Machine already calibrated” on a returning profile — marks the machine calibrated and offers **Continue to Prepare**. Optional **Bed travel test…** (or Menu → Bed travel test…) walks all XY soft-limit corners after travel is written.
 
-> **Safety:** Clear bed. Keep Z high for XY. E-Stop ready.
+> **Safety:** Clear bed. Keep Z high for XY. E-Stop ready. Prefer Virtual CNC for the first pass.
 
 ## Quick reference
 
@@ -29,12 +31,12 @@ After soft travel (or **Bed test…** / **Menu → Bed travel test…**), SharpC
 
 After steps/mm look close, cut a known size and measure:
 
-1. Job → SVG → **Samples → 100×100 mm** (true millimetre SVG).  
-2. Generate a shallow engrave/outline → Prepare → cut on scrap.  
+1. Prepare → Load → SVG → **Samples → 100×100 mm** (true millimetre SVG).  
+2. Generate a shallow engrave/outline → finish Prepare → Verify → cut on scrap.  
 3. Measure X and Y. Adjust steps/mm with the formula above if needed, then re-check.
 
 Also available: **50×50 mm** square and **100 mm line**. Details: [Jobs & SVG — cut-size samples](08-jobs-and-svg.md#cut-size-samples).
 
 Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [steps](assets/cal-step2-steps.png) · [travel](assets/cal-step3-travel.png)
 
-Next (every job): load G-code/SVG → [Prepare to run & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html#p1)
+Next (every job): [Prepare & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html)
