@@ -103,7 +103,9 @@ const settings = await fetchGrblSettings(client, { timeoutMs: 2000 });
 assert(settings.size >= 10, `expected settings dump, got ${settings.size}`);
 assert(settings.get(SETTING_STEPS_X)?.value === 250, "default $100");
 assert(settings.get(SETTING_DIR_PORT_INVERT)?.value === 0, "default $3");
-assert(softLimitsEnabled(settings) === false, "soft limits off by default");
+// Virtual CNC is a perfectly calibrated machine — soft limits on by default.
+// Real Demon Shield EEPROM still ships with $20=0 until calibration writes it.
+assert(softLimitsEnabled(settings) === true, "Virtual CNC soft limits on by default");
 
 await writeGrblSetting(client, SETTING_DIR_PORT_INVERT, 5, { timeoutMs: 1500 });
 const afterDir = await fetchGrblSettings(client, { timeoutMs: 2000 });
