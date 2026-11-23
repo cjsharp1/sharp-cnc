@@ -32,7 +32,7 @@ After soft-limit, hard-limit, probe-fail, or homing-fail alarms, the Safety pane
 
 Wrong numbers = false safety. Re-measure after mechanical changes.
 
-**Before the first wood cut:** practice Connect → Calibrate → Prepare → Verify on **Virtual CNC** so soft-limit refusals and alarms are familiar. Then run the [hardware soak playbook](12-hardware-soak.md) on the real machine — home, `$3`, soft limits, Z probe, Abort/Hold/Resume, PWM.
+**Before the first wood cut:** practice Connect → Calibrate → Prepare → Verify on **Virtual CNC** so soft-limit refusals and alarms are familiar. Then run the [hardware soak playbook](12-hardware-soak.md) on the real machine — home, `$3`, soft limits, Z probe, Abort/Hold/Resume, PWM. Climb the [first-test stages](13-first-test-stages.md) ladder (connect → air jog → no-tool raised Z → scrap) and only advance on **Pass**.
 
 ## Habits that prevent crashes
 

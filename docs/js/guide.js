@@ -86,6 +86,11 @@
           title: "12. Hardware soak",
           path: "user-guide/12-hardware-soak.md",
         },
+        {
+          id: "13",
+          title: "13. First-test stages",
+          path: "user-guide/13-first-test-stages.md",
+        },
       ],
     },
     {
