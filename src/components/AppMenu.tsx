@@ -180,10 +180,10 @@ export function AppMenu({
               onOpenPrepareRun();
             }}
           >
-            Prepare to run…
+            Prepare phase…
           </button>
           <p className="appmenu__hint">
-            Prepare phase: stock, tool, XY zero, Z probe — then Verify to Start.
+            Inline Prepare: stock, material XY, Z, load — Mark ready → Verify.
           </p>
           {onOpenAdvanced ? (
             <>

@@ -951,10 +951,14 @@ button {
   padding: 0;
 }
 
-.phase-prepare__actions {
-  display: flex;
-  flex-wrap: wrap;
+.workspace__panel--prepare {
   gap: 0.45rem;
+}
+
+.workspace__panel--prepare .cal.prep {
+  border: none;
+  background: transparent;
+  padding: 0;
 }
 
 .workspace__body--phase {
@@ -3988,13 +3992,71 @@ button {
 }
 
 .prep__steps {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
-@media (min-width: 640px) {
-  .prep__steps {
-    grid-template-columns: repeat(6, minmax(0, 1fr));
-  }
+.prep--dense .prep__callouts {
+  display: none;
+}
+
+.prep--dense .prep__checklist {
+  margin: 0.35rem 0 0.5rem;
+  gap: 0.25rem;
+}
+
+.prep--dense .prep__checklist li {
+  padding: 0.28rem 0.5rem;
+  font-size: var(--text-sm);
+}
+
+.prep--dense .prep__jog {
+  margin: 0.25rem 0 0.35rem;
+}
+
+.prep--dense .prep__jog .jog {
+  padding: 0.55rem 0.65rem;
+}
+
+.prep__xyprobe {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.prep__xyprobe-actions {
+  flex-wrap: wrap;
+}
+
+.prep__load {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.prep__load .job,
+.prep__load .svgjob,
+.prep__load .recentjobs,
+.prep__load .extjobs {
+  border-color: var(--border-strong);
+  background: var(--panel-deep);
+  padding: 0.55rem 0.65rem;
+}
+
+.prep__load .job__title,
+.prep__load .svgjob__title,
+.prep__load .recentjobs__title,
+.prep__load .extjobs__title {
+  font-size: var(--text-sm);
+}
+
+.prep__load .job__hint,
+.prep__load .recentjobs__hint {
+  font-size: var(--text-xs);
+}
+
+.prep__external {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
 }
 
 .prep__callouts {

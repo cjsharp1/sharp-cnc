@@ -519,6 +519,9 @@ export {
   phaseAfterStreamEnds,
 } from "./taskPhase";
 
+export type { PrepareGuidedStepId } from "./prepareConfig";
+export { PREPARE_GUIDED_STEPS } from "./prepareConfig";
+
 export type { UiTheme } from "./themeConfig";
 export {
   DEFAULT_UI_THEME,

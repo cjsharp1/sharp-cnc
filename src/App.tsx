@@ -23,21 +23,20 @@ import {
   ExternalJobsPanel,
   type ExternalJobKind,
 } from "./components/ExternalJobsPanel";
-import { HomingPanel } from "./components/HomingPanel";
 import { JobLoad } from "./components/JobLoad";
-import { JogPanel, type JogAxisMap } from "./components/JogPanel";
+import { type JogAxisMap } from "./components/JogPanel";
 import { MachineView, type TrailPoint } from "./components/MachineView";
-import { MaterialToolPanel } from "./components/MaterialToolPanel";
 import { OverridesStrip } from "./components/OverridesStrip";
-import { PrepareRunPanel } from "./components/PrepareRunPanel";
-import { ProbeXyPanel } from "./components/ProbeXyPanel";
+import {
+  PrepareRunPanel,
+  type PrepareStepId,
+} from "./components/PrepareRunPanel";
 import { RecentJobsPanel } from "./components/RecentJobsPanel";
 import { SafetyControls } from "./components/SafetyControls";
 import { SimControls } from "./components/SimControls";
 import { SpindleFeedPanel } from "./components/SpindleFeedPanel";
 import { SvgJobPanel } from "./components/SvgJobPanel";
 import { PhaseSwitcher } from "./components/PhaseSwitcher";
-import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
   JOG_STEP_OPTIONS_MM,
@@ -81,7 +80,6 @@ import {
   DEFAULT_SIM_SPEED,
   createSessionClient,
   currentWcoFromStatus,
-  describeClearHomeState,
   estimateJobTimeFromJob,
   feedOverrideByte,
   fetchGrblSettings,
@@ -125,7 +123,6 @@ import {
   parseAlarmLine,
   parseConsoleLines,
   pauseSim,
-  planGoToWorkZero,
   playProximityBeep,
   publishDebugSnapshot,
   rapidOverrideByte,
@@ -139,7 +136,6 @@ import {
   runZProbeCycle,
   saveDebugMode,
   saveDriveConfig,
-  saveFeedsSpeedsSelection,
   saveJobRecoveryCheckpoint,
   saveJobsFolderConfig,
   saveMacros,
@@ -244,7 +240,6 @@ export default function App() {
   const [stepMm, setStepMm] = useState<number>(JOG_STEP_OPTIONS_MM[1]);
   const [feedMmMin, setFeedMmMin] = useState(DEFAULT_JOG_FEED_MM_MIN);
   const [softLimitHint, setSoftLimitHint] = useState<string | null>(null);
-  const [pendingGoTo, setPendingGoTo] = useState<ZeroAxisSelection | null>(null);
   const [zeroMessage, setZeroMessage] = useState<string | null>(null);
 
   const [job, setJob] = useState<LoadedJob | null>(null);
@@ -271,10 +266,10 @@ export default function App() {
   /** Tool / bit profile — persisted for visualizer + SVG defaults. */
   const [tool, setTool] = useState<ToolConfig>(() => loadTool());
   /** Material presets + suggested F/S — persisted. */
-  const [feeds, setFeeds] = useState<FeedsSpeedsSelection>(() =>
+  const [feeds] = useState<FeedsSpeedsSelection>(() =>
     loadFeedsSpeedsSelection(),
   );
-  const [feedsApplyToken, setFeedsApplyToken] = useState(0);
+  const feedsApplyToken = 0;
   const [feedOverridePercent, setFeedOverridePercent] = useState(
     () => loadOverridePercents().feed,
   );
@@ -304,8 +299,8 @@ export default function App() {
   );
   const [xyProbeBusy, setXyProbeBusy] = useState(false);
   const [xyProbeMessage, setXyProbeMessage] = useState<string | null>(null);
-  const [xySeekMm, setXySeekMm] = useState(20);
-  const [xyFeedMmMin, setXyFeedMmMin] = useState(80);
+  const xySeekMm = 20;
+  const xyFeedMmMin = 80;
   /** Watched local jobs folder — persisted path + auto-refresh. */
   const [jobsFolder, setJobsFolder] = useState<JobsFolderConfig>(() =>
     loadJobsFolderConfig(),
@@ -351,8 +346,11 @@ export default function App() {
   const [stockPerimeterSound, setStockPerimeterSound] = useState(true);
   const stockPerimeterAbortRef = useRef(false);
   const stockPerimeterRunningRef = useRef(false);
-  const [prepareOpen, setPrepareOpen] = useState(false);
   const [aboutOpen, setAboutOpen] = useState(false);
+  /** Deep-link into a Prepare step from Menu (stock / load). */
+  const [prepareFocusStep, setPrepareFocusStep] =
+    useState<PrepareStepId | null>(null);
+  const [prepareShowExternal, setPrepareShowExternal] = useState(false);
   const [appVersion, setAppVersion] = useState(() =>
     packagedAppVersion(),
   );
@@ -371,8 +369,6 @@ export default function App() {
   const [prepareReady, setPrepareReady] = useState(false);
   const [prepareMessage, setPrepareMessage] = useState<string | null>(null);
   const [prepareBusy, setPrepareBusy] = useState(false);
-  const [matToolHighlight, setMatToolHighlight] = useState(false);
-  const [extJobsHighlight, setExtJobsHighlight] = useState(false);
   const [recentJobs, setRecentJobs] = useState<RecentJobEntry[]>(() =>
     loadRecentJobs(),
   );
@@ -874,27 +870,6 @@ export default function App() {
     return () => document.removeEventListener("keydown", onKey);
   }, [stockPerimeterOpen, stockPerimeterPhase]);
 
-  useEffect(() => {
-    if (!prepareOpen) return;
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setPrepareOpen(false);
-    };
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
-  }, [prepareOpen]);
-
-  useEffect(() => {
-    if (!matToolHighlight) return;
-    const t = window.setTimeout(() => setMatToolHighlight(false), 2200);
-    return () => window.clearTimeout(t);
-  }, [matToolHighlight]);
-
-  useEffect(() => {
-    if (!extJobsHighlight) return;
-    const t = window.setTimeout(() => setExtJobsHighlight(false), 2200);
-    return () => window.clearTimeout(t);
-  }, [extJobsHighlight]);
-
   // Keep latest UI fields for the debug bridge without restarting the server.
   const bridgeContextRef = useRef({
     phase,
@@ -1050,7 +1025,6 @@ export default function App() {
     setErrorMessage(null);
     setSoftLimitHint(null);
     setZeroMessage(null);
-    setPendingGoTo(null);
     setAlarmMessage(null);
     externalControlsRef.current.reset();
     try {
@@ -1104,7 +1078,6 @@ export default function App() {
       setErrorMessage(null);
       setAlarmMessage(null);
       setAlarmCode(null);
-      setPendingGoTo(null);
       setStreamProgress(null);
       setGrblSettings(null);
       setCalMessage(null);
@@ -1310,12 +1283,6 @@ export default function App() {
     } finally {
       setHomeBusy(false);
     }
-  };
-
-  const handleClearHome = () => {
-    setHomed(false);
-    setHomeMessage(describeClearHomeState());
-    activityLog.append("event", "Cleared SharpCNC home flag");
   };
 
   const updateWorkOffsets = (next: WorkOffsetsStore) => {
@@ -2117,54 +2084,6 @@ export default function App() {
     setPrepareMessage(null);
   };
 
-  const handleConfirmGoTo = async () => {
-    const axes = pendingGoTo;
-    setPendingGoTo(null);
-    if (!axes || streaming) return;
-    const client = clientRef.current;
-    if (!client || !client.transport.isOpen) return;
-
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
-    if (!gate.ok) {
-      setZeroMessage(gate.reason ?? "Cannot go to zero");
-      return;
-    }
-
-    const live = statusRef.current;
-    const plan = planGoToWorkZero(axes, {
-      softLimits: softTravel,
-      machine: live.machine,
-      wco: live.wco ?? {
-        x: live.machine.x - live.work.x,
-        y: live.machine.y - live.work.y,
-        z: live.machine.z - live.work.z,
-      },
-      zFeedMmMin: Math.min(feedMmMin, 500),
-      xyFeedMmMin: feedMmMin,
-    });
-
-    if (plan.blocked) {
-      setZeroMessage(plan.blocked);
-      return;
-    }
-
-    try {
-      for (const cmd of plan.commands) {
-        await client.sendLine(cmd);
-        await new Promise((r) => setTimeout(r, usingMock ? 320 : 40));
-      }
-      activityLog.append("event", `Go-to-zero ${axes}`);
-      setZeroMessage(
-        plan.warnings.length
-          ? `Go-to-zero sent. ${plan.warnings.join(" ")}`
-          : "Go-to-zero jog sequence sent.",
-      );
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setErrorMessage(message);
-    }
-  };
-
   const handleSimPlay = () => {
     if (!job || job.path.length === 0 || streaming) return;
     const current = simRef.current;
@@ -2381,7 +2300,6 @@ export default function App() {
         "Mark material ready in Prepare first — stock, zeros, and Z probe.",
       );
       setTaskPhase("prepare");
-      setPrepareOpen(true);
       return;
     }
 
@@ -2745,7 +2663,6 @@ export default function App() {
   };
 
   const openStockPerimeterTest = () => {
-    setPrepareOpen(false);
     setCalOpen(false);
     setBedTravelOpen(false);
     setStockPerimeterOpen(true);
@@ -2954,7 +2871,8 @@ export default function App() {
     if (connected && calibrationCompleted) {
       setTaskPhase("prepare");
     }
-    setPrepareOpen(true);
+    setPrepareFocusStep(null);
+    setPrepareShowExternal(false);
   };
 
   const handleProbeConfigChange = (next: ProbeConfig) => {
@@ -2966,14 +2884,16 @@ export default function App() {
     if (connected && calibrationCompleted) {
       setTaskPhase("prepare");
     }
-    setMatToolHighlight(true);
+    setPrepareFocusStep("stock");
+    setPrepareShowExternal(false);
   };
 
   const openExternalJobs = () => {
     if (connected && calibrationCompleted) {
       setTaskPhase("prepare");
     }
-    setExtJobsHighlight(true);
+    setPrepareFocusStep("load");
+    setPrepareShowExternal(true);
   };
 
   const openActivityLog = () => {
@@ -2998,19 +2918,6 @@ export default function App() {
   const handleToolChange = (next: ToolConfig) => {
     setTool(next);
     saveTool(next);
-  };
-
-  const handleFeedsChange = (next: FeedsSpeedsSelection) => {
-    setFeeds(next);
-    saveFeedsSpeedsSelection(next);
-  };
-
-  const handleApplyFeedsToSvg = () => {
-    setFeedsApplyToken((n) => n + 1);
-    activityLog.append(
-      "event",
-      `Applied feeds to SVG: F${feeds.feedMmMin} S${feeds.spindleRpm} (${feeds.material}/${feeds.cutStyle})`,
-    );
   };
 
   const handleSpindleOn = async (rpm: number) => {
@@ -3426,192 +3333,215 @@ export default function App() {
 
               {taskPhase === "prepare" && (
                 <div
-                  className="workspace__panel workspace__panel--phase"
+                  className="workspace__panel workspace__panel--phase workspace__panel--prepare"
                   role="tabpanel"
                   id="phase-panel-prepare"
                   aria-labelledby="phase-tab-prepare"
                 >
-                  <p className="workspace__intro workspace__intro--compact">
-                    Set this blank, load a path, then{" "}
-                    <strong>Mark ready</strong> to unlock Verify.
-                  </p>
-                  <div className="phase-prepare__actions">
-                    <button
-                      type="button"
-                      className={`job__btn${prepareReady ? " is-ready" : ""}`}
-                      disabled={!connected || streaming}
-                      onClick={openPrepareRun}
-                    >
-                      {prepareReady ? "Prepared · review…" : "Prepare blank…"}
-                    </button>
-                    <button
-                      type="button"
-                      className="job__btn job__btn--ghost"
-                      disabled={!connected || streaming}
-                      onClick={openStockPerimeterTest}
-                    >
-                      Trace perimeter…
-                    </button>
-                  </div>
-                  <div
-                    className={`mattool-anchor${matToolHighlight ? " is-flash" : ""}`}
-                    id="material-tool-settings"
-                  >
-                    <MaterialToolPanel
+                  {!prepareReady ? (
+                    <p className="workspace__intro workspace__intro--compact">
+                      One screen per step — stock, material XY, Z, load, then{" "}
+                      <strong>Mark ready → Verify</strong>.
+                    </p>
+                  ) : (
+                    <p className="workspace__intro workspace__intro--compact">
+                      Prepared — continue to Verify, or revisit a step.
+                    </p>
+                  )}
+                  <div id="material-tool-settings">
+                    <PrepareRunPanel
+                      dense
+                      enabled={connected && !streaming && !prepareBusy}
+                      blockedReason={
+                        !connected
+                          ? "Connect first."
+                          : streaming
+                            ? "Stop the job before preparing."
+                            : prepareBusy
+                              ? "Probe / motion in progress…"
+                              : null
+                      }
+                      status={status}
                       stock={stock}
                       tool={tool}
+                      probe={probeConfig}
+                      softTravel={softTravel}
                       bedMm={bedMm}
-                      feeds={feeds}
-                      zeroEnabled={jogEnabled}
+                      jogEnabled={jogEnabled}
+                      probeEnabled={
+                        canProbe(status.state, connected, streaming, {
+                          probePinActive: !!status.pins?.probe,
+                        }).ok && !prepareBusy
+                      }
+                      probeBlockedReason={
+                        canProbe(status.state, connected, streaming, {
+                          probePinActive: !!status.pins?.probe,
+                        }).reason ?? null
+                      }
+                      busy={prepareBusy}
+                      message={prepareMessage}
+                      zProbed={prepareZProbed}
+                      xyZeroed={prepareXyZeroed}
+                      jobLoaded={!!job}
+                      prepareReady={prepareReady}
+                      jogMode={jogMode}
+                      stepMm={stepMm}
+                      feedMmMin={feedMmMin}
+                      softLimitHint={
+                        softLimitHint ??
+                        (!jogGate.ok && connected ? jogGate.reason : null)
+                      }
+                      gamepadStatus={gamepadStatus}
+                      focusStep={prepareFocusStep}
+                      onFocusStepConsumed={() => setPrepareFocusStep(null)}
                       onStockChange={handleStockChange}
                       onToolChange={handleToolChange}
                       onPlaceCorner={handlePlaceStockCorner}
                       onSetCornerFromToolhead={(corner) => {
                         void handleSetStockCornerFromToolhead(corner);
                       }}
+                      onProbeChange={handleProbeConfigChange}
+                      onJogModeChange={setJogMode}
+                      onStepChange={setStepMm}
+                      onFeedChange={setFeedMmMin}
+                      onJog={handleJog}
+                      onJogEnd={handleJogEnd}
+                      onZeroXy={() => {
+                        void handlePrepareZeroXy();
+                      }}
+                      onRunProbe={() => {
+                        void handleRunZProbe();
+                      }}
+                      onManualZZero={() => {
+                        void handlePrepareManualZZero();
+                      }}
+                      onRetract={() => {
+                        void handlePrepareRetract();
+                      }}
+                      onConfirmReady={() => {
+                        setPrepareReady(true);
+                        setPrepareMessage(
+                          "Ready — continue to Verify, then Start.",
+                        );
+                        activityLog.append(
+                          "event",
+                          "Prepare ready — Verify unlocked",
+                        );
+                        setTaskPhase("verify");
+                      }}
                       onOpenStockPerimeter={openStockPerimeterTest}
-                      onFeedsChange={handleFeedsChange}
-                      onApplyToSvg={handleApplyFeedsToSvg}
+                      xyProbe={{
+                        enabled:
+                          canProbe(status.state, connected, streaming, {
+                            probePinActive: !!status.pins?.probe,
+                          }).ok && !xyProbeBusy,
+                        blockedReason:
+                          canProbe(status.state, connected, streaming, {
+                            probePinActive: !!status.pins?.probe,
+                          }).reason ?? null,
+                        busy: xyProbeBusy,
+                        bitDiameterMm: tool.diameterMm,
+                        message: xyProbeMessage,
+                        onEdge: (axis, direction) => {
+                          void handleXyEdgeProbe(axis, direction);
+                        },
+                        onCorner: (mode) => {
+                          void handleXyCornerProbe(mode);
+                        },
+                        onToolLength: () => {
+                          void handleToolLengthProbe();
+                        },
+                      }}
+                      homing={{
+                        enabled:
+                          canHome(status.state, connected, streaming).ok &&
+                          !homeBusy,
+                        blockedReason:
+                          canHome(status.state, connected, streaming).reason ??
+                          null,
+                        busy: homeBusy,
+                        homed,
+                        onHome: () => {
+                          void handleHome();
+                        },
+                      }}
+                      loadSlot={
+                        <div className="prep__load">
+                          <JobLoad
+                            variant="prepare"
+                            job={job}
+                            progress={streamProgress}
+                            connected={connected}
+                            machineState={status.state}
+                            startBlockedReason={startBlockedReason}
+                            onLoadFile={handleLoadFile}
+                            onClear={handleClearJob}
+                            onStart={() => {
+                              void handleStartJob();
+                            }}
+                            onPause={() => {
+                              void handlePauseJob();
+                            }}
+                            onResume={() => {
+                              void handleResumeJob();
+                            }}
+                            onStop={() => {
+                              void handleStopJob();
+                            }}
+                            prepareReady={prepareReady}
+                            timeEstimate={jobTimeEstimate}
+                          />
+                          <RecentJobsPanel
+                            entries={recentJobs}
+                            busy={streaming || simulating}
+                            onOpen={handleOpenRecent}
+                            onRemove={(id) =>
+                              setRecentJobs(removeRecentJob(id))
+                            }
+                          />
+                          <SvgJobPanel
+                            draft={svgDraft}
+                            busy={streaming}
+                            toolDiameterMm={tool.diameterMm}
+                            feeds={feeds}
+                            feedsApplyToken={feedsApplyToken}
+                            onLoadSvg={handleLoadSvg}
+                            onLoadSvgText={(name, text) => {
+                              if (streaming) return;
+                              applySvgText(name, text);
+                            }}
+                            onClear={handleClearSvg}
+                            onGenerate={handleGenerateFromSvg}
+                          />
+                          <div className="prep__external">
+                            <button
+                              type="button"
+                              className={`cal__btn cal__btn--ghost${prepareShowExternal ? " is-active" : ""}`}
+                              disabled={streaming || simulating}
+                              onClick={() =>
+                                setPrepareShowExternal((v) => !v)
+                              }
+                            >
+                              {prepareShowExternal
+                                ? "Hide external folder / Drive"
+                                : "External folder / Drive…"}
+                            </button>
+                            {prepareShowExternal ? (
+                              <ExternalJobsPanel
+                                folder={jobsFolder}
+                                drive={driveConfig}
+                                busy={streaming || simulating}
+                                highlight
+                                onFolderChange={handleJobsFolderChange}
+                                onDriveChange={handleDriveConfigChange}
+                                onOpenExternal={handleOpenExternal}
+                              />
+                            ) : null}
+                          </div>
+                        </div>
+                      }
                     />
                   </div>
-                  <JogPanel
-                    enabled={jogEnabled}
-                    mode={jogMode}
-                    stepMm={stepMm}
-                    feedMmMin={feedMmMin}
-                    softLimitHint={
-                      softLimitHint ??
-                      (!jogGate.ok && connected ? jogGate.reason : null)
-                    }
-                    gamepadStatus={gamepadStatus}
-                    onModeChange={setJogMode}
-                    onStepChange={setStepMm}
-                    onFeedChange={setFeedMmMin}
-                    onJog={handleJog}
-                    onJogEnd={handleJogEnd}
-                  />
-                  <WorkZeroPanel
-                    enabled={jogEnabled}
-                    pendingGoTo={pendingGoTo}
-                    message={zeroMessage}
-                    onZero={(axes) => {
-                      void handleZero(axes);
-                    }}
-                    onRequestGoTo={setPendingGoTo}
-                    onConfirmGoTo={() => {
-                      void handleConfirmGoTo();
-                    }}
-                    onCancelGoTo={() => setPendingGoTo(null)}
-                  />
-                  <ProbeXyPanel
-                    enabled={
-                      canProbe(status.state, connected, streaming, {
-                        probePinActive: !!status.pins?.probe,
-                      }).ok && !xyProbeBusy
-                    }
-                    blockedReason={
-                      canProbe(status.state, connected, streaming, {
-                        probePinActive: !!status.pins?.probe,
-                      }).reason ?? null
-                    }
-                    busy={xyProbeBusy}
-                    bitDiameterMm={tool.diameterMm}
-                    seekMm={xySeekMm}
-                    feedMmMin={xyFeedMmMin}
-                    plateThicknessMm={probeConfig.plateThicknessMm}
-                    message={xyProbeMessage}
-                    onSeekChange={setXySeekMm}
-                    onFeedChange={setXyFeedMmMin}
-                    onEdge={(axis, direction) => {
-                      void handleXyEdgeProbe(axis, direction);
-                    }}
-                    onCorner={(mode) => {
-                      void handleXyCornerProbe(mode);
-                    }}
-                    onToolLength={() => {
-                      void handleToolLengthProbe();
-                    }}
-                  />
-                  <HomingPanel
-                    enabled={
-                      canHome(status.state, connected, streaming).ok && !homeBusy
-                    }
-                    blockedReason={
-                      canHome(status.state, connected, streaming).reason ?? null
-                    }
-                    homed={homed}
-                    busy={homeBusy}
-                    message={homeMessage}
-                    onHome={() => {
-                      void handleHome();
-                    }}
-                    onClearHome={handleClearHome}
-                  />
-                  <RecentJobsPanel
-                    entries={recentJobs}
-                    busy={streaming || simulating}
-                    onOpen={handleOpenRecent}
-                    onRemove={(id) => setRecentJobs(removeRecentJob(id))}
-                  />
-                  <div className={extJobsHighlight ? "is-flash" : undefined}>
-                    <ExternalJobsPanel
-                      folder={jobsFolder}
-                      drive={driveConfig}
-                      busy={streaming || simulating}
-                      highlight={extJobsHighlight}
-                      onFolderChange={handleJobsFolderChange}
-                      onDriveChange={handleDriveConfigChange}
-                      onOpenExternal={handleOpenExternal}
-                    />
-                  </div>
-                  <SvgJobPanel
-                    draft={svgDraft}
-                    busy={streaming}
-                    toolDiameterMm={tool.diameterMm}
-                    feeds={feeds}
-                    feedsApplyToken={feedsApplyToken}
-                    onLoadSvg={handleLoadSvg}
-                    onLoadSvgText={(name, text) => {
-                      if (streaming) return;
-                      applySvgText(name, text);
-                    }}
-                    onClear={handleClearSvg}
-                    onGenerate={handleGenerateFromSvg}
-                  />
-                  <JobLoad
-                    variant="prepare"
-                    job={job}
-                    progress={streamProgress}
-                    connected={connected}
-                    machineState={status.state}
-                    startBlockedReason={startBlockedReason}
-                    onLoadFile={handleLoadFile}
-                    onClear={handleClearJob}
-                    onStart={() => {
-                      void handleStartJob();
-                    }}
-                    onPause={() => {
-                      void handlePauseJob();
-                    }}
-                    onResume={() => {
-                      void handleResumeJob();
-                    }}
-                    onStop={() => {
-                      void handleStopJob();
-                    }}
-                    onPrepareRun={openPrepareRun}
-                    prepareReady={prepareReady}
-                    timeEstimate={jobTimeEstimate}
-                  />
-                  {prepareReady && job ? (
-                    <button
-                      type="button"
-                      className="job__btn"
-                      onClick={() => setTaskPhase("verify")}
-                    >
-                      Continue to Verify
-                    </button>
-                  ) : null}
                 </div>
               )}
 
@@ -4222,113 +4152,6 @@ export default function App() {
         </div>
       )}
 
-      {prepareOpen && (
-        <div
-          className="cal-modal"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Prepare to run"
-        >
-          <button
-            type="button"
-            className="cal-modal__backdrop"
-            aria-label="Close prepare wizard"
-            onClick={() => setPrepareOpen(false)}
-          />
-          <div className="cal-modal__sheet cal-modal__sheet--wide">
-            <header className="cal-modal__head">
-              <div>
-                <p className="cal-modal__eyebrow">Every job · after calibration</p>
-                <h2 className="cal-modal__title">Prepare to run</h2>
-              </div>
-              <button
-                type="button"
-                className="cal-modal__close"
-                onClick={() => setPrepareOpen(false)}
-              >
-                Close
-              </button>
-            </header>
-            <div className="cal-modal__body">
-              <PrepareRunPanel
-                enabled={connected && !streaming && !prepareBusy}
-                blockedReason={
-                  !connected
-                    ? "Connect first."
-                    : streaming
-                      ? "Stop the job before preparing."
-                      : prepareBusy
-                        ? "Probe / motion in progress…"
-                        : null
-                }
-                status={status}
-                stock={stock}
-                tool={tool}
-                probe={probeConfig}
-                softTravel={softTravel}
-                bedMm={bedMm}
-                jogEnabled={jogEnabled}
-                probeEnabled={
-                  canProbe(status.state, connected, streaming, {
-                    probePinActive: !!status.pins?.probe,
-                  }).ok && !prepareBusy
-                }
-                probeBlockedReason={
-                  canProbe(status.state, connected, streaming, {
-                    probePinActive: !!status.pins?.probe,
-                  }).reason ?? null
-                }
-                busy={prepareBusy}
-                message={prepareMessage}
-                zProbed={prepareZProbed}
-                xyZeroed={prepareXyZeroed}
-                jogMode={jogMode}
-                stepMm={stepMm}
-                feedMmMin={feedMmMin}
-                softLimitHint={softLimitHint}
-                onStockChange={handleStockChange}
-                onToolChange={handleToolChange}
-                onPlaceCorner={handlePlaceStockCorner}
-                onSetCornerFromToolhead={(corner) => {
-                  void handleSetStockCornerFromToolhead(corner);
-                }}
-                onProbeChange={handleProbeConfigChange}
-                onJogModeChange={setJogMode}
-                onStepChange={setStepMm}
-                onFeedChange={setFeedMmMin}
-                onJog={handleJog}
-                onJogEnd={handleJogEnd}
-                onZeroXy={() => {
-                  void handlePrepareZeroXy();
-                }}
-                onRunProbe={() => {
-                  void handleRunZProbe();
-                }}
-                onManualZZero={() => {
-                  void handlePrepareManualZZero();
-                }}
-                onRetract={() => {
-                  void handlePrepareRetract();
-                }}
-                onConfirmReady={() => {
-                  setPrepareReady(true);
-                  setPrepareMessage(
-                    "Ready — continue to Verify, then Start.",
-                  );
-                  activityLog.append(
-                    "event",
-                    "Prepare ready — Verify unlocked",
-                  );
-                  setPrepareOpen(false);
-                  setTaskPhase("verify");
-                }}
-                onOpenStockPerimeter={openStockPerimeterTest}
-                onClose={() => setPrepareOpen(false)}
-              />
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

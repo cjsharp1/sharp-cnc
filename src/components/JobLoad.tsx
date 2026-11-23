@@ -116,7 +116,8 @@ export function JobLoad({
   const [loadError, setLoadError] = useState<string | null>(null);
 
   const showLoad = variant === "full" || variant === "prepare";
-  const showPrepareBtn = variant === "full" || variant === "prepare";
+  /** Prepare-to-run lives in the Prepare phase wizard — only legacy full shows the button. */
+  const showPrepareBtn = variant === "full";
   const showSim =
     variant === "full" || variant === "verify";
   const showStart = variant === "full" || variant === "verify";

@@ -9,6 +9,7 @@ import {
   resetCalibrationState,
   saveCalibrationCompleted,
 } from "../src/grbl/calibrationConfig.ts";
+import { PREPARE_GUIDED_STEPS } from "../src/grbl/prepareConfig.ts";
 import {
   TASK_PHASES,
   canStartFromVerify,
@@ -121,6 +122,16 @@ assert(
   "calibrate = four guided steps (no raw $$)",
 );
 assert(CALIBRATION_GUIDED_STEPS.length === 4, "four calibrate steps");
+
+assert(
+  PREPARE_GUIDED_STEPS.join(",") === "stock,xy,probe,load,ready",
+  "prepare = five dense steps (stock+tool, XY, Z, load, ready)",
+);
+assert(PREPARE_GUIDED_STEPS.length === 5, "five prepare steps");
+assert(
+  !PREPARE_GUIDED_STEPS.includes("tool" as never),
+  "tool merged into stock step",
+);
 
 assert(
   loadCalibrationState().calibrationCompleted ===

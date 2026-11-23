@@ -4,19 +4,19 @@
 
 **Prefer pictures:** [Per-job prepare visual](../setup-visual/prepare.html).
 
-**Every-job order:** connect → home if needed → **[load G-code or SVG](08-jobs-and-svg.md)** → Prepare wizard (stock · XY · Z) → verify path on stock in the visualizer → optional perimeter / **Simulate** → **Start**. Pictures: [Per-job prepare visual · Load](../setup-visual/prepare.html#p1).
+**Every-job order:** connect → home if needed → **Prepare** phase (stock · material XY · Z · load) → **Mark ready → Verify** → optional perimeter / **Simulate** → **Start**. Pictures: [Per-job prepare visual · Load](../setup-visual/prepare.html#p1).
 
-Before **Start**, SharpCNC walks you through a stepped **Prepare to run** wizard (same modal style as Calibration). It confirms stock and tool, sets work XY, runs a Z probe (or manual Z zero), then unlocks Start for this session. Load the job file first — opening a new file clears Prepared.
+The **Prepare** phase is a stepped inline wizard (one screen per step — no tall scroll stack). It confirms stock and tool, sets material XY, runs a Z probe (or manual Z zero), loads the path, then **Mark ready** unlocks **Verify** (not Start). Opening a new file or disconnecting clears Prepared.
 
 ![Prepare wizard steps](assets/diagram-prepare-flow.svg)
 
 ## When to open it
 
-- **Job → Prepare…** (after a file is loaded)  
-- **Menu → Prepare to run…**  
-- Clicking **Start** while work zero is not confirmed opens the wizard  
+- Phase switcher → **Prepare** (after Calibrate is done)  
+- **Menu → Prepare phase…** / **Material & tool…** / **External jobs…**  
+- Clicking **Start** from Verify while material is not ready sends you back to Prepare  
 
-Prepare is **required before Start** until you finish **Mark ready** for the current session. Loading a new job or disconnecting clears that ready flag. **Simulate** still works without Prepare.
+Prepare is **required before Verify/Start** until you finish **Mark ready** for the current session. Loading a new job or disconnecting clears that ready flag. **Simulate** still works once a path is loaded even if not ready (preview only).
 
 > **Safety:** Preparing moves Z during probe. Clear clamps from the seek path. Keep E-Stop reachable. Remove the plate before cutting.
 
@@ -26,14 +26,13 @@ Prepare is **required before Start** until you finish **Mark ready** for the cur
 
 | Step | Goal |
 |------|------|
-| 1 · Stock | Confirm size / thickness / bed corner (same settings as Material & tool) |
-| 2 · Tool | Confirm bit type and diameter |
-| 3 · XY zero | Jog tip to a stock corner → **Set XY zero + stock … at tip** (`G10 L20` + stock origin). **Zero XY only** is available as a fallback. Optional: **Trace stock perimeter…** (safe-Z XY jog around the blank) |
-| 4 · Z probe | Touch plate on **stock top** (or **Manual Zero Z** paper-feel) |
-| 5 · Safe Z | Retract; **remove plate** before cut; confirm clear |
-| 6 · Ready | **Mark ready & close** → Start unlocks |
+| 1 · Stock + tool | Size / thickness / bed corner + bit type and diameter on one dense screen |
+| 2 · Material XY | Jog tip to a stock corner → **Set XY zero + stock … at tip** (`G10 L20` + stock origin). Compact jog + optional XY edge/corner probe. Optional: **Trace perimeter…** |
+| 3 · Z probe | Touch plate on **stock top** (or **Manual Zero Z**), retract, confirm plate removed / clamps clear |
+| 4 · Load | G-code file, recent, or SVG generate; external folder/Drive behind one button |
+| 5 · Ready | Short checklist → **Mark ready → Verify** |
 
-Footer **Next** stays disabled until that step’s confirmations are done (checkboxes, zeros, probe).
+Footer **Next** stays disabled until that step’s confirmations are done (checkboxes, zeros, probe, path loaded).
 
 ### Optional: Trace stock perimeter
 

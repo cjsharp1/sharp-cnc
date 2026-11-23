@@ -1,14 +1,20 @@
-import { useEffect, useMemo } from "react";
+import {
+  useEffect,
+  useMemo,
+  type ReactNode,
+} from "react";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
   JOG_FEED_OPTIONS_MM_MIN,
   JOG_STEP_OPTIONS_MM,
+  PREPARE_GUIDED_STEPS,
   TOOL_BIT_LABELS,
   applyStockSizeKeepingOrigin,
   stockOffsetForCorner,
   stockOffsetForWorkOriginCorner,
   type GrblStatus,
   type JogMode,
+  type PrepareGuidedStepId,
   type ProbeConfig,
   type SoftTravelLimits,
   type StockConfig,
@@ -19,26 +25,23 @@ import {
 import { JogPanel, type JogAxisMap } from "./JogPanel";
 import { useWizardStepGate, WizardStepConfirm } from "./wizardStepGate";
 
-export type PrepareStepId =
-  | "stock"
-  | "tool"
-  | "xy"
-  | "probe"
-  | "safez"
-  | "ready";
+export type PrepareStepId = PrepareGuidedStepId;
 
-const WIZARD_STEPS: {
-  id: PrepareStepId;
-  label: string;
-  short: string;
-}[] = [
-  { id: "stock", label: "Stock", short: "1 · Stock" },
-  { id: "tool", label: "Tool", short: "2 · Tool" },
-  { id: "xy", label: "XY zero", short: "3 · XY" },
-  { id: "probe", label: "Z probe", short: "4 · Probe" },
-  { id: "safez", label: "Safe Z", short: "5 · Safe Z" },
-  { id: "ready", label: "Ready", short: "6 · Ready" },
-];
+const STEP_CHROME: Record<
+  PrepareStepId,
+  { label: string; short: string }
+> = {
+  stock: { label: "Stock + tool", short: "1 · Stock" },
+  xy: { label: "Material XY", short: "2 · XY" },
+  probe: { label: "Z probe", short: "3 · Z" },
+  load: { label: "Load", short: "4 · Load" },
+  ready: { label: "Ready", short: "5 · Ready" },
+};
+
+const WIZARD_STEPS = PREPARE_GUIDED_STEPS.map((id) => ({
+  id,
+  ...STEP_CHROME[id],
+}));
 
 /** Map layout: north on top (NW/NE), south on bottom (SW/SE). */
 const CORNERS: { id: StockCorner; label: string; title: string }[] = [
@@ -65,10 +68,20 @@ interface PrepareRunPanelProps {
   /** True after a successful probe (or manual Z zero) this session. */
   zProbed: boolean;
   xyZeroed: boolean;
+  /** True when a job path is loaded (G-code / SVG generate). */
+  jobLoaded?: boolean;
+  /** Session already marked ready — Ready step shows Continue. */
+  prepareReady?: boolean;
   jogMode: JogMode;
   stepMm: number;
   feedMmMin: number;
   softLimitHint?: string | null;
+  gamepadStatus?: string | null;
+  /** Denser chrome for the phase rail (no tall stack). */
+  dense?: boolean;
+  /** Jump to a step when menu deep-links (stock / load). */
+  focusStep?: PrepareStepId | null;
+  onFocusStepConsumed?: () => void;
   onStockChange: (next: StockConfig) => void;
   onToolChange: (next: ToolConfig) => void;
   onPlaceCorner: (corner: StockCorner) => void;
@@ -87,6 +100,27 @@ interface PrepareRunPanelProps {
   onConfirmReady: () => void;
   /** Optional: open stock perimeter boundary check after XY/stock are set. */
   onOpenStockPerimeter?: () => void;
+  /** Compact XY edge/corner probe (optional). */
+  xyProbe?: {
+    enabled: boolean;
+    blockedReason?: string | null;
+    busy?: boolean;
+    bitDiameterMm: number;
+    message?: string | null;
+    onEdge: (axis: "X" | "Y", direction: "positive" | "negative") => void;
+    onCorner: (mode: "outside" | "inside") => void;
+    onToolLength?: () => void;
+  } | null;
+  /** Compact Home ($H) — recommended, not a hard gate. */
+  homing?: {
+    enabled: boolean;
+    blockedReason?: string | null;
+    busy?: boolean;
+    homed: boolean;
+    onHome: () => void;
+  } | null;
+  /** Load + place step body (file / recent / SVG / external). */
+  loadSlot?: ReactNode;
   onClose?: () => void;
 }
 
@@ -120,10 +154,16 @@ export function PrepareRunPanel({
   message,
   zProbed,
   xyZeroed,
+  jobLoaded = false,
+  prepareReady = false,
   jogMode,
   stepMm,
   feedMmMin,
   softLimitHint,
+  gamepadStatus = null,
+  dense = false,
+  focusStep = null,
+  onFocusStepConsumed,
   onStockChange,
   onToolChange,
   onPlaceCorner,
@@ -140,6 +180,9 @@ export function PrepareRunPanel({
   onRetract,
   onConfirmReady,
   onOpenStockPerimeter,
+  xyProbe = null,
+  homing = null,
+  loadSlot = null,
   onClose,
 }: PrepareRunPanelProps) {
   const {
@@ -156,24 +199,37 @@ export function PrepareRunPanel({
   } = useWizardStepGate(WIZARD_STEPS.length);
   const step = WIZARD_STEPS[stepIndex]!;
   const stockStep = WIZARD_STEPS.findIndex((s) => s.id === "stock");
-  const toolStep = WIZARD_STEPS.findIndex((s) => s.id === "tool");
   const xyStep = WIZARD_STEPS.findIndex((s) => s.id === "xy");
   const probeStep = WIZARD_STEPS.findIndex((s) => s.id === "probe");
-  const safeZStep = WIZARD_STEPS.findIndex((s) => s.id === "safez");
+  const loadStep = WIZARD_STEPS.findIndex((s) => s.id === "load");
+  const safeZStep = probeStep;
 
   const stockConfirmed = confirmed[stockStep] === true;
-  const toolConfirmed = confirmed[toolStep] === true;
   const safeZConfirmed = confirmed[safeZStep] === true;
 
   const canAct = enabled && !busy;
 
-  /** XY zero / Z probe are system-verifiable actions — auto-confirm those steps. */
+  useEffect(() => {
+    if (!focusStep) return;
+    const idx = WIZARD_STEPS.findIndex((s) => s.id === focusStep);
+    if (idx >= 0) goTo(idx);
+    onFocusStepConsumed?.();
+    // Only react to a new focus request from Menu deep-links.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional
+  }, [focusStep]);
+
+  /** XY zero / load are system-verifiable — auto-confirm those steps. */
   useEffect(() => {
     setStepConfirmed(xyZeroed, xyStep);
   }, [xyZeroed, xyStep, setStepConfirmed]);
 
   useEffect(() => {
-    setStepConfirmed(zProbed, probeStep);
+    setStepConfirmed(jobLoaded, loadStep);
+  }, [jobLoaded, loadStep, setStepConfirmed]);
+
+  /** Clearing Z also clears the plate-removed confirm on the probe step. */
+  useEffect(() => {
+    if (!zProbed) setStepConfirmed(false, probeStep);
   }, [zProbed, probeStep, setStepConfirmed]);
 
   const activeBedCorner = useMemo(() => {
@@ -224,12 +280,12 @@ export function PrepareRunPanel({
 
   const patchTool = (partial: Partial<ToolConfig>) => {
     onToolChange({ ...tool, ...partial });
-    setStepConfirmed(false, toolStep);
+    setStepConfirmed(false, stockStep);
   };
 
   const patchProbe = (partial: Partial<ProbeConfig>) => {
     onProbeChange({ ...probe, ...partial });
-    if (step.id === "safez") setStepConfirmed(false, safeZStep);
+    if (step.id === "probe") setStepConfirmed(false, probeStep);
   };
 
   const nextDisabled = !isConfirmed;
@@ -239,8 +295,19 @@ export function PrepareRunPanel({
       ? `Soft max Z ${softTravel.maxZ} mm`
       : "Soft max Z not set — probe seek carefully";
 
+  const markReadyDisabled =
+    !stockConfirmed ||
+    !xyZeroed ||
+    !zProbed ||
+    !safeZConfirmed ||
+    !jobLoaded ||
+    busy;
+
   return (
-    <section className="cal prep" aria-label="Prepare to run wizard">
+    <section
+      className={`cal prep${dense ? " cal--dense prep--dense" : ""}`}
+      aria-label="Prepare phase"
+    >
       <nav className="cal__steps prep__steps" aria-label="Prepare steps">
         {WIZARD_STEPS.map((s, i) => {
           const state =
@@ -300,16 +367,15 @@ export function PrepareRunPanel({
       {step.id === "stock" && (
         <div className="cal__body" role="group" aria-labelledby="prep-stock">
           <h3 id="prep-stock" className="cal__step-title">
-            Confirm stock on bed
+            Stock + tool
           </h3>
           <p className="cal__hint">
-            Clamp the blank. Enter width / length / thickness now (or after XY
-            zero). Placement is set on the next step by jogging the tip to a
-            corner — same fields as Material &amp; tool.
+            Enter blank size and bit. Bed corners place the stock rectangle on
+            the soft-travel frame (map: NW NE / SW SE).
           </p>
           <div className="cal__row">
             <label className="cal__field">
-              <span className="cal__field-label">Width X mm</span>
+              <span className="cal__field-label">W X mm</span>
               <input
                 className="cal__input"
                 type="number"
@@ -325,7 +391,7 @@ export function PrepareRunPanel({
               />
             </label>
             <label className="cal__field">
-              <span className="cal__field-label">Length Y mm</span>
+              <span className="cal__field-label">L Y mm</span>
               <input
                 className="cal__input"
                 type="number"
@@ -340,10 +406,8 @@ export function PrepareRunPanel({
                 }
               />
             </label>
-          </div>
-          <div className="cal__row">
             <label className="cal__field">
-              <span className="cal__field-label">Thickness mm</span>
+              <span className="cal__field-label">T mm</span>
               <input
                 className="cal__input"
                 type="number"
@@ -361,15 +425,17 @@ export function PrepareRunPanel({
                 }
               />
             </label>
+          </div>
+          <div className="cal__row">
             <div className="cal__field">
-              <span className="cal__field-label">Bed frame (optional)</span>
+              <span className="cal__field-label">Bed corner</span>
               <div className="prep__corners">
                 {CORNERS.map((c) => (
                   <button
                     key={c.id}
                     type="button"
                     className={`cal__btn cal__btn--ghost${activeBedCorner === c.id ? " is-active" : ""}`}
-                    title={`${c.title} — soft-travel bed only (does not set material zero)`}
+                    title={`${c.title} — soft-travel bed only`}
                     disabled={!canAct}
                     onClick={() => {
                       onPlaceCorner(c.id);
@@ -381,39 +447,8 @@ export function PrepareRunPanel({
                 ))}
               </div>
             </div>
-          </div>
-          {activeOriginCorner ? (
-            <p className="cal__meta prep__ok">
-              Material-origin anchor: {activeOriginCorner.toUpperCase()} — size
-              grows away from that corner.
-            </p>
-          ) : (
-            <p className="cal__meta">
-              Tip: on the XY step, set zero + stock corner from the toolhead.
-            </p>
-          )}
-          <WizardStepConfirm
-            id="prep-confirm-stock"
-            checked={stockConfirmed}
-            disabled={!canAct}
-            label="Stock is clamped and sizes look right"
-            onChange={(v) => setStepConfirmed(v, stockStep)}
-          />
-        </div>
-      )}
-
-      {step.id === "tool" && (
-        <div className="cal__body" role="group" aria-labelledby="prep-tool">
-          <h3 id="prep-tool" className="cal__step-title">
-            Confirm tool / bit
-          </h3>
-          <p className="cal__hint">
-            Install the bit you will cut with. Diameter drives the tool marker
-            and SVG defaults — it does not change G-code depths by itself.
-          </p>
-          <div className="cal__row">
             <label className="cal__field">
-              <span className="cal__field-label">Type</span>
+              <span className="cal__field-label">Bit</span>
               <select
                 className="cal__select"
                 value={tool.type}
@@ -430,7 +465,7 @@ export function PrepareRunPanel({
               </select>
             </label>
             <label className="cal__field">
-              <span className="cal__field-label">Diameter Ø mm</span>
+              <span className="cal__field-label">Ø mm</span>
               <input
                 className="cal__input"
                 type="number"
@@ -446,7 +481,7 @@ export function PrepareRunPanel({
               />
             </label>
           </div>
-          {tool.type === "vbit" && (
+          {tool.type === "vbit" ? (
             <label className="cal__field">
               <span className="cal__field-label">Tip angle °</span>
               <input
@@ -467,13 +502,36 @@ export function PrepareRunPanel({
                 }
               />
             </label>
+          ) : null}
+          {activeOriginCorner ? (
+            <p className="cal__meta prep__ok">
+              Material-origin anchor: {activeOriginCorner.toUpperCase()}
+            </p>
+          ) : (
+            <p className="cal__meta">
+              Tip: on Material XY, set zero + stock corner from the tip.
+            </p>
           )}
+          {homing ? (
+            <div className="cal__actions">
+              <button
+                type="button"
+                className="cal__btn cal__btn--ghost"
+                disabled={!homing.enabled || !!homing.busy}
+                title={homing.blockedReason ?? "Home ($H)"}
+                onClick={homing.onHome}
+              >
+                {homing.homed ? "Re-home ($H)" : "Home ($H)"}
+              </button>
+              <span className="cal__meta">Optional — when switches need it</span>
+            </div>
+          ) : null}
           <WizardStepConfirm
-            id="prep-confirm-tool"
-            checked={toolConfirmed}
+            id="prep-confirm-stock"
+            checked={stockConfirmed}
             disabled={!canAct}
-            label="Bit is tight and diameter matches"
-            onChange={(v) => setStepConfirmed(v, toolStep)}
+            label="Stock clamped · size and bit look right"
+            onChange={(v) => setStepConfirmed(v, stockStep)}
           />
         </div>
       )}
@@ -481,27 +539,18 @@ export function PrepareRunPanel({
       {step.id === "xy" && (
         <div className="cal__body" role="group" aria-labelledby="prep-xy">
           <h3 id="prep-xy" className="cal__step-title">
-            Set material XY zero + stock corner
+            Material XY + jog
           </h3>
-          <ul className="prep__callouts" aria-label="XY zero steps">
-            <li>
-              <span className="prep__callout-label">Primary</span>
-              Jog tip to a stock corner (usually SW) → pick that corner →{" "}
-              <strong>Set XY zero + stock</strong>. Material origin and stock
-              origin move together. Then enter W / L if you have not yet.
-            </li>
-            <li>
-              <span className="prep__callout-label">No plate</span>
-              Keep Z clear of clamps. Does not move the machine — only
-              redefines material XY.
-            </li>
-            <li>
-              <span className="prep__callout-label">Not homing</span>
-              Homing (<code>$H</code>) uses limit switches — the touch plate
-              is not for XY or home.
-            </li>
-          </ul>
-          <div className="prep__corners" role="group" aria-label="Stock corner at tip">
+          <p className="cal__hint">
+            Jog tip to a stock corner → pick that corner →{" "}
+            <strong>Set XY zero + stock</strong>. Optional edge/corner probe
+            helpers below.
+          </p>
+          <div
+            className="prep__corners"
+            role="group"
+            aria-label="Stock corner at tip"
+          >
             {CORNERS.map((c) => (
               <button
                 key={c.id}
@@ -540,13 +589,9 @@ export function PrepareRunPanel({
               Zero XY only
             </button>
             {xyZeroed ? (
-              <span className="cal__meta prep__ok">
-                XY zero set — Next unlocked
-              </span>
+              <span className="cal__meta prep__ok">XY set — Next unlocked</span>
             ) : (
-              <span className="cal__meta">
-                XY not set yet — Next stays locked
-              </span>
+              <span className="cal__meta">XY not set — Next locked</span>
             )}
           </div>
           {onOpenStockPerimeter ? (
@@ -558,11 +603,9 @@ export function PrepareRunPanel({
                 onClick={onOpenStockPerimeter}
                 title="Safe Z retract, then cancelable XY jogs around the stock blank"
               >
-                Trace stock perimeter…
+                Trace perimeter…
               </button>
-              <span className="cal__meta">
-                Optional — verify the blank bounds before Z probe
-              </span>
+              <span className="cal__meta">Optional check</span>
             </div>
           ) : null}
           <div className="prep__jog">
@@ -572,6 +615,7 @@ export function PrepareRunPanel({
               stepMm={stepMm}
               feedMmMin={feedMmMin}
               softLimitHint={softLimitHint}
+              gamepadStatus={gamepadStatus}
               onModeChange={onJogModeChange}
               onStepChange={onStepChange}
               onFeedChange={onFeedChange}
@@ -579,39 +623,97 @@ export function PrepareRunPanel({
               onJogEnd={onJogEnd}
             />
           </div>
+          {xyProbe ? (
+            <div className="prep__xyprobe" role="group" aria-label="XY probe">
+              <p className="cal__meta">
+                XY probe · Ø {xyProbe.bitDiameterMm.toFixed(2)} mm
+                {xyProbe.blockedReason
+                  ? ` — ${xyProbe.blockedReason}`
+                  : ""}
+              </p>
+              <div className="cal__actions prep__xyprobe-actions">
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!xyProbe.enabled || !!xyProbe.busy}
+                  onClick={() => xyProbe.onEdge("X", "negative")}
+                >
+                  −X
+                </button>
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!xyProbe.enabled || !!xyProbe.busy}
+                  onClick={() => xyProbe.onEdge("X", "positive")}
+                >
+                  +X
+                </button>
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!xyProbe.enabled || !!xyProbe.busy}
+                  onClick={() => xyProbe.onEdge("Y", "negative")}
+                >
+                  −Y
+                </button>
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!xyProbe.enabled || !!xyProbe.busy}
+                  onClick={() => xyProbe.onEdge("Y", "positive")}
+                >
+                  +Y
+                </button>
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!xyProbe.enabled || !!xyProbe.busy}
+                  onClick={() => xyProbe.onCorner("outside")}
+                >
+                  Corner out
+                </button>
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!xyProbe.enabled || !!xyProbe.busy}
+                  onClick={() => xyProbe.onCorner("inside")}
+                >
+                  Corner in
+                </button>
+                {xyProbe.onToolLength ? (
+                  <button
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!xyProbe.enabled || !!xyProbe.busy}
+                    onClick={xyProbe.onToolLength}
+                    title="Re-zero Z on the plate after a bit change"
+                  >
+                    Tool Z
+                  </button>
+                ) : null}
+              </div>
+              {xyProbe.message ? (
+                <p className="cal__meta" role="status">
+                  {xyProbe.message}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       )}
 
       {step.id === "probe" && (
         <div className="cal__body" role="group" aria-labelledby="prep-probe">
           <h3 id="prep-probe" className="cal__step-title">
-            Z probe (touch plate)
+            Z probe + clear plate
           </h3>
-          <ul className="prep__callouts" aria-label="Z probe steps">
-            <li>
-              <span className="prep__callout-label">Setup</span>
-              Clip on the bit · put the conductive plate on the{" "}
-              <strong>stock top</strong> under the tip — not the bare bed.
-            </li>
-            <li>
-              <span className="prep__callout-label">Thickness</span>
-              Enter plate thickness (~15–20&nbsp;mm for Chris’s plate). App
-              offsets so the stock face = material Z0.
-            </li>
-            <li>
-              <span className="prep__callout-label">Why stock</span>
-              Plate on the bed would zero the bed, not the stock top — wrong
-              for top-of-stock cuts.
-            </li>
-            <li>
-              <span className="prep__callout-label">Fallback</span>
-              <strong>Manual Zero Z</strong> = paper-feel at the tip if the
-              plate is unavailable.
-            </li>
-          </ul>
+          <p className="cal__hint">
+            Plate on <strong>stock top</strong> · enter thickness · probe (or
+            manual Zero Z) · retract · remove plate before Mark ready.
+          </p>
           <div className="cal__row">
             <label className="cal__field">
-              <span className="cal__field-label">Plate thickness mm</span>
+              <span className="cal__field-label">Plate mm</span>
               <input
                 className="cal__input"
                 type="number"
@@ -630,7 +732,7 @@ export function PrepareRunPanel({
               />
             </label>
             <label className="cal__field">
-              <span className="cal__field-label">Seek mm (down)</span>
+              <span className="cal__field-label">Seek mm</span>
               <input
                 className="cal__input"
                 type="number"
@@ -646,7 +748,7 @@ export function PrepareRunPanel({
               />
             </label>
             <label className="cal__field">
-              <span className="cal__field-label">Probe feed mm/min</span>
+              <span className="cal__field-label">Feed</span>
               <input
                 className="cal__input"
                 type="number"
@@ -661,12 +763,27 @@ export function PrepareRunPanel({
                 }
               />
             </label>
+            <label className="cal__field">
+              <span className="cal__field-label">Retract Z</span>
+              <input
+                className="cal__input"
+                type="number"
+                min={0}
+                step={0.5}
+                value={probe.retractWorkZMm}
+                disabled={!canAct}
+                onChange={(e) =>
+                  patchProbe({
+                    retractWorkZMm: parseNonNeg(
+                      e.target.value,
+                      probe.retractWorkZMm,
+                    ),
+                  })
+                }
+              />
+            </label>
           </div>
-          <p className="cal__hint">
-            Runs <code>G38.2</code> down · {softMaxHint}. Refuse probe in Alarm
-            / while busy. Probe pin already ON → clear contact first (Alarm 5).
-            E-Stop still works.
-          </p>
+          <p className="cal__meta">{softMaxHint}</p>
           {!probeEnabled && probeBlockedReason ? (
             <p className="cal__warn" role="status">
               {probeBlockedReason}
@@ -690,117 +807,83 @@ export function PrepareRunPanel({
             >
               Manual Zero Z
             </button>
-            {zProbed ? (
-              <span className="cal__meta prep__ok">
-                Z zero set — Next unlocked
-              </span>
-            ) : (
-              <span className="cal__meta">
-                Probe or manual Z zero required — Next stays locked
-              </span>
-            )}
-          </div>
-        </div>
-      )}
-
-      {step.id === "safez" && (
-        <div className="cal__body" role="group" aria-labelledby="prep-safez">
-          <h3 id="prep-safez" className="cal__step-title">
-            Safe Z / remove plate
-          </h3>
-          <ul className="prep__callouts" aria-label="Safe Z steps">
-            <li>
-              <span className="prep__callout-label">Remove plate</span>
-              Take the plate and clip off <strong>before cutting</strong> —
-              leaving them on the stock is unsafe.
-            </li>
-            <li>
-              <span className="prep__callout-label">Retract</span>
-              Optional jog to material Z {probe.retractWorkZMm} mm (above stock
-              top). Clear clamps from the path.
-            </li>
-          </ul>
-          <label className="cal__field">
-            <span className="cal__field-label">Retract material Z mm</span>
-            <input
-              className="cal__input"
-              type="number"
-              min={0}
-              step={0.5}
-              value={probe.retractWorkZMm}
-              disabled={!canAct}
-              onChange={(e) =>
-                patchProbe({
-                  retractWorkZMm: parseNonNeg(
-                    e.target.value,
-                    probe.retractWorkZMm,
-                  ),
-                })
-              }
-            />
-          </label>
-          <div className="cal__actions">
             <button
               type="button"
-              className="cal__btn"
+              className="cal__btn cal__btn--ghost"
               disabled={!jogEnabled || busy || !zProbed}
               onClick={onRetract}
             >
-              Retract to Z{probe.retractWorkZMm}
+              Retract Z{probe.retractWorkZMm}
             </button>
-            <span className="cal__meta">
-              Feed {DEFAULT_JOG_FEED_MM_MIN} mm/min · steps{" "}
-              {JOG_STEP_OPTIONS_MM.join("/")} · feeds{" "}
-              {JOG_FEED_OPTIONS_MM_MIN.slice(0, 3).join("/")}…
-            </span>
+            {zProbed ? (
+              <span className="cal__meta prep__ok">Z set</span>
+            ) : (
+              <span className="cal__meta">Probe or manual Z required</span>
+            )}
           </div>
+          <p className="cal__meta">
+            Feed {DEFAULT_JOG_FEED_MM_MIN} · steps {JOG_STEP_OPTIONS_MM.join("/")}{" "}
+            · feeds {JOG_FEED_OPTIONS_MM_MIN.slice(0, 3).join("/")}…
+          </p>
           <WizardStepConfirm
             id="prep-confirm-safez"
             checked={safeZConfirmed}
-            disabled={!canAct}
+            disabled={!canAct || !zProbed}
             label="Plate removed · clamps clear · Z looks safe"
-            onChange={(v) => setStepConfirmed(v, safeZStep)}
+            onChange={(v) => setStepConfirmed(v, probeStep)}
           />
+        </div>
+      )}
+
+      {step.id === "load" && (
+        <div className="cal__body" role="group" aria-labelledby="prep-load">
+          <h3 id="prep-load" className="cal__step-title">
+            Load + place
+          </h3>
+          <p className="cal__hint">
+            Load G-code or generate from SVG. Path placement shows on the
+            visualizer. External folder/Drive stays behind one button.
+          </p>
+          {loadSlot}
+          {jobLoaded ? (
+            <p className="cal__meta prep__ok">Path loaded — Next unlocked</p>
+          ) : (
+            <p className="cal__meta">Load a path to continue</p>
+          )}
         </div>
       )}
 
       {step.id === "ready" && (
         <div className="cal__body" role="group" aria-labelledby="prep-ready">
           <h3 id="prep-ready" className="cal__step-title">
-            Ready to Start
+            Ready for Verify
           </h3>
           <p className="cal__hint">
-            Confirming marks material zero as ready for this session so{" "}
-            <strong>Start</strong> unlocks. Simulate the path first if you have
-            not already. Stay at the machine while cutting.
+            Mark ready unlocks <strong>Verify</strong> (simulate + Start). Stay
+            at the machine when you cut.
           </p>
           <ul className="prep__checklist">
             <li className={stockConfirmed ? "is-ok" : ""}>
-              Stock confirmed
+              Stock + tool confirmed
             </li>
-            <li className={toolConfirmed ? "is-ok" : ""}>Tool confirmed</li>
-            <li className={xyZeroed ? "is-ok" : ""}>XY material zero</li>
+            <li className={xyZeroed ? "is-ok" : ""}>Material XY zero</li>
             <li className={zProbed ? "is-ok" : ""}>Z probed / zeroed</li>
-            <li className={safeZConfirmed ? "is-ok" : ""}>Safe Z / clear</li>
+            <li className={safeZConfirmed ? "is-ok" : ""}>
+              Plate removed / clear
+            </li>
+            <li className={jobLoaded ? "is-ok" : ""}>Path loaded</li>
           </ul>
           <div className="cal__actions">
             <button
               type="button"
               className="cal__btn"
-              disabled={
-                !stockConfirmed ||
-                !toolConfirmed ||
-                !xyZeroed ||
-                !zProbed ||
-                !safeZConfirmed ||
-                busy
-              }
+              disabled={markReadyDisabled}
               onClick={() => {
                 onConfirmReady();
                 onClose?.();
               }}
             >
-              Mark ready &amp; close
+              {prepareReady ? "Continue to Verify" : "Mark ready → Verify"}
             </button>
           </div>
         </div>
@@ -827,11 +910,14 @@ export function PrepareRunPanel({
         {isLast ? (
           <button
             type="button"
-            className="cal__btn cal__btn--ghost"
-            onClick={onClose}
-            disabled={!onClose}
+            className="cal__btn"
+            disabled={markReadyDisabled}
+            onClick={() => {
+              onConfirmReady();
+              onClose?.();
+            }}
           >
-            Close
+            {prepareReady ? "Continue to Verify" : "Mark ready → Verify"}
           </button>
         ) : (
           <button
@@ -847,13 +933,11 @@ export function PrepareRunPanel({
           >
             {step.id === "stock"
               ? "Stock looks good — Next"
-              : step.id === "tool"
-                ? "Tool looks good — Next"
-                : step.id === "xy"
-                  ? "XY set — Next"
-                  : step.id === "probe"
-                    ? "Z set — Next"
-                    : "Safe — Next"}
+              : step.id === "xy"
+                ? "XY set — Next"
+                : step.id === "probe"
+                  ? "Z clear — Next"
+                  : "Loaded — Next"}
           </button>
         )}
       </footer>
