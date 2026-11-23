@@ -498,6 +498,23 @@ export {
   saveFirstRunCompleted,
 } from "./firstRunConfig";
 
+export type { CalibrationState } from "./calibrationConfig";
+export {
+  DEFAULT_CALIBRATION,
+  loadCalibrationState,
+  resetCalibrationState,
+  saveCalibrationCompleted,
+} from "./calibrationConfig";
+
+export type { PhaseGate, TaskPhaseContext, TaskPhaseId } from "./taskPhase";
+export {
+  TASK_PHASES,
+  canStartFromVerify,
+  gateForPhase,
+  phaseAfterConnect,
+  phaseAfterStreamEnds,
+} from "./taskPhase";
+
 export type { UiTheme } from "./themeConfig";
 export {
   DEFAULT_UI_THEME,

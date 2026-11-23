@@ -65,6 +65,8 @@ interface CalibrationPanelProps {
   onApplySoftTravel: (limits: SoftTravelLimits, enableSoft: boolean) => void;
   onZero: (axes: ZeroAxisSelection) => void;
   onClose?: () => void;
+  /** Soft travel confirmed — persist calibrated and advance (phase shell). */
+  onComplete?: () => void;
   /** Open the post-calibration full bed travel test (clear entry). */
   onOpenBedTravelTest?: () => void;
 }
@@ -106,6 +108,7 @@ export function CalibrationPanel({
   onApplySoftTravel,
   onZero,
   onClose,
+  onComplete,
   onOpenBedTravelTest,
 }: CalibrationPanelProps) {
   const {
@@ -744,7 +747,10 @@ export function CalibrationPanel({
                 type="button"
                 className="cal__btn cal__btn--ghost"
                 disabled={!isConfirmed}
-                onClick={onOpenBedTravelTest}
+                onClick={() => {
+                  onComplete?.();
+                  onOpenBedTravelTest();
+                }}
                 title={
                   isConfirmed
                     ? "Finish calibration and open the bed travel test"
@@ -757,8 +763,11 @@ export function CalibrationPanel({
             <button
               type="button"
               className="cal__btn"
-              onClick={onClose}
-              disabled={!onClose || !isConfirmed}
+              onClick={() => {
+                onComplete?.();
+                onClose?.();
+              }}
+              disabled={(!onClose && !onComplete) || !isConfirmed}
               title={
                 isConfirmed ? undefined : "Confirm this step before finishing"
               }

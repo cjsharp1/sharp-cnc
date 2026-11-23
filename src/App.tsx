@@ -36,10 +36,7 @@ import { SafetyControls } from "./components/SafetyControls";
 import { SimControls } from "./components/SimControls";
 import { SpindleFeedPanel } from "./components/SpindleFeedPanel";
 import { SvgJobPanel } from "./components/SvgJobPanel";
-import {
-  WorkspaceTabs,
-  type WorkspaceTabId,
-} from "./components/WorkspaceTabs";
+import { PhaseSwitcher } from "./components/PhaseSwitcher";
 import { WorkZeroPanel } from "./components/WorkZeroPanel";
 import {
   DEFAULT_JOG_FEED_MM_MIN,
@@ -90,6 +87,7 @@ import {
   fetchGrblSettings,
   firstConnectedGamepad,
   formatVersionLabel,
+  gateForPhase,
   guideForAlarm,
   importSvg,
   isDesktopShell,
@@ -100,6 +98,7 @@ import {
   listAvailablePorts,
   mapGamepadToJog,
   pressedButtonSet,
+  loadCalibrationState,
   loadDebugMode,
   loadDriveConfig,
   loadFeedsSpeedsSelection,
@@ -117,7 +116,10 @@ import {
   loadUiTheme,
   loadWorkOffsets,
   packagedAppVersion,
+  phaseAfterConnect,
+  phaseAfterStreamEnds,
   resolveAppVersion,
+  saveCalibrationCompleted,
   saveFirstRunCompleted,
   OFFLINE_STATUS,
   parseAlarmLine,
@@ -192,6 +194,7 @@ import {
   type StreamProgress,
   type SvgImportResult,
   type SvgToolpathParams,
+  type TaskPhaseId,
   type ToolConfig,
   type UiTheme,
   type WcsId,
@@ -317,8 +320,12 @@ export default function App() {
   > | null>(null);
   const [calMessage, setCalMessage] = useState<string | null>(null);
   const [calBusy, setCalBusy] = useState(false);
-  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTabId>("move");
+  const [taskPhase, setTaskPhase] = useState<TaskPhaseId>("connect");
+  const [calibrationCompleted, setCalibrationCompleted] = useState(
+    () => loadCalibrationState().calibrationCompleted,
+  );
   const [calOpen, setCalOpen] = useState(false);
+  const [logOpen, setLogOpen] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [bedTravelOpen, setBedTravelOpen] = useState(false);
   const [bedTravelPhase, setBedTravelPhase] =
@@ -405,6 +412,28 @@ export default function App() {
     streamProgress?.phase === "tool-change" ||
     streamProgress?.phase === "stopping";
 
+  const phaseCtx = useMemo(
+    () => ({
+      connected,
+      calibrationCompleted,
+      prepareReady,
+      jobLoaded: !!job,
+      streaming,
+    }),
+    [connected, calibrationCompleted, prepareReady, job, streaming],
+  );
+
+  const phaseGates = useMemo(
+    () => ({
+      connect: gateForPhase("connect", phaseCtx),
+      calibrate: gateForPhase("calibrate", phaseCtx),
+      prepare: gateForPhase("prepare", phaseCtx),
+      verify: gateForPhase("verify", phaseCtx),
+      run: gateForPhase("run", phaseCtx),
+    }),
+    [phaseCtx],
+  );
+
   const currentWco = currentWcoFromStatus(
     status.machine,
     status.work,
@@ -452,8 +481,10 @@ export default function App() {
         : jobSoftCheck && !jobSoftCheck.ok
           ? (jobSoftCheck.reason ?? "Job outside soft limits")
           : !prepareReady
-            ? "Prepare to run (Menu or Prepare…) — confirm material zero first"
-            : null;
+            ? "Mark material ready in Prepare before Start"
+            : taskPhase !== "verify" && taskPhase !== "run"
+              ? "Start only from Verify"
+              : null;
 
   const simulating =
     sim.phase === "playing" || sim.phase === "paused" || sim.phase === "done";
@@ -977,6 +1008,41 @@ export default function App() {
     void refreshPorts();
   }, []);
 
+  /** Enter Run while streaming; leave Run when the stream ends. */
+  useEffect(() => {
+    if (streaming) {
+      setTaskPhase("run");
+      return;
+    }
+    setTaskPhase((prev) =>
+      prev === "run" ? phaseAfterStreamEnds(!!jobRef.current) : prev,
+    );
+  }, [streaming]);
+
+  /** If Verify/Run gates break (clear ready / job), fall back to a valid phase. */
+  useEffect(() => {
+    if (streaming) return;
+    setTaskPhase((prev) => {
+      const gate = gateForPhase(prev, {
+        connected,
+        calibrationCompleted,
+        prepareReady,
+        jobLoaded: !!job,
+        streaming: false,
+      });
+      if (gate.enabled) return prev;
+      if (!connected) return "connect";
+      if (!calibrationCompleted) return "calibrate";
+      return "prepare";
+    });
+  }, [
+    connected,
+    calibrationCompleted,
+    prepareReady,
+    job,
+    streaming,
+  ]);
+
   const handleConnect = async () => {
     const client = clientRef.current;
     if (!client || !selectedPath) return;
@@ -990,12 +1056,18 @@ export default function App() {
     try {
       await client.connect({ path: selectedPath });
       setPhase("connected");
-      activityLog.append("event", `Connected ${selectedPath}`);
+      const land = phaseAfterConnect(calibrationCompleted);
+      setTaskPhase(land);
+      activityLog.append(
+        "event",
+        `Connected ${selectedPath} → ${land}`,
+      );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setPhase("error");
       setErrorMessage(message);
       setStatus(OFFLINE_STATUS);
+      setTaskPhase("connect");
       activityLog.append("event", `Connect failed: ${message}`);
     }
   };
@@ -1040,6 +1112,7 @@ export default function App() {
       setHomed(false);
       setHomeMessage(null);
       resetPrepareSession();
+      setTaskPhase("connect");
     }
   };
 
@@ -2305,9 +2378,18 @@ export default function App() {
 
     if (!prepareReady) {
       setErrorMessage(
-        "Prepare to run first — confirm stock, zeros, and Z probe.",
+        "Mark material ready in Prepare first — stock, zeros, and Z probe.",
       );
+      setTaskPhase("prepare");
       setPrepareOpen(true);
+      return;
+    }
+
+    if (taskPhase !== "verify" && taskPhase !== "run") {
+      setErrorMessage("Start only from Verify.");
+      setTaskPhase(
+        prepareReady && job ? "verify" : "prepare",
+      );
       return;
     }
 
@@ -2414,14 +2496,15 @@ export default function App() {
     );
     setScrubIndex(line);
     setDryRun(recovery.dryRun);
-    setWorkspaceTab("job");
+    if (prepareReady) setTaskPhase("verify");
+    else setTaskPhase("prepare");
     setRecoveryVisible(true);
     activityLog.append(
       "event",
       `Recovery: scrub set to line ${line + 1} of ${job.lines.length}`,
     );
     setErrorMessage(
-      `Checkpoint ready at line ${line + 1}. Confirm clear path, then Start.`,
+      `Checkpoint ready at line ${line + 1}. Confirm clear path, then Start from Verify.`,
     );
   };
 
@@ -2472,11 +2555,34 @@ export default function App() {
         ? "SVG"
         : null;
 
+  const markCalibrationCompleted = (source: string) => {
+    const next = saveCalibrationCompleted(true);
+    setCalibrationCompleted(next.calibrationCompleted);
+    activityLog.append("event", `Calibration completed (${source})`);
+  };
+
   const openCalibration = () => {
-    setCalOpen(true);
+    if (connected) {
+      setTaskPhase("calibrate");
+      setCalOpen(false);
+    } else {
+      setCalOpen(true);
+    }
     if (connected && settingsGate.ok && !grblSettings) {
       void handleRefreshSettings();
     }
+  };
+
+  const handleCalibrationComplete = () => {
+    markCalibrationCompleted("wizard");
+    setCalOpen(false);
+    setTaskPhase("prepare");
+  };
+
+  const handleAlreadyCalibrated = () => {
+    markCalibrationCompleted("already calibrated");
+    setCalOpen(false);
+    setTaskPhase("prepare");
   };
 
   const openAdvanced = () => {
@@ -2821,6 +2927,10 @@ export default function App() {
     saveFirstRunCompleted(true);
     setFirstRunOpen(false);
     setFirstRunMessage(null);
+    if (!skipped) {
+      markCalibrationCompleted("first-run");
+      if (connected) setTaskPhase("prepare");
+    }
     activityLog.append(
       "event",
       skipped ? "First-run setup skipped" : "First-run setup finished",
@@ -2841,8 +2951,10 @@ export default function App() {
   };
 
   const openPrepareRun = () => {
+    if (connected && calibrationCompleted) {
+      setTaskPhase("prepare");
+    }
     setPrepareOpen(true);
-    setWorkspaceTab("job");
   };
 
   const handleProbeConfigChange = (next: ProbeConfig) => {
@@ -2851,13 +2963,21 @@ export default function App() {
   };
 
   const openMaterialTool = () => {
-    setWorkspaceTab("job");
+    if (connected && calibrationCompleted) {
+      setTaskPhase("prepare");
+    }
     setMatToolHighlight(true);
   };
 
   const openExternalJobs = () => {
-    setWorkspaceTab("job");
+    if (connected && calibrationCompleted) {
+      setTaskPhase("prepare");
+    }
     setExtJobsHighlight(true);
+  };
+
+  const openActivityLog = () => {
+    setLogOpen(true);
   };
 
   const handleJobsFolderChange = (next: JobsFolderConfig) => {
@@ -3033,6 +3153,7 @@ export default function App() {
             onOpenExternalJobs={openExternalJobs}
             onOpenFirstRun={openFirstRun}
             onOpenAdvanced={openAdvanced}
+            onOpenActivityLog={openActivityLog}
             onOpenAbout={() => setAboutOpen(true)}
             debugMode={debugMode}
             onDebugModeChange={handleDebugModeChange}
@@ -3104,15 +3225,20 @@ export default function App() {
             {recoveryVisible && recovery ? (
               <div className="recovery-banner" role="status">
                 <span>
-                  Interrupted job <strong>{recovery.jobName}</strong> — open Job
-                  for recovery (where am I / unlock / resume / abort).
+                  Interrupted job <strong>{recovery.jobName}</strong> — open
+                  Verify for recovery (where am I / unlock / resume / abort).
                 </span>
                 <button
                   type="button"
                   className="recovery-banner__btn"
-                  onClick={() => setWorkspaceTab("job")}
+                  onClick={() => {
+                    if (prepareReady && job) setTaskPhase("verify");
+                    else if (connected && calibrationCompleted) {
+                      setTaskPhase("prepare");
+                    }
+                  }}
                 >
-                  Open Job
+                  Open Verify
                 </button>
               </div>
             ) : null}
@@ -3168,21 +3294,184 @@ export default function App() {
         </div>
 
         <aside className="shell__rail">
-          <section className="workspace" aria-label="Secondary controls">
-            <WorkspaceTabs
-              active={workspaceTab}
-              onChange={setWorkspaceTab}
-              jobBadge={jobBadge}
+          <section className="workspace" aria-label="Task phase">
+            <PhaseSwitcher
+              active={taskPhase}
+              gates={phaseGates}
+              onChange={setTaskPhase}
+              verifyBadge={jobBadge}
             />
 
-            <div className="workspace__body">
-              {workspaceTab === "move" && (
+            <div className="workspace__body workspace__body--phase">
+              {taskPhase === "connect" && (
                 <div
-                  className="workspace__panel workspace__panel--move"
+                  className="workspace__panel workspace__panel--phase"
                   role="tabpanel"
-                  id="workspace-panel-move"
-                  aria-labelledby="workspace-tab-move"
+                  id="phase-panel-connect"
+                  aria-labelledby="phase-tab-connect"
                 >
+                  <p className="workspace__intro">
+                    Connect in the header — USB Demon Shield or{" "}
+                    <strong>Virtual CNC</strong> to practice first.
+                  </p>
+                  {!connected ? (
+                    <div className="phase-connect">
+                      <p className="phase-connect__hint">
+                        Practice here before the real machine. Soft limits and
+                        alarms work on Virtual CNC.
+                      </p>
+                      <button
+                        type="button"
+                        className="job__btn"
+                        disabled={!selectedPath || phase === "connecting"}
+                        onClick={() => {
+                          void handleConnect();
+                        }}
+                      >
+                        {phase === "connecting" ? "Connecting…" : "Connect"}
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="workspace__intro workspace__intro--compact">
+                      Linked
+                      {usingVirtualCnc ? " · Virtual CNC" : ""}. Use the phase
+                      switcher to continue.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {taskPhase === "calibrate" && (
+                <div
+                  className="workspace__panel workspace__panel--phase"
+                  role="tabpanel"
+                  id="phase-panel-calibrate"
+                  aria-labelledby="phase-tab-calibrate"
+                >
+                  {!calibrationCompleted ? (
+                    <div className="phase-cal__skip">
+                      <button
+                        type="button"
+                        className="job__btn job__btn--ghost"
+                        onClick={handleAlreadyCalibrated}
+                      >
+                        Machine already calibrated
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="workspace__intro workspace__intro--compact">
+                      Calibrated — re-run anytime. Continue to Prepare when
+                      ready.
+                    </p>
+                  )}
+                  <HomingPanel
+                    enabled={
+                      canHome(status.state, connected, streaming).ok && !homeBusy
+                    }
+                    blockedReason={
+                      canHome(status.state, connected, streaming).reason ?? null
+                    }
+                    homed={homed}
+                    busy={homeBusy}
+                    message={homeMessage}
+                    onHome={() => {
+                      void handleHome();
+                    }}
+                    onClearHome={handleClearHome}
+                  />
+                  <CalibrationPanel
+                    enabled={settingsGate.ok && !calBusy}
+                    blockedReason={
+                      !connected
+                        ? "Connect first."
+                        : !settingsGate.ok
+                          ? (settingsGate.reason ?? "Settings locked")
+                          : calBusy
+                            ? "Settings operation in progress…"
+                            : null
+                    }
+                    settings={grblSettings}
+                    softTravel={softTravel}
+                    status={status}
+                    machinePos={status.machine}
+                    busy={calBusy}
+                    message={calMessage}
+                    zeroEnabled={jogEnabled}
+                    zeroMessage={zeroMessage}
+                    onRefreshSettings={() => {
+                      void handleRefreshSettings();
+                    }}
+                    onCalibrateMove={(axis, distanceMm) => {
+                      void handleCalibrateMove(axis, distanceMm);
+                    }}
+                    onWriteSteps={(axis, before, after) => {
+                      void handleWriteSteps(axis, before, after);
+                    }}
+                    onWriteDirInvert={(mask) => {
+                      void handleWriteDirInvert(mask);
+                    }}
+                    onApplySoftTravel={(limits, enableSoft) => {
+                      void handleApplySoftTravel(limits, enableSoft);
+                    }}
+                    onZero={(axes) => {
+                      void handleZero(axes);
+                    }}
+                    onComplete={handleCalibrationComplete}
+                    onOpenBedTravelTest={openBedTravelTest}
+                  />
+                </div>
+              )}
+
+              {taskPhase === "prepare" && (
+                <div
+                  className="workspace__panel workspace__panel--phase"
+                  role="tabpanel"
+                  id="phase-panel-prepare"
+                  aria-labelledby="phase-tab-prepare"
+                >
+                  <p className="workspace__intro workspace__intro--compact">
+                    Set this blank, load a path, then{" "}
+                    <strong>Mark ready</strong> to unlock Verify.
+                  </p>
+                  <div className="phase-prepare__actions">
+                    <button
+                      type="button"
+                      className={`job__btn${prepareReady ? " is-ready" : ""}`}
+                      disabled={!connected || streaming}
+                      onClick={openPrepareRun}
+                    >
+                      {prepareReady ? "Prepared · review…" : "Prepare blank…"}
+                    </button>
+                    <button
+                      type="button"
+                      className="job__btn job__btn--ghost"
+                      disabled={!connected || streaming}
+                      onClick={openStockPerimeterTest}
+                    >
+                      Trace perimeter…
+                    </button>
+                  </div>
+                  <div
+                    className={`mattool-anchor${matToolHighlight ? " is-flash" : ""}`}
+                    id="material-tool-settings"
+                  >
+                    <MaterialToolPanel
+                      stock={stock}
+                      tool={tool}
+                      bedMm={bedMm}
+                      feeds={feeds}
+                      zeroEnabled={jogEnabled}
+                      onStockChange={handleStockChange}
+                      onToolChange={handleToolChange}
+                      onPlaceCorner={handlePlaceStockCorner}
+                      onSetCornerFromToolhead={(corner) => {
+                        void handleSetStockCornerFromToolhead(corner);
+                      }}
+                      onOpenStockPerimeter={openStockPerimeterTest}
+                      onFeedsChange={handleFeedsChange}
+                      onApplyToSvg={handleApplyFeedsToSvg}
+                    />
+                  </div>
                   <JogPanel
                     enabled={jogEnabled}
                     mode={jogMode}
@@ -3212,56 +3501,6 @@ export default function App() {
                     }}
                     onCancelGoTo={() => setPendingGoTo(null)}
                   />
-                  <HomingPanel
-                    enabled={
-                      canHome(status.state, connected, streaming).ok && !homeBusy
-                    }
-                    blockedReason={
-                      canHome(status.state, connected, streaming).reason ?? null
-                    }
-                    homed={homed}
-                    busy={homeBusy}
-                    message={homeMessage}
-                    onHome={() => {
-                      void handleHome();
-                    }}
-                    onClearHome={handleClearHome}
-                  />
-                  <SpindleFeedPanel
-                    connected={connected}
-                    feedRate={status.feedRate}
-                    spindleSpeed={status.spindleSpeed}
-                    feedOverridePercent={feedOverridePercent}
-                    spindleOverridePercent={spindleOverridePercent}
-                    busyAlarm={status.state === "Alarm"}
-                    onSpindleOn={(rpm) => {
-                      void handleSpindleOn(rpm);
-                    }}
-                    onSpindleOff={() => {
-                      void handleSpindleOff();
-                    }}
-                    onFeedOverride={(step) => {
-                      void handleFeedOverride(step);
-                    }}
-                    onSpindleOverride={(step) => {
-                      void handleSpindleOverride(step);
-                    }}
-                  />
-                </div>
-              )}
-
-              {workspaceTab === "probe" && (
-                <div
-                  className="workspace__panel"
-                  role="tabpanel"
-                  id="workspace-panel-probe"
-                  aria-labelledby="workspace-tab-probe"
-                >
-                  <p className="workspace__intro">
-                    Probe only: XY edges / corners and tool-length Z. Keep the
-                    plate path clear. Full prepare / Z0 for a job still uses{" "}
-                    <strong>Prepare to run…</strong> on the Job tab.
-                  </p>
                   <ProbeXyPanel
                     enabled={
                       canProbe(status.state, connected, streaming, {
@@ -3291,20 +3530,114 @@ export default function App() {
                       void handleToolLengthProbe();
                     }}
                   />
+                  <HomingPanel
+                    enabled={
+                      canHome(status.state, connected, streaming).ok && !homeBusy
+                    }
+                    blockedReason={
+                      canHome(status.state, connected, streaming).reason ?? null
+                    }
+                    homed={homed}
+                    busy={homeBusy}
+                    message={homeMessage}
+                    onHome={() => {
+                      void handleHome();
+                    }}
+                    onClearHome={handleClearHome}
+                  />
+                  <RecentJobsPanel
+                    entries={recentJobs}
+                    busy={streaming || simulating}
+                    onOpen={handleOpenRecent}
+                    onRemove={(id) => setRecentJobs(removeRecentJob(id))}
+                  />
+                  <div className={extJobsHighlight ? "is-flash" : undefined}>
+                    <ExternalJobsPanel
+                      folder={jobsFolder}
+                      drive={driveConfig}
+                      busy={streaming || simulating}
+                      highlight={extJobsHighlight}
+                      onFolderChange={handleJobsFolderChange}
+                      onDriveChange={handleDriveConfigChange}
+                      onOpenExternal={handleOpenExternal}
+                    />
+                  </div>
+                  <SvgJobPanel
+                    draft={svgDraft}
+                    busy={streaming}
+                    toolDiameterMm={tool.diameterMm}
+                    feeds={feeds}
+                    feedsApplyToken={feedsApplyToken}
+                    onLoadSvg={handleLoadSvg}
+                    onLoadSvgText={(name, text) => {
+                      if (streaming) return;
+                      applySvgText(name, text);
+                    }}
+                    onClear={handleClearSvg}
+                    onGenerate={handleGenerateFromSvg}
+                  />
+                  <JobLoad
+                    variant="prepare"
+                    job={job}
+                    progress={streamProgress}
+                    connected={connected}
+                    machineState={status.state}
+                    startBlockedReason={startBlockedReason}
+                    onLoadFile={handleLoadFile}
+                    onClear={handleClearJob}
+                    onStart={() => {
+                      void handleStartJob();
+                    }}
+                    onPause={() => {
+                      void handlePauseJob();
+                    }}
+                    onResume={() => {
+                      void handleResumeJob();
+                    }}
+                    onStop={() => {
+                      void handleStopJob();
+                    }}
+                    onPrepareRun={openPrepareRun}
+                    prepareReady={prepareReady}
+                    timeEstimate={jobTimeEstimate}
+                  />
+                  {prepareReady && job ? (
+                    <button
+                      type="button"
+                      className="job__btn"
+                      onClick={() => setTaskPhase("verify")}
+                    >
+                      Continue to Verify
+                    </button>
+                  ) : null}
                 </div>
               )}
 
-              {workspaceTab === "job" && (
+              {taskPhase === "verify" && (
                 <div
-                  className="workspace__panel"
+                  className="workspace__panel workspace__panel--phase"
                   role="tabpanel"
-                  id="workspace-panel-job"
-                  aria-labelledby="workspace-tab-job"
+                  id="phase-panel-verify"
+                  aria-labelledby="phase-tab-verify"
                 >
-                  <p className="workspace__intro">
-                    Material, files, prepare, simulate, and Start. Jog on{" "}
-                    <strong>Move</strong>; touch-offs on <strong>Probe</strong>.
+                  <p className="workspace__intro workspace__intro--compact">
+                    Soft-limit check, simulate, then Start. Start moves you to
+                    Run.
                   </p>
+                  {jobSoftCheck ? (
+                    <p
+                      className={
+                        jobSoftCheck.ok
+                          ? "workspace__intro workspace__intro--compact"
+                          : "job__warn-text"
+                      }
+                      role="status"
+                    >
+                      {jobSoftCheck.ok
+                        ? "Path fits soft travel."
+                        : (jobSoftCheck.reason ?? "Path outside soft limits")}
+                    </p>
+                  ) : null}
                   {recoveryVisible && recovery ? (
                     <CrashRecoveryPanel
                       checkpoint={recovery}
@@ -3325,57 +3658,8 @@ export default function App() {
                       onDismiss={() => dismissRecovery(true)}
                     />
                   ) : null}
-                  <div
-                    className={`mattool-anchor${matToolHighlight ? " is-flash" : ""}`}
-                    id="material-tool-settings"
-                  >
-                    <MaterialToolPanel
-                      stock={stock}
-                      tool={tool}
-                      bedMm={bedMm}
-                      feeds={feeds}
-                      zeroEnabled={jogEnabled}
-                      onStockChange={handleStockChange}
-                      onToolChange={handleToolChange}
-                      onPlaceCorner={handlePlaceStockCorner}
-                      onSetCornerFromToolhead={(corner) => {
-                        void handleSetStockCornerFromToolhead(corner);
-                      }}
-                      onOpenStockPerimeter={openStockPerimeterTest}
-                      onFeedsChange={handleFeedsChange}
-                      onApplyToSvg={handleApplyFeedsToSvg}
-                    />
-                  </div>
-                  <RecentJobsPanel
-                    entries={recentJobs}
-                    busy={streaming || simulating}
-                    onOpen={handleOpenRecent}
-                    onRemove={(id) => setRecentJobs(removeRecentJob(id))}
-                  />
-                  <ExternalJobsPanel
-                    folder={jobsFolder}
-                    drive={driveConfig}
-                    busy={streaming || simulating}
-                    highlight={extJobsHighlight}
-                    onFolderChange={handleJobsFolderChange}
-                    onDriveChange={handleDriveConfigChange}
-                    onOpenExternal={handleOpenExternal}
-                  />
-                  <SvgJobPanel
-                    draft={svgDraft}
-                    busy={streaming}
-                    toolDiameterMm={tool.diameterMm}
-                    feeds={feeds}
-                    feedsApplyToken={feedsApplyToken}
-                    onLoadSvg={handleLoadSvg}
-                    onLoadSvgText={(name, text) => {
-                      if (streaming) return;
-                      applySvgText(name, text);
-                    }}
-                    onClear={handleClearSvg}
-                    onGenerate={handleGenerateFromSvg}
-                  />
                   <JobLoad
+                    variant="verify"
                     job={job}
                     progress={streamProgress}
                     connected={connected}
@@ -3410,7 +3694,6 @@ export default function App() {
                     onStop={() => {
                       void handleStopJob();
                     }}
-                    onPrepareRun={openPrepareRun}
                     prepareReady={prepareReady}
                     scrubIndex={scrubIndex}
                     onScrubIndexChange={setScrubIndex}
@@ -3424,20 +3707,63 @@ export default function App() {
                 </div>
               )}
 
-              {workspaceTab === "log" && (
+              {taskPhase === "run" && (
                 <div
-                  className="workspace__panel workspace__panel--log"
+                  className="workspace__panel workspace__panel--phase"
                   role="tabpanel"
-                  id="workspace-panel-log"
-                  aria-labelledby="workspace-tab-log"
+                  id="phase-panel-run"
+                  aria-labelledby="phase-tab-run"
                 >
-                  <ActivityLogPanel
-                    log={activityLog}
-                    debugMode={debugMode}
-                    bridgeEnabled={bridgeEnabled}
-                    bridgeStatus={bridgeStatus}
-                    bridgeError={bridgeError}
-                    onBridgeEnabledChange={setBridgeEnabled}
+                  <p className="workspace__intro workspace__intro--compact">
+                    Supervise the cut. Overrides live on the safety strip.
+                    Pause / Resume / Stop here.
+                  </p>
+                  <JobLoad
+                    variant="run"
+                    job={job}
+                    progress={streamProgress}
+                    connected={connected}
+                    machineState={status.state}
+                    startBlockedReason={startBlockedReason}
+                    onLoadFile={handleLoadFile}
+                    onClear={handleClearJob}
+                    onStart={() => {
+                      void handleStartJob();
+                    }}
+                    onPause={() => {
+                      void handlePauseJob();
+                    }}
+                    onResume={() => {
+                      void handleResumeJob();
+                    }}
+                    onStop={() => {
+                      void handleStopJob();
+                    }}
+                    timeEstimate={jobTimeEstimate}
+                    dryRun={dryRun}
+                    onResumeToolChange={() => {
+                      void handleResumeToolChange();
+                    }}
+                  />
+                  <SpindleFeedPanel
+                    connected={connected}
+                    feedRate={status.feedRate}
+                    spindleSpeed={status.spindleSpeed}
+                    feedOverridePercent={feedOverridePercent}
+                    spindleOverridePercent={spindleOverridePercent}
+                    busyAlarm={status.state === "Alarm"}
+                    onSpindleOn={(rpm) => {
+                      void handleSpindleOn(rpm);
+                    }}
+                    onSpindleOff={() => {
+                      void handleSpindleOff();
+                    }}
+                    onFeedOverride={(step) => {
+                      void handleFeedOverride(step);
+                    }}
+                    onSpindleOverride={(step) => {
+                      void handleSpindleOverride(step);
+                    }}
                   />
                 </div>
               )}
@@ -3600,7 +3926,49 @@ export default function App() {
                   void handleZero(axes);
                 }}
                 onClose={() => setCalOpen(false)}
+                onComplete={handleCalibrationComplete}
                 onOpenBedTravelTest={openBedTravelTest}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {logOpen && (
+        <div
+          className="cal-modal"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Activity log"
+        >
+          <button
+            type="button"
+            className="cal-modal__backdrop"
+            aria-label="Close activity log"
+            onClick={() => setLogOpen(false)}
+          />
+          <div className="cal-modal__sheet cal-modal__sheet--wide">
+            <header className="cal-modal__head">
+              <div>
+                <p className="cal-modal__eyebrow">Menu · Debug</p>
+                <h2 className="cal-modal__title">Activity log</h2>
+              </div>
+              <button
+                type="button"
+                className="cal-modal__close"
+                onClick={() => setLogOpen(false)}
+              >
+                Close
+              </button>
+            </header>
+            <div className="cal-modal__body">
+              <ActivityLogPanel
+                log={activityLog}
+                debugMode={debugMode}
+                bridgeEnabled={bridgeEnabled}
+                bridgeStatus={bridgeStatus}
+                bridgeError={bridgeError}
+                onBridgeEnabledChange={setBridgeEnabled}
               />
             </div>
           </div>
@@ -3943,9 +4311,14 @@ export default function App() {
                 onConfirmReady={() => {
                   setPrepareReady(true);
                   setPrepareMessage(
-                    "Ready — Start is unlocked for this session.",
+                    "Ready — continue to Verify, then Start.",
                   );
-                  activityLog.append("event", "Prepare ready — Start unlocked");
+                  activityLog.append(
+                    "event",
+                    "Prepare ready — Verify unlocked",
+                  );
+                  setPrepareOpen(false);
+                  setTaskPhase("verify");
                 }}
                 onOpenStockPerimeter={openStockPerimeterTest}
                 onClose={() => setPrepareOpen(false)}

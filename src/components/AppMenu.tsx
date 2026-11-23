@@ -10,8 +10,9 @@ interface AppMenuProps {
   onOpenExternalJobs: () => void;
   onOpenFirstRun?: () => void;
   onOpenAdvanced?: () => void;
+  onOpenActivityLog?: () => void;
   onOpenAbout?: () => void;
-  /** When true, Log tab shows Export / Copy / Debug bridge chrome. */
+  /** When true, activity log shows Export / Copy / Debug bridge chrome. */
   debugMode: boolean;
   onDebugModeChange: (enabled: boolean) => void;
   theme: UiTheme;
@@ -30,6 +31,7 @@ export function AppMenu({
   onOpenExternalJobs,
   onOpenFirstRun,
   onOpenAdvanced,
+  onOpenActivityLog,
   onOpenAbout,
   debugMode,
   onDebugModeChange,
@@ -181,7 +183,7 @@ export function AppMenu({
             Prepare to run…
           </button>
           <p className="appmenu__hint">
-            Pre-start wizard: stock, tool, XY zero, Z probe, then Start.
+            Prepare phase: stock, tool, XY zero, Z probe — then Verify to Start.
           </p>
           {onOpenAdvanced ? (
             <>
@@ -231,6 +233,24 @@ export function AppMenu({
             Workshop steel &amp; brass — saved for next launch.
           </p>
           <div className="appmenu__divider" role="separator" />
+          {onOpenActivityLog ? (
+            <>
+              <button
+                type="button"
+                role="menuitem"
+                className="appmenu__item"
+                onClick={() => {
+                  setOpen(false);
+                  onOpenActivityLog();
+                }}
+              >
+                Activity log…
+              </button>
+              <p className="appmenu__hint">
+                Session events — not a phase. Debug tools when Debug mode is on.
+              </p>
+            </>
+          ) : null}
           <label className="appmenu__toggle" role="menuitemcheckbox" aria-checked={debugMode}>
             <input
               type="checkbox"
@@ -241,8 +261,8 @@ export function AppMenu({
           </label>
           <p className="appmenu__hint">
             {debugMode
-              ? "On — Log tab shows Export, Copy, and Debug bridge."
-              : "Off — keep the Log tab clean for everyday use."}
+              ? "On — Activity log shows Export, Copy, and Debug bridge."
+              : "Off — keep the activity log clean for everyday use."}
           </p>
           {onOpenAbout ? (
             <>

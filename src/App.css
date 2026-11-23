@@ -894,6 +894,60 @@ button {
   background: var(--brass-fill);
 }
 
+.workspace__tab.is-locked,
+.workspace__tab:disabled {
+  opacity: 0.38;
+  cursor: not-allowed;
+  color: var(--muted);
+}
+
+.workspace__tab.is-locked:hover,
+.workspace__tab:disabled:hover {
+  opacity: 0.38;
+  background: transparent;
+  color: var(--muted);
+}
+
+.phase-switcher__gate {
+  color: var(--brass-hot);
+  font-weight: 600;
+}
+
+.phase-connect {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+}
+
+.phase-connect__hint {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.phase-cal__skip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.phase-prepare__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.workspace__body--phase {
+  /* Prefer fitting primary controls; overflow only as a last resort. */
+  overflow: auto;
+}
+
+.workspace__panel--phase {
+  gap: 0.75rem;
+}
+
 .workspace__badge {
   font-family: var(--font-mono);
   font-size: var(--text-2xs);

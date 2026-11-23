@@ -13,6 +13,9 @@ import { SimControls } from "./SimControls";
 
 export type JobRunPhase = StreamPhase | "idle";
 
+/** Which actions this panel exposes for the task-phase shell. */
+export type JobLoadVariant = "full" | "prepare" | "verify" | "run";
+
 interface JobLoadProps {
   job: LoadedJob | null;
   progress: StreamProgress | null;
@@ -49,6 +52,11 @@ interface JobLoadProps {
   dryRun?: boolean;
   onDryRunChange?: (enabled: boolean) => void;
   onResumeToolChange?: () => void;
+  /**
+   * Phase-shell mode: prepare = load only; verify = sim + Start;
+   * run = progress + hold/stop; full = legacy all-in-one.
+   */
+  variant?: JobLoadVariant;
 }
 
 function phaseLabel(phase: JobRunPhase): string {
@@ -101,10 +109,20 @@ export function JobLoad({
   dryRun = false,
   onDryRunChange,
   onResumeToolChange,
+  variant = "full",
 }: JobLoadProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  const showLoad = variant === "full" || variant === "prepare";
+  const showPrepareBtn = variant === "full" || variant === "prepare";
+  const showSim =
+    variant === "full" || variant === "verify";
+  const showStart = variant === "full" || variant === "verify";
+  const showRunControls =
+    variant === "full" || variant === "run" || variant === "verify";
+  const showScrubber = variant === "full" || variant === "verify";
 
   const phase: JobRunPhase = progress?.phase ?? "idle";
   const streaming =
@@ -116,6 +134,7 @@ export function JobLoad({
   const simulating =
     simPhase === "playing" || simPhase === "paused" || simPhase === "done";
   const canStart =
+    showStart &&
     connected &&
     !!job &&
     job.lines.length > 0 &&
@@ -123,6 +142,7 @@ export function JobLoad({
     !simulating &&
     !startBlockedReason;
   const canSimulate =
+    showSim &&
     !!job &&
     job.path.length > 0 &&
     !streaming &&
@@ -130,14 +150,24 @@ export function JobLoad({
     !!onSimPlay &&
     !!onSimPause &&
     !!onSimStop;
-  const showPause = phase === "running";
-  const showResume = phase === "paused";
-  const showToolChange = phase === "tool-change";
+  const showPause = showRunControls && phase === "running";
+  const showResume = showRunControls && phase === "paused";
+  const showToolChange = showRunControls && phase === "tool-change";
   const showStop =
-    phase === "running" ||
-    phase === "paused" ||
-    phase === "tool-change" ||
-    phase === "error";
+    showRunControls &&
+    (phase === "running" ||
+      phase === "paused" ||
+      phase === "tool-change" ||
+      phase === "error");
+
+  const titleByVariant =
+    variant === "prepare"
+      ? "Load"
+      : variant === "verify"
+        ? "Verify"
+        : variant === "run"
+          ? "Run"
+          : "Job";
 
   const acceptFile = (file: File | undefined) => {
     if (!file) return;
@@ -171,35 +201,50 @@ export function JobLoad({
 
   return (
     <section
-      className={`job${dragOver ? " is-dragover" : ""}`}
-      aria-label="Job load and run"
+      className={`job${dragOver && showLoad ? " is-dragover" : ""}`}
+      aria-label={
+        variant === "run"
+          ? "Job run"
+          : variant === "verify"
+            ? "Job verify and start"
+            : variant === "prepare"
+              ? "Job load"
+              : "Job load and run"
+      }
       onDragOver={(e) => {
+        if (!showLoad) return;
         e.preventDefault();
         if (!streaming) setDragOver(true);
       }}
       onDragLeave={() => setDragOver(false)}
-      onDrop={onDrop}
+      onDrop={showLoad ? onDrop : undefined}
     >
       <div className="job__meta">
-        <h2 className="job__title">Job</h2>
+        <h2 className="job__title">{titleByVariant}</h2>
         <p className="job__name">{job?.name ?? "No file loaded"}</p>
         <p className="job__hint">
           {job
-            ? `${lineText}${timeEstimate ? ` · ${timeEstimate.label}` : ""} · drop .nc / .gcode to replace`
-            : "Load or drop .nc / .gcode"}
+            ? `${lineText}${timeEstimate ? ` · ${timeEstimate.label}` : ""}${
+                showLoad ? " · drop .nc / .gcode to replace" : ""
+              }`
+            : showLoad
+              ? "Load or drop .nc / .gcode"
+              : "No file loaded"}
         </p>
       </div>
 
-      <input
-        ref={inputRef}
-        type="file"
-        accept=".nc,.gcode,.ngc,.tap,text/plain"
-        className="job__file"
-        onChange={(e) => {
-          acceptFile(e.target.files?.[0]);
-          e.target.value = "";
-        }}
-      />
+      {showLoad ? (
+        <input
+          ref={inputRef}
+          type="file"
+          accept=".nc,.gcode,.ngc,.tap,text/plain"
+          className="job__file"
+          onChange={(e) => {
+            acceptFile(e.target.files?.[0]);
+            e.target.value = "";
+          }}
+        />
+      ) : null}
 
       {(job || progress) && (
         <div className="job__status" aria-live="polite">
@@ -214,7 +259,9 @@ export function JobLoad({
             {!streaming && machineState === "Alarm" && (
               <span className="job__warn">Alarm</span>
             )}
-            {dryRun && !streaming && <span className="job__warn">Dry run</span>}
+            {dryRun && !streaming && showScrubber && (
+              <span className="job__warn">Dry run</span>
+            )}
           </div>
           {(streaming || phase === "completed") && (
             <div
@@ -235,13 +282,13 @@ export function JobLoad({
               {progress.toolChangeMessage}
             </p>
           )}
-          {startBlockedReason && !streaming && (
+          {showStart && startBlockedReason && !streaming && (
             <p className="job__warn-text">{startBlockedReason}</p>
           )}
         </div>
       )}
 
-      {job && onScrubIndexChange && !streaming && (
+      {showScrubber && job && onScrubIndexChange && !streaming && (
         <div className="job__scrubber">
           <label className="job__scrub-label" htmlFor="job-scrub">
             Start at line {scrubIndex + 1}
@@ -285,37 +332,44 @@ export function JobLoad({
 
       {loadError && <p className="job__error">{loadError}</p>}
 
-      {job && job.path.length > 0 && onSimPlay && onSimPause && onSimStop && (
-        <SimControls
-          variant="panel"
-          phase={simPhase}
-          progress={simProgress}
-          speed={simSpeed}
-          onSpeedChange={onSimSpeedChange}
-          zMm={simZMm}
-          activity={simActivity}
-          disabled={!canSimulate && !simulating}
-          disabledReason={
-            streaming
-              ? "Stop the running job before simulating."
-              : simDisabledReason
-          }
-          onPlay={onSimPlay}
-          onPause={onSimPause}
-          onStop={onSimStop}
-        />
-      )}
+      {showSim &&
+        job &&
+        job.path.length > 0 &&
+        onSimPlay &&
+        onSimPause &&
+        onSimStop && (
+          <SimControls
+            variant="panel"
+            phase={simPhase}
+            progress={simProgress}
+            speed={simSpeed}
+            onSpeedChange={onSimSpeedChange}
+            zMm={simZMm}
+            activity={simActivity}
+            disabled={!canSimulate && !simulating}
+            disabledReason={
+              streaming
+                ? "Stop the running job before simulating."
+                : simDisabledReason
+            }
+            onPlay={onSimPlay}
+            onPause={onSimPause}
+            onStop={onSimStop}
+          />
+        )}
 
       <div className="job__actions">
-        <button
-          type="button"
-          className="job__btn job__btn--ghost"
-          disabled={streaming || simulating}
-          onClick={() => inputRef.current?.click()}
-        >
-          {job ? "Replace" : "Load"}
-        </button>
-        {job && !streaming && !simulating && (
+        {showLoad ? (
+          <button
+            type="button"
+            className="job__btn job__btn--ghost"
+            disabled={streaming || simulating}
+            onClick={() => inputRef.current?.click()}
+          >
+            {job ? "Replace" : "Load"}
+          </button>
+        ) : null}
+        {showLoad && job && !streaming && !simulating && (
           <button
             type="button"
             className="job__btn job__btn--ghost"
@@ -324,30 +378,32 @@ export function JobLoad({
             Clear
           </button>
         )}
-        {onPrepareRun && job && !streaming && (
+        {showPrepareBtn && onPrepareRun && job && !streaming && (
           <button
             type="button"
             className={`job__btn job__btn--ghost${prepareReady ? " is-ready" : ""}`}
             disabled={simulating}
             onClick={onPrepareRun}
-            title="Stock, tool, XY zero, Z probe — required before Start"
+            title="Stock, tool, XY zero, Z probe — required before Verify"
           >
             {prepareReady ? "Prepared" : "Prepare…"}
           </button>
         )}
-        <button
-          type="button"
-          className="job__btn"
-          disabled={!canStart}
-          title={
-            simulating
-              ? "Stop the preview before starting the job."
-              : (startBlockedReason ?? undefined)
-          }
-          onClick={onStart}
-        >
-          {scrubIndex > 0 ? `Start @ ${scrubIndex + 1}` : "Start"}
-        </button>
+        {showStart ? (
+          <button
+            type="button"
+            className="job__btn"
+            disabled={!canStart}
+            title={
+              simulating
+                ? "Stop the preview before starting the job."
+                : (startBlockedReason ?? undefined)
+            }
+            onClick={onStart}
+          >
+            {scrubIndex > 0 ? `Start @ ${scrubIndex + 1}` : "Start"}
+          </button>
+        ) : null}
         {showPause && (
           <button type="button" className="job__btn job__btn--hold" onClick={onPause}>
             Pause
