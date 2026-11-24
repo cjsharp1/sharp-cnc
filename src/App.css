@@ -3563,6 +3563,67 @@ button {
   flex: 1 1 10rem;
 }
 
+.cal__banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid var(--border-soft);
+  background: var(--inset-bg-soft);
+}
+
+.cal__banner-body {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  line-height: 1.4;
+}
+
+.cal__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.cal__tabs--sub {
+  margin-top: 0.15rem;
+}
+
+.cal__tab {
+  appearance: none;
+  border: 1px solid var(--border-soft);
+  background: var(--inset-bg-soft);
+  color: var(--muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+}
+
+.cal__tab:hover:not(:disabled) {
+  color: var(--ink);
+  border-color: var(--border);
+}
+
+.cal__tab.is-active {
+  color: var(--ink);
+  border-color: var(--accent, var(--border));
+  background: var(--panel-bg, var(--bg));
+}
+
+.cal__tab:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.cal__warn--callout {
+  border-left: 3px solid var(--warn, #b8862d);
+  padding-left: 0.55rem;
+}
+
 .cal__body {
   display: flex;
   flex-direction: column;

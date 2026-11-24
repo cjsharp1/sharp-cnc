@@ -9,6 +9,12 @@ export const SETTING_HOMING_DIR_MASK = 23;
 export const SETTING_STEPS_X = 100;
 export const SETTING_STEPS_Y = 101;
 export const SETTING_STEPS_Z = 102;
+export const SETTING_MAX_RATE_X = 110;
+export const SETTING_MAX_RATE_Y = 111;
+export const SETTING_MAX_RATE_Z = 112;
+export const SETTING_ACCEL_X = 120;
+export const SETTING_ACCEL_Y = 121;
+export const SETTING_ACCEL_Z = 122;
 export const SETTING_MAX_TRAVEL_X = 130;
 export const SETTING_MAX_TRAVEL_Y = 131;
 export const SETTING_MAX_TRAVEL_Z = 132;
@@ -58,6 +64,18 @@ export const STEPS_SETTING_FOR_AXIS: Record<Axis, number> = {
   X: SETTING_STEPS_X,
   Y: SETTING_STEPS_Y,
   Z: SETTING_STEPS_Z,
+};
+
+export const RATE_SETTING_FOR_AXIS: Record<Axis, number> = {
+  X: SETTING_MAX_RATE_X,
+  Y: SETTING_MAX_RATE_Y,
+  Z: SETTING_MAX_RATE_Z,
+};
+
+export const ACCEL_SETTING_FOR_AXIS: Record<Axis, number> = {
+  X: SETTING_ACCEL_X,
+  Y: SETTING_ACCEL_Y,
+  Z: SETTING_ACCEL_Z,
 };
 
 export const MAX_TRAVEL_SETTING_FOR_AXIS: Record<Axis, number> = {

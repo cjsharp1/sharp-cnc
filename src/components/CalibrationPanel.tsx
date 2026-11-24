@@ -1,23 +1,40 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
+  ACCEL_SETTING_FOR_AXIS,
   CALIBRATION_DISTANCE_OPTIONS_MM,
   CALIBRATION_GUIDED_STEPS,
   DEFAULT_CALIBRATION_DISTANCE_MM,
   DEFAULT_JOG_FEED_MM_MIN,
   DIR_TEST_JOG_MM,
   MAX_TRAVEL_SETTING_FOR_AXIS,
+  RATE_SETTING_FOR_AXIS,
+  RATES_RECOMMEND_DEFAULT,
+  RATES_RECOMMEND_MAX,
+  RATES_RECOMMEND_MIN,
   SETTING_DIR_PORT_INVERT,
   STEPS_MM_LARGE_CHANGE_FRACTION,
   STEPS_RETEST_TOLERANCE_MM,
   STEPS_SETTING_FOR_AXIS,
   buildJogCommand,
+  canFitRatesTest,
   computeStepsPerMm,
   decodeDirInvertMask,
+  defaultRatesCycles,
+  defaultRatesDistanceMm,
   describeDirInvertMask,
   encodeDirInvertMask,
   estimateStepsPerMm,
   homingEnabled,
+  loadCalNewStepsBannerDismissed,
+  loadCalibrationState,
+  nextRatesTrialValue,
+  ratesSettingId,
+  ratesSettingPlainLabel,
+  ratesSettingUnit,
+  ratesTrialCeiling,
+  recommendRatesValue,
   roundStepsPerMm,
+  saveCalNewStepsBannerDismissed,
   softLimitsEnabled,
   stepsPerMmChangeFraction,
   type Axis,
@@ -25,6 +42,8 @@ import {
   type CalibrationGuidedStepId,
   type GrblSetting,
   type GrblStatus,
+  type RatesKind,
+  type RatesTrialResult,
   type SoftTravelLimits,
   type ZeroAxisSelection,
 } from "../grbl";
@@ -39,7 +58,8 @@ const STEP_CHROME: Record<
   zero: { label: "Start", short: "1 · Start" },
   direction: { label: "Direction", short: "2 · Dir" },
   steps: { label: "Steps/mm", short: "3 · Steps" },
-  travel: { label: "Soft travel", short: "4 · Travel" },
+  rates: { label: "Speed & accel", short: "4 · Rates" },
+  travel: { label: "Soft travel", short: "5 · Travel" },
 };
 
 const WIZARD_STEPS = CALIBRATION_GUIDED_STEPS.map((id) => ({
@@ -51,8 +71,11 @@ const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
   zero: "Machine homed (or no switches) and positions look right — I completed this step",
   direction: "Jog direction matches the machine — I completed this step",
   steps: "Measured and wrote steps/mm — I completed this step",
+  rates: "Max speed and acceleration checked — I completed this step",
   travel: "Soft travel / bed extents set — I completed this step",
 };
+
+const RATES_AXIS_TABS: Axis[] = ["X", "Y", "Z"];
 
 /** Compact Home ($H) offered on Zero context — recommended, not a hard gate. */
 export interface CalibrationHomingProps {
@@ -80,6 +103,27 @@ interface CalibrationPanelProps {
   onWriteSteps: (axis: Axis, before: number, after: number) => void;
   onWriteDirInvert: (mask: number) => void;
   onApplySoftTravel: (limits: SoftTravelLimits, enableSoft: boolean) => void;
+  /**
+   * Run an out-and-back G1 rates/accel trial (temp setting write + restore
+   * bookkeeping). Resolves when Idle (or rejects / aborts).
+   */
+  onRatesTrial?: (args: {
+    axis: Axis;
+    kind: RatesKind;
+    trialValue: number;
+    baselineValue: number;
+    distanceMm: number;
+    cycles: number;
+  }) => Promise<void> | void;
+  /** Accept recommended rate/accel (old → new write). */
+  onWriteRates?: (
+    kind: RatesKind,
+    axis: Axis,
+    before: number,
+    after: number,
+  ) => void;
+  /** Leave/cancel rates step — restore any temp trial writes. */
+  onRatesCancelRestore?: () => void;
   onZero: (axes: ZeroAxisSelection) => void;
   onClose?: () => void;
   /** Soft travel confirmed — persist calibrated and advance (phase shell). */
@@ -97,6 +141,8 @@ interface CalibrationPanelProps {
   /** Top of the session Calibrate undo stack (null = nothing to undo). */
   undoLabel?: string | null;
   onUndoCalibrateWrite?: () => void;
+  /** True while a rates trial is running (disables other actions). */
+  ratesTrialRunning?: boolean;
 }
 
 function settingValue(
@@ -156,6 +202,9 @@ export function CalibrationPanel({
   onWriteSteps,
   onWriteDirInvert,
   onApplySoftTravel,
+  onRatesTrial,
+  onWriteRates,
+  onRatesCancelRestore,
   onZero,
   onClose,
   onComplete,
@@ -166,6 +215,7 @@ export function CalibrationPanel({
   onBackupSettings,
   undoLabel = null,
   onUndoCalibrateWrite,
+  ratesTrialRunning = false,
 }: CalibrationPanelProps) {
   const {
     stepIndex,
@@ -212,6 +262,32 @@ export function CalibrationPanel({
   );
   const [enableSoft, setEnableSoft] = useState(true);
   const [travelError, setTravelError] = useState<string | null>(null);
+
+  // Speed & accel (rates)
+  const [ratesAxis, setRatesAxis] = useState<Axis>("X");
+  const [ratesKind, setRatesKind] = useState<RatesKind>("rate");
+  const [ratesReady, setRatesReady] = useState(false);
+  const [ratesDistanceMm, setRatesDistanceMm] = useState(
+    defaultRatesDistanceMm("X"),
+  );
+  const [ratesCycles, setRatesCycles] = useState(defaultRatesCycles("X"));
+  const [ratesTrial, setRatesTrial] = useState<number | null>(null);
+  const [ratesBaseline, setRatesBaseline] = useState<number | null>(null);
+  const [ratesLastPassing, setRatesLastPassing] = useState<number | null>(null);
+  const [ratesAskOpen, setRatesAskOpen] = useState(false);
+  const [ratesFailed, setRatesFailed] = useState(false);
+  const [ratesFactor, setRatesFactor] = useState(RATES_RECOMMEND_DEFAULT);
+  const [ratesGateError, setRatesGateError] = useState<string | null>(null);
+  const [showNewStepsBanner, setShowNewStepsBanner] = useState(() => {
+    try {
+      return (
+        loadCalibrationState().calibrationCompleted &&
+        !loadCalNewStepsBannerDismissed()
+      );
+    } catch {
+      return false;
+    }
+  });
 
   const stepsId = STEPS_SETTING_FOR_AXIS[axis];
   const currentSteps = settingValue(settings, stepsId);
@@ -285,6 +361,34 @@ export function CalibrationPanel({
     setDirFlags(decodeDirInvertMask(currentDirMask));
   }, [currentDirMask]);
 
+  // Leaving the rates step restores any temporary trial writes.
+  useEffect(() => {
+    if (step.id === "rates") return;
+    onRatesCancelRestore?.();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only on step leave
+  }, [step.id]);
+
+  const resetRatesSession = (axis: Axis, kind: RatesKind) => {
+    setRatesReady(false);
+    setRatesAskOpen(false);
+    setRatesFailed(false);
+    setRatesLastPassing(null);
+    setRatesGateError(null);
+    setRatesFactor(RATES_RECOMMEND_DEFAULT);
+    setRatesDistanceMm(defaultRatesDistanceMm(axis));
+    setRatesCycles(defaultRatesCycles(axis));
+    const id = ratesSettingId(kind, axis);
+    const cur = settingValue(settings, id);
+    setRatesBaseline(cur);
+    setRatesTrial(cur);
+  };
+
+  useEffect(() => {
+    if (step.id !== "rates") return;
+    resetRatesSession(ratesAxis, ratesKind);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed when entering rates
+  }, [step.id]);
+
   const parseTravel = (raw: string): number | null => {
     const t = raw.trim();
     if (!t) return null;
@@ -293,9 +397,90 @@ export function CalibrationPanel({
     return n;
   };
 
-  const canAct = enabled && !busy;
+  const canAct = enabled && !busy && !ratesTrialRunning;
 
   const clearConfirm = () => setStepConfirmed(false);
+
+  const ratesSettingNow = settingValue(
+    settings,
+    ratesSettingId(ratesKind, ratesAxis),
+  );
+  const ratesCeiling =
+    ratesBaseline !== null && ratesBaseline > 0
+      ? ratesTrialCeiling(ratesBaseline)
+      : null;
+  const ratesRecommended =
+    ratesLastPassing !== null
+      ? recommendRatesValue(ratesLastPassing, ratesFactor, ratesKind)
+      : null;
+  const ratesFit = canFitRatesTest(
+    machinePos,
+    softTravel,
+    ratesAxis,
+    ratesDistanceMm,
+  );
+  const ratesIdle = status.state === "Idle" || status.state === "Check";
+
+  const startRatesTrial = async (trialValue: number) => {
+    if (!onRatesTrial) return;
+    if (ratesBaseline === null || !Number.isFinite(ratesBaseline)) {
+      setRatesGateError("Load settings first (Reload).");
+      return;
+    }
+    if (!ratesIdle) {
+      setRatesGateError("Wait for Idle before starting a trial.");
+      return;
+    }
+    if (!ratesFit.ok) {
+      setRatesGateError(ratesFit.reason ?? "Test does not fit soft travel.");
+      return;
+    }
+    if (ratesCeiling !== null && trialValue > ratesCeiling + 1e-9) {
+      setRatesGateError(
+        `Trial ${trialValue} is above the safety ceiling (${ratesCeiling}).`,
+      );
+      return;
+    }
+    setRatesGateError(null);
+    setRatesAskOpen(false);
+    setRatesTrial(trialValue);
+    try {
+      await onRatesTrial({
+        axis: ratesAxis,
+        kind: ratesKind,
+        trialValue,
+        baselineValue: ratesBaseline,
+        distanceMm: ratesDistanceMm,
+        cycles: ratesCycles,
+      });
+      setRatesAskOpen(true);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRatesGateError(message);
+    }
+  };
+
+  const onRatesResult = (result: RatesTrialResult) => {
+    clearConfirm();
+    setRatesAskOpen(false);
+    if (result === "pass") {
+      const passing = ratesTrial ?? ratesBaseline;
+      if (passing !== null) setRatesLastPassing(passing);
+      setRatesFailed(false);
+      if (passing !== null && ratesCeiling !== null) {
+        const next = nextRatesTrialValue(passing, ratesCeiling, ratesKind);
+        if (next !== null) {
+          // Offer next ramp — operator clicks Run again.
+          setRatesTrial(next);
+          return;
+        }
+      }
+      // At ceiling or no further ramp — show recommend.
+      return;
+    }
+    // off / stall — stop ramp; recommend last passing (or none).
+    setRatesFailed(true);
+  };
 
   const finishToPrepare = () => {
     onComplete?.();
@@ -370,6 +555,24 @@ export function CalibrationPanel({
           </>
         ) : null}
       </p>
+
+      {showNewStepsBanner ? (
+        <div className="cal__banner" role="status">
+          <p className="cal__banner-body">
+            New: Speed &amp; accel and Homing setup steps.
+          </p>
+          <button
+            type="button"
+            className="cal__link"
+            onClick={() => {
+              saveCalNewStepsBannerDismissed();
+              setShowNewStepsBanner(false);
+            }}
+          >
+            Dismiss
+          </button>
+        </div>
+      ) : null}
 
       {step.id === "zero" && (
         <div className="cal__body" role="group" aria-labelledby="cal-step-zero">
@@ -900,6 +1103,373 @@ export function CalibrationPanel({
             checked={isConfirmed}
             disabled={!canAct}
             label={STEP_CONFIRM_LABELS.steps}
+            onChange={setStepConfirmed}
+          />
+        </div>
+      )}
+
+      {step.id === "rates" && (
+        <div
+          className="cal__body"
+          role="group"
+          aria-labelledby="cal-step-rates"
+        >
+          <h3 id="cal-step-rates" className="cal__step-title">
+            Speed &amp; acceleration
+          </h3>
+          <p className="cal__hint">
+            GRBL can&rsquo;t tell when a motor skips a step. So we move an axis
+            fast, back and forth, and check it comes back to exactly where it
+            started. Then we back off a bit for safety.
+          </p>
+
+          <div className="cal__tabs" role="tablist" aria-label="Axis">
+            {RATES_AXIS_TABS.map((ax) => (
+              <button
+                key={ax}
+                type="button"
+                role="tab"
+                aria-selected={ratesAxis === ax}
+                className={`cal__tab${ratesAxis === ax ? " is-active" : ""}`}
+                disabled={!canAct}
+                onClick={() => {
+                  clearConfirm();
+                  onRatesCancelRestore?.();
+                  setRatesAxis(ax);
+                  setRatesKind("rate");
+                  resetRatesSession(ax, "rate");
+                }}
+              >
+                {ax}
+              </button>
+            ))}
+          </div>
+
+          {ratesAxis === "Z" ? (
+            <p className="cal__warn cal__warn--callout" role="note">
+              Z lifts the spindle against gravity, so lower numbers than X/Y are
+              normal. Z usually skips going <strong>up</strong>. If it loses
+              steps on the way up, SharpCNC thinks the tool is higher than it
+              really is, so every plunge after that goes deeper than planned,
+              and it gets worse through the job.
+            </p>
+          ) : null}
+
+          <div className="cal__tabs cal__tabs--sub" role="tablist" aria-label="Rate or accel">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={ratesKind === "rate"}
+              className={`cal__tab${ratesKind === "rate" ? " is-active" : ""}`}
+              disabled={!canAct}
+              onClick={() => {
+                clearConfirm();
+                onRatesCancelRestore?.();
+                setRatesKind("rate");
+                resetRatesSession(ratesAxis, "rate");
+              }}
+            >
+              Max speed
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={ratesKind === "accel"}
+              className={`cal__tab${ratesKind === "accel" ? " is-active" : ""}`}
+              disabled={!canAct}
+              onClick={() => {
+                clearConfirm();
+                onRatesCancelRestore?.();
+                setRatesKind("accel");
+                resetRatesSession(ratesAxis, "accel");
+              }}
+            >
+              Acceleration
+            </button>
+          </div>
+
+          <p className="cal__current">
+            {ratesSettingPlainLabel(ratesKind, ratesAxis)}{" "}
+            <span className="cal__meta">
+              (${ratesSettingId(ratesKind, ratesAxis)})
+            </span>
+            {": "}
+            <strong>
+              {ratesSettingNow !== null ? ratesSettingNow : "—"}
+            </strong>{" "}
+            {ratesSettingUnit(ratesKind)}
+            {ratesKind === "rate" ? (
+              <>
+                {" · "}
+                accel $
+                {ACCEL_SETTING_FOR_AXIS[ratesAxis]}=
+                {settingValue(settings, ACCEL_SETTING_FOR_AXIS[ratesAxis]) ?? "—"}
+              </>
+            ) : (
+              <>
+                {" · "}
+                max rate $
+                {RATE_SETTING_FOR_AXIS[ratesAxis]}=
+                {settingValue(settings, RATE_SETTING_FOR_AXIS[ratesAxis]) ?? "—"}
+              </>
+            )}
+          </p>
+
+          <div className="cal__row">
+            <label className="cal__field">
+              <span className="cal__field-label">Test distance (mm)</span>
+              <input
+                className="cal__input"
+                type="number"
+                inputMode="decimal"
+                min="1"
+                step="1"
+                value={ratesDistanceMm}
+                disabled={!canAct || ratesReady}
+                onChange={(e) => {
+                  clearConfirm();
+                  const n = Number(e.target.value);
+                  if (Number.isFinite(n)) setRatesDistanceMm(n);
+                }}
+              />
+            </label>
+            <label className="cal__field">
+              <span className="cal__field-label">Cycles (out &amp; back)</span>
+              <input
+                className="cal__input"
+                type="number"
+                inputMode="numeric"
+                min="1"
+                step="1"
+                value={ratesCycles}
+                disabled={!canAct || ratesReady}
+                onChange={(e) => {
+                  clearConfirm();
+                  const n = Math.trunc(Number(e.target.value));
+                  if (Number.isFinite(n) && n >= 1) setRatesCycles(n);
+                }}
+              />
+            </label>
+          </div>
+
+          {!ratesReady ? (
+            <div className="cal__actions">
+              <p className="cal__hint">
+                Put a dial indicator or a pencil mark at the carriage. Confirm
+                the test distance fits soft travel, then click Ready.
+              </p>
+              {!ratesFit.ok ? (
+                <p className="cal__warn" role="alert">
+                  {ratesFit.reason}
+                </p>
+              ) : null}
+              <button
+                type="button"
+                className="cal__btn"
+                disabled={!canAct || !ratesFit.ok || ratesBaseline === null}
+                onClick={() => {
+                  clearConfirm();
+                  setRatesReady(true);
+                  setRatesGateError(null);
+                }}
+              >
+                Ready
+              </button>
+            </div>
+          ) : (
+            <>
+              <p className="cal__hint" role="status">
+                Reference set. Trial{" "}
+                {ratesKind === "rate" ? "max rate" : "acceleration"}:{" "}
+                <strong>{ratesTrial ?? "—"}</strong>{" "}
+                {ratesSettingUnit(ratesKind)}
+                {ratesCeiling !== null
+                  ? ` (ceiling ${ratesCeiling} = 2× starting value)`
+                  : ""}
+                .{" "}
+                {ratesAxis === "Z"
+                  ? "Z starts down, then returns up — check the mark after the final up move."
+                  : "Out and back — check the mark when Idle."}
+              </p>
+
+              <div className="cal__actions">
+                <button
+                  type="button"
+                  className="cal__btn"
+                  disabled={
+                    !canAct ||
+                    !onRatesTrial ||
+                    ratesTrial === null ||
+                    ratesAskOpen ||
+                    ratesTrialRunning
+                  }
+                  onClick={() => {
+                    if (ratesTrial !== null) void startRatesTrial(ratesTrial);
+                  }}
+                >
+                  {ratesTrialRunning
+                    ? "Running…"
+                    : ratesLastPassing !== null &&
+                        ratesTrial !== null &&
+                        ratesTrial > ratesLastPassing
+                      ? `Run trial at ${ratesTrial}`
+                      : `Run ${ratesCycles}× out-and-back`}
+                </button>
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!canAct || ratesTrialRunning}
+                  onClick={() => {
+                    onRatesCancelRestore?.();
+                    resetRatesSession(ratesAxis, ratesKind);
+                  }}
+                >
+                  Reset / cancel
+                </button>
+              </div>
+
+              {ratesAskOpen ? (
+                <div className="cal__dir-ask" role="group" aria-label="Trial result">
+                  <p className="cal__dir-ask-label">
+                    {ratesAxis === "Z"
+                      ? "After the final up move — did it come back to the mark?"
+                      : "Did it come back to the mark?"}
+                  </p>
+                  <div className="cal__actions">
+                    <button
+                      type="button"
+                      className="cal__btn"
+                      disabled={!canAct}
+                      onClick={() => onRatesResult("pass")}
+                    >
+                      Yes, same spot
+                    </button>
+                    <button
+                      type="button"
+                      className="cal__btn cal__btn--ghost"
+                      disabled={!canAct}
+                      onClick={() => onRatesResult("off")}
+                    >
+                      It&rsquo;s off
+                    </button>
+                    <button
+                      type="button"
+                      className="cal__btn cal__btn--ghost"
+                      disabled={!canAct}
+                      onClick={() => onRatesResult("stall")}
+                    >
+                      Stalled / grinding
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+
+              {ratesLastPassing !== null &&
+              (ratesFailed ||
+                (ratesCeiling !== null &&
+                  ratesTrial !== null &&
+                  nextRatesTrialValue(ratesLastPassing, ratesCeiling, ratesKind) ===
+                    null &&
+                  !ratesAskOpen)) ? (
+                <div className="cal__result" aria-live="polite">
+                  <p className="cal__hint">
+                    Last passing: <strong>{ratesLastPassing}</strong>{" "}
+                    {ratesSettingUnit(ratesKind)}. Recommend ×
+                    {ratesFactor.toFixed(2)} (0.7–0.8).
+                  </p>
+                  <label className="cal__field">
+                    <span className="cal__field-label">
+                      Safety factor {ratesFactor.toFixed(2)}
+                    </span>
+                    <input
+                      className="cal__input"
+                      type="range"
+                      min={RATES_RECOMMEND_MIN}
+                      max={RATES_RECOMMEND_MAX}
+                      step="0.01"
+                      value={ratesFactor}
+                      disabled={!canAct}
+                      onChange={(e) =>
+                        setRatesFactor(Number(e.target.value))
+                      }
+                    />
+                  </label>
+                  {ratesRecommended !== null && ratesBaseline !== null ? (
+                    <>
+                      <p className="cal__result-line">
+                        Before: <strong>{ratesBaseline}</strong>
+                        {" → "}
+                        After: <strong>{ratesRecommended}</strong>{" "}
+                        {ratesSettingUnit(ratesKind)}
+                      </p>
+                      <button
+                        type="button"
+                        className="cal__btn"
+                        disabled={!canAct || !onWriteRates}
+                        onClick={() => {
+                          onWriteRates?.(
+                            ratesKind,
+                            ratesAxis,
+                            ratesBaseline,
+                            ratesRecommended,
+                          );
+                          // Accept clears temp restore; seed next kind/axis from new value.
+                          setRatesBaseline(ratesRecommended);
+                          setRatesTrial(ratesRecommended);
+                          setRatesLastPassing(null);
+                          setRatesFailed(false);
+                          setRatesAskOpen(false);
+                          setRatesReady(false);
+                        }}
+                      >
+                        Write $
+                        {ratesSettingId(ratesKind, ratesAxis)}=
+                        {ratesRecommended}
+                      </button>
+                    </>
+                  ) : null}
+                </div>
+              ) : null}
+
+              {ratesLastPassing !== null &&
+              !ratesFailed &&
+              ratesTrial !== null &&
+              ratesLastPassing < ratesTrial &&
+              !ratesAskOpen ? (
+                <div className="cal__actions">
+                  <p className="cal__hint" role="status">
+                    Passed at {ratesLastPassing}. Next trial offered at{" "}
+                    {ratesTrial} (+20%).
+                  </p>
+                  <button
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct}
+                    onClick={() => setRatesFailed(true)}
+                  >
+                    Stop ramp — recommend
+                  </button>
+                </div>
+              ) : null}
+            </>
+          )}
+
+          {ratesGateError ? (
+            <p className="cal__warn" role="alert">
+              {ratesGateError}
+            </p>
+          ) : null}
+          {!ratesIdle && canAct ? (
+            <p className="cal__hint" role="status">
+              State {status.state} — wait for Idle to start a trial.
+            </p>
+          ) : null}
+
+          <WizardStepConfirm
+            id="cal-confirm-rates"
+            checked={isConfirmed}
+            disabled={!canAct}
+            label={STEP_CONFIRM_LABELS.rates}
             onChange={setStepConfirmed}
           />
         </div>

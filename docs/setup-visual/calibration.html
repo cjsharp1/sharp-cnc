@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC Phase 1 Calibrate once per machine: $3 direction, steps/mm, soft travel, optional bed travel test. Then skip to Prepare."
+      content="SharpCNC Phase 1 Calibrate once per machine: $3 direction, steps/mm, speed & accel, soft travel, optional bed travel test. Then skip to Prepare."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -36,8 +36,8 @@
           </p>
           <h1>Calibrate</h1>
           <p class="visual-guide__one">
-            Teach SharpCNC how your machine moves — direction, distance, and
-            safe travel. Do this <strong>before</strong> Prepare or cuts.
+            Teach SharpCNC how your machine moves — direction, distance, speed,
+            and safe travel. Do this <strong>before</strong> Prepare or cuts.
             Prefer <strong>Virtual CNC</strong> for the first pass. After Soft
             travel confirm, next sessions skip to Prepare. Repeat only after
             wiring, screws, or bed size change. Clear bed. Keep Z high for XY.
@@ -47,7 +47,8 @@
             <a href="#c1">1 Start</a>
             <a href="#c2">2 Direction</a>
             <a href="#c3">3 Steps/mm</a>
-            <a href="#c4">4 Travel</a>
+            <a href="#c4">4 Speed &amp; accel</a>
+            <a href="#c5">5 Travel</a>
           </nav>
         </header>
 
@@ -285,7 +286,7 @@
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Wizard advances to <strong>Soft travel / bed extents</strong>.
+                Wizard advances to <strong>Speed &amp; acceleration</strong>.
               </p>
             </li>
           </ol>
@@ -293,12 +294,101 @@
             Z moves down · ±20% warn · re-test ±0.1 mm · formula: old ×
             commanded ÷ measured.
           </p>
-          <a class="step-card__next" href="#c4">Next: Soft travel →</a>
+          <a class="step-card__next" href="#c4">Next: Speed &amp; accel →</a>
         </article>
 
         <article class="step-card" id="c4">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">4</span>
+            <h2>Speed &amp; accel</h2>
+            <p class="step-card__action">
+              Mark → Ready → G1 out-and-back → Yes / off / stall → recommend
+              ×0.75 → <strong>Write</strong> rate then accel
+            </p>
+            <p class="step-card__eli5">
+              GRBL can’t feel a skipped step. Move fast out and back, check the
+              mark, then back off a bit so everyday cuts stay reliable. Z is
+              slower — it fights gravity and usually skips going up.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-05-rates.svg"
+              alt="Out-and-back rates test with indicator and Yes/off/stall"
+              width="960"
+              height="520"
+            />
+            <figcaption class="step-card__cap">
+              Screenshot:
+              <a href="../user-guide/assets/cal-step-rates.png"
+                >cal-step-rates.png</a
+              >
+            </figcaption>
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Pick axis tab <strong>X / Y / Z</strong> (Z last). Choose
+                <strong>Max speed</strong> first. Confirm test distance (X/Y 50
+                mm, Z 15 mm) and cycles. Put a dial indicator or pencil mark at
+                the carriage → <strong>Ready</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Current max rate and accel show in plain words (GRBL codes
+                secondary). Soft-travel guard refuses an unsafe distance.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Run … out-and-back</strong>. Watch the mark. Answer
+                <strong>Yes, same spot</strong> / <strong>It’s off</strong> /
+                <strong>Stalled / grinding</strong>. Yes offers +20% (ceiling
+                2× start). On stop/fail, set the 0.7–0.8 slider and
+                <strong>Write</strong> the recommended value.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Trial writes a temporary max rate so the feed can reach it;
+                cancel / leave / reconnect restores the original. Activity log
+                records each trial.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Switch to <strong>Acceleration</strong> and repeat. On Z, the
+                move starts <strong>down</strong>; check after the final
+                <strong>up</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Before → After preview on every Write. Undo still available in
+                the result bar.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Max speed and acceleration checked — I completed this
+                  step</strong
+                >, then <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Soft travel / bed extents</strong>.
+              </p>
+            </li>
+          </ol>
+          <p class="step-card__aside">
+            $110–$112 · $120–$122 · recommend ×0.75 · Z down-first
+          </p>
+          <a class="step-card__next" href="#c5">Next: Soft travel →</a>
+        </article>
+
+        <article class="step-card" id="c5">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">5</span>
             <h2>Soft travel (+ bed test)</h2>
             <p class="step-card__action">
               Jog to far end (margin) → Use MPos →
