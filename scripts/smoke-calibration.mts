@@ -1,6 +1,7 @@
 /**
  * Smoke: steps/mm math, $$ / $n= IO on mock, soft-travel + $3 direction helpers,
- * settings backup round-trip / diff / Calibrate undo (PR 1).
+ * settings backup round-trip / diff / Calibrate undo (PR 1),
+ * direction/steps polish helpers (PR 2).
  * Run: npx --yes tsx scripts/smoke-calibration.mts
  */
 import { createGrblClient } from "../src/grbl/client.ts";
@@ -8,20 +9,26 @@ import { DEFAULT_SOFT_TRAVEL } from "../src/grbl/machineConfig.ts";
 import { createMockTransport } from "../src/grbl/mockSerial.ts";
 import {
   SETTING_DIR_PORT_INVERT,
+  SETTING_HOMING_CYCLE,
   SETTING_SOFT_LIMITS,
   SETTING_STEPS_X,
+  STEPS_MM_LARGE_CHANGE_FRACTION,
+  STEPS_RETEST_TOLERANCE_MM,
   canWriteSettings,
   computeStepsPerMm,
   decodeDirInvertMask,
   describeDirInvertMask,
   encodeDirInvertMask,
+  estimateStepsPerMm,
   formatSettingWrite,
+  homingEnabled,
   parseSettingLine,
   parseSettingsDump,
   roundStepsPerMm,
   softLimitsEnabled,
   softTravelFromSettings,
   softTravelWriteCommands,
+  stepsPerMmChangeFraction,
 } from "../src/grbl/settings.ts";
 import {
   SETTINGS_BACKUP_MAX,
@@ -97,6 +104,39 @@ assert(
 );
 assert(next === 263.158, `rounded steps expected 263.158, got ${next}`);
 
+// Negative commanded distance (Z down) uses absolute travel for the ratio.
+const zNeg = computeStepsPerMm(250, -20, 19);
+assert(
+  Math.abs(zNeg - 250 * (20 / 19)) < 1e-9,
+  `Z-down steps abs distance expected ~${250 * (20 / 19)}, got ${zNeg}`,
+);
+
+assert(
+  stepsPerMmChangeFraction(250, 300) === 0.2,
+  "±20% change fraction",
+);
+assert(
+  stepsPerMmChangeFraction(250, 301) > STEPS_MM_LARGE_CHANGE_FRACTION,
+  "301/250 is above large-change guard",
+);
+assert(
+  stepsPerMmChangeFraction(250, 260) < STEPS_MM_LARGE_CHANGE_FRACTION,
+  "small change below guard",
+);
+
+assert(estimateStepsPerMm(200, 8, 2) === 800, "200×8÷2 = 800 steps/mm");
+assert(roundStepsPerMm(estimateStepsPerMm(200, 16, 8)) === 400, "belt estimate");
+
+assert(STEPS_RETEST_TOLERANCE_MM === 0.1, "re-test tolerance 0.1 mm");
+assert(
+  Math.abs(20.05 - 20) <= STEPS_RETEST_TOLERANCE_MM,
+  "re-test pass within ±0.1",
+);
+assert(
+  Math.abs(20.2 - 20) > STEPS_RETEST_TOLERANCE_MM,
+  "re-test fail outside ±0.1",
+);
+
 assert(canWriteSettings("Idle", true, false).ok === true, "idle ok");
 assert(canWriteSettings("Idle", true, true).ok === false, "block while streaming");
 assert(canWriteSettings("Run", true, false).ok === false, "block while Run");
@@ -141,6 +181,12 @@ assert(settings.get(SETTING_DIR_PORT_INVERT)?.value === 0, "default $3");
 // Virtual CNC is a perfectly calibrated machine — soft limits on by default.
 // Real Demon Shield EEPROM still ships with $20=0 until calibration writes it.
 assert(softLimitsEnabled(settings) === true, "Virtual CNC soft limits on by default");
+// Virtual CNC enables homing ($22=1); real EEPROM may ship with $22=0.
+assert(homingEnabled(settings) === true, "Virtual CNC $22 on by default");
+assert(
+  settings.get(SETTING_HOMING_CYCLE)?.value === 1,
+  "$$ includes $22=1 for direction↔homing note",
+);
 
 await writeGrblSetting(client, SETTING_DIR_PORT_INVERT, 5, { timeoutMs: 1500 });
 const afterDir = await fetchGrblSettings(client, { timeoutMs: 2000 });

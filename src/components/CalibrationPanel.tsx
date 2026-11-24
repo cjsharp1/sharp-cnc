@@ -7,14 +7,19 @@ import {
   DIR_TEST_JOG_MM,
   MAX_TRAVEL_SETTING_FOR_AXIS,
   SETTING_DIR_PORT_INVERT,
+  STEPS_MM_LARGE_CHANGE_FRACTION,
+  STEPS_RETEST_TOLERANCE_MM,
   STEPS_SETTING_FOR_AXIS,
   buildJogCommand,
   computeStepsPerMm,
   decodeDirInvertMask,
   describeDirInvertMask,
   encodeDirInvertMask,
+  estimateStepsPerMm,
+  homingEnabled,
   roundStepsPerMm,
   softLimitsEnabled,
+  stepsPerMmChangeFraction,
   type Axis,
   type AxisDirInvert,
   type CalibrationGuidedStepId,
@@ -110,6 +115,18 @@ function formatMm(value: number): string {
 const Z_CALIBRATION_DISTANCE_OPTIONS_MM = [10, 20, 25] as const;
 const DEFAULT_Z_CALIBRATION_DISTANCE_MM = 20;
 
+/** Direction rows: Z first — a wrong +Z plunges into the work on retract. */
+const DIR_AXIS_ROWS: { ax: Axis; key: keyof AxisDirInvert; expected: string }[] =
+  [
+    {
+      ax: "Z",
+      key: "z",
+      expected: "+Z → up (tool lifts off the work)",
+    },
+    { ax: "X", key: "x", expected: "+X → right" },
+    { ax: "Y", key: "y", expected: "+Y → away from you" },
+  ];
+
 function distanceOptionsFor(axis: Axis): readonly number[] {
   return axis === "Z"
     ? Z_CALIBRATION_DISTANCE_OPTIONS_MM
@@ -170,6 +187,13 @@ export function CalibrationPanel({
   );
   const [measuredMm, setMeasuredMm] = useState("");
   const [moved, setMoved] = useState(false);
+  /** After a successful Write, offer "Move again to check". */
+  const [stepsRetestPending, setStepsRetestPending] = useState(false);
+  const [stepsRetestPass, setStepsRetestPass] = useState(false);
+  const [helperOpen, setHelperOpen] = useState(false);
+  const [helperMotorSteps, setHelperMotorSteps] = useState("200");
+  const [helperMicrosteps, setHelperMicrosteps] = useState("8");
+  const [helperMmPerRev, setHelperMmPerRev] = useState("2");
 
   // Axis direction ($3)
   const [dirFlags, setDirFlags] = useState<AxisDirInvert>({
@@ -177,6 +201,8 @@ export function CalibrationPanel({
     y: false,
     z: false,
   });
+  /** Axis whose last Test ± jog still needs Yes / No. */
+  const [dirTestPending, setDirTestPending] = useState<Axis | null>(null);
 
   // Soft travel form
   const [maxX, setMaxX] = useState(String(softTravel.maxX ?? ""));
@@ -193,6 +219,7 @@ export function CalibrationPanel({
   const draftDirMask = encodeDirInvertMask(dirFlags);
   const dirDirty =
     currentDirMask === null || draftDirMask !== Math.trunc(currentDirMask);
+  const homingOn = settings ? homingEnabled(settings) : false;
 
   const computed = useMemo(() => {
     const measured = Number(measuredMm);
@@ -214,7 +241,29 @@ export function CalibrationPanel({
     }
   }, [currentSteps, commandedMm, measuredMm]);
 
+  const stepsLargeChange =
+    computed !== null &&
+    stepsPerMmChangeFraction(computed.before, computed.after) >
+      STEPS_MM_LARGE_CHANGE_FRACTION;
+
+  const helperEstimate = useMemo(() => {
+    const motor = Number(helperMotorSteps);
+    const micro = Number(helperMicrosteps);
+    const mmRev = Number(helperMmPerRev);
+    try {
+      return roundStepsPerMm(estimateStepsPerMm(motor, micro, mmRev));
+    } catch {
+      return null;
+    }
+  }, [helperMotorSteps, helperMicrosteps, helperMmPerRev]);
+
   const softOn = settings ? softLimitsEnabled(settings) : false;
+
+  const resetStepsMeasure = () => {
+    setMoved(false);
+    setMeasuredMm("");
+    setStepsRetestPass(false);
+  };
 
   // Guided steps need settings; load quietly (no raw $$ chrome — Advanced has that).
   useEffect(() => {
@@ -424,8 +473,9 @@ export function CalibrationPanel({
             Axis direction
           </h3>
           <p className="cal__hint">
-            Match jog +X / +Y / +Z to the machine (<code>$3</code>). Toggle,
-            write, then short test jogs before steps/mm.
+            Match jog +X / +Y / +Z to the machine. Start with Z — if +Z goes
+            down, every &ldquo;safe&rdquo; retract drives the tool into the
+            work. Fix direction (<code>$3</code>) before steps/mm.
           </p>
 
           <p className="cal__current">
@@ -446,56 +496,113 @@ export function CalibrationPanel({
           </p>
 
           <div className="cal__dir" role="group" aria-label="Invert axes">
-            {(
-              [
-                ["X", "x"],
-                ["Y", "y"],
-                ["Z", "z"],
-              ] as const
-            ).map(([ax, key]) => (
-              <div key={ax} className="cal__dir-row">
-                <label className="cal__check cal__dir-toggle">
-                  <input
-                    type="checkbox"
-                    checked={dirFlags[key]}
-                    disabled={!canAct}
-                    onChange={(e) => {
-                      clearConfirm();
-                      setDirFlags((prev) => ({
-                        ...prev,
-                        [key]: e.target.checked,
-                      }));
-                    }}
-                  />
-                  <span>Invert {ax}</span>
-                </label>
-                <div
-                  className="cal__dir-tests"
-                  role="group"
-                  aria-label={`Test jog ${ax}`}
-                >
-                  <button
-                    type="button"
-                    className="cal__btn cal__btn--ghost"
-                    disabled={!canAct}
-                    onClick={() => onCalibrateMove(ax, DIR_TEST_JOG_MM)}
-                    title={`Jog +${DIR_TEST_JOG_MM} mm on ${ax}`}
+            {DIR_AXIS_ROWS.map(({ ax, key, expected }) => (
+              <div
+                key={ax}
+                className={`cal__dir-row${ax === "Z" ? " cal__dir-row--z" : ""}`}
+              >
+                <div className="cal__dir-main">
+                  <label className="cal__check cal__dir-toggle">
+                    <input
+                      type="checkbox"
+                      checked={dirFlags[key]}
+                      disabled={!canAct}
+                      onChange={(e) => {
+                        clearConfirm();
+                        setDirFlags((prev) => ({
+                          ...prev,
+                          [key]: e.target.checked,
+                        }));
+                      }}
+                    />
+                    <span>Invert {ax}</span>
+                  </label>
+                  <p className="cal__dir-expect">{expected}</p>
+                  {ax === "Z" ? (
+                    <p className="cal__warn cal__dir-z-warn" role="note">
+                      If +Z goes down, every &ldquo;safe&rdquo; retract would
+                      drive the tool into the work. Fix this before anything
+                      else.
+                    </p>
+                  ) : null}
+                </div>
+                <div className="cal__dir-side">
+                  <div
+                    className="cal__dir-tests"
+                    role="group"
+                    aria-label={`Test jog ${ax}`}
                   >
-                    Test +{ax}
-                  </button>
-                  <button
-                    type="button"
-                    className="cal__btn cal__btn--ghost"
-                    disabled={!canAct}
-                    onClick={() => onCalibrateMove(ax, -DIR_TEST_JOG_MM)}
-                    title={`Jog −${DIR_TEST_JOG_MM} mm on ${ax}`}
-                  >
-                    Test −{ax}
-                  </button>
+                    <button
+                      type="button"
+                      className="cal__btn cal__btn--ghost"
+                      disabled={!canAct}
+                      onClick={() => {
+                        onCalibrateMove(ax, DIR_TEST_JOG_MM);
+                        setDirTestPending(ax);
+                      }}
+                      title={`Jog +${DIR_TEST_JOG_MM} mm on ${ax}`}
+                    >
+                      Test +{ax}
+                    </button>
+                    <button
+                      type="button"
+                      className="cal__btn cal__btn--ghost"
+                      disabled={!canAct}
+                      onClick={() => {
+                        onCalibrateMove(ax, -DIR_TEST_JOG_MM);
+                        setDirTestPending(ax);
+                      }}
+                      title={`Jog −${DIR_TEST_JOG_MM} mm on ${ax}`}
+                    >
+                      Test −{ax}
+                    </button>
+                  </div>
+                  {dirTestPending === ax ? (
+                    <div
+                      className="cal__dir-ask"
+                      role="group"
+                      aria-label={`Did ${ax} go the expected way?`}
+                    >
+                      <span className="cal__dir-ask-label">
+                        Did it go the expected way?
+                      </span>
+                      <button
+                        type="button"
+                        className="cal__btn cal__btn--ghost"
+                        disabled={!canAct}
+                        onClick={() => setDirTestPending(null)}
+                      >
+                        Yes
+                      </button>
+                      <button
+                        type="button"
+                        className="cal__btn cal__btn--ghost"
+                        disabled={!canAct}
+                        onClick={() => {
+                          clearConfirm();
+                          setDirFlags((prev) => ({
+                            ...prev,
+                            [key]: true,
+                          }));
+                          setDirTestPending(null);
+                        }}
+                      >
+                        No
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             ))}
           </div>
+
+          {homingOn && dirDirty ? (
+            <p className="cal__warn" role="status">
+              Changing direction (<code>$3</code>) can also flip which way
+              homing goes (<code>$23</code>). Homing is on (
+              <code>$22=1</code>) — check the Homing step after you write.
+            </p>
+          ) : null}
 
           <div className="cal__result" aria-live="polite">
             <p className="cal__result-line">
@@ -509,7 +616,10 @@ export function CalibrationPanel({
                 type="button"
                 className="cal__btn"
                 disabled={!canAct || !dirDirty}
-                onClick={() => onWriteDirInvert(draftDirMask)}
+                onClick={() => {
+                  onWriteDirInvert(draftDirMask);
+                  setDirTestPending(null);
+                }}
               >
                 Write ${SETTING_DIR_PORT_INVERT}={draftDirMask}
               </button>
@@ -550,9 +660,8 @@ export function CalibrationPanel({
           <p className="cal__hint">
             Command a known move, measure how far it really went, write
             steps/mm ($100–$102). For Z the move goes <strong>down</strong>
-            (Z homes to the top); measure it with calipers or a dial indicator
-            against the spindle body — a small Z error makes every cut the
-            wrong depth.
+            (Z homes to the top). Use calipers or a dial indicator against the
+            spindle body — a small Z error makes every cut the wrong depth.
           </p>
 
           <div className="cal__row">
@@ -571,8 +680,8 @@ export function CalibrationPanel({
                       ? DEFAULT_Z_CALIBRATION_DISTANCE_MM
                       : DEFAULT_CALIBRATION_DISTANCE_MM,
                   );
-                  setMoved(false);
-                  setMeasuredMm("");
+                  resetStepsMeasure();
+                  setStepsRetestPending(false);
                 }}
               >
                 <option value="X">X ($100)</option>
@@ -589,7 +698,7 @@ export function CalibrationPanel({
                 onChange={(e) => {
                   clearConfirm();
                   setCommandedMm(Number(e.target.value));
-                  setMoved(false);
+                  resetStepsMeasure();
                 }}
               >
                 {distanceOptionsFor(axis).map((d) => (
@@ -609,6 +718,74 @@ export function CalibrationPanel({
             steps/mm
           </p>
 
+          <details
+            className="cal__helper"
+            open={helperOpen}
+            onToggle={(e) => setHelperOpen((e.target as HTMLDetailsElement).open)}
+          >
+            <summary>Don&rsquo;t know your starting value?</summary>
+            <p className="cal__hint">
+              Estimate from the drivetrain: motor steps/rev × microsteps ÷ mm
+              per rev (lead-screw lead, or pulley teeth × belt pitch).
+            </p>
+            <div className="cal__row cal__row--helper">
+              <label className="cal__field">
+                <span className="cal__field-label">Motor steps/rev</span>
+                <input
+                  className="cal__input"
+                  type="number"
+                  inputMode="decimal"
+                  min="1"
+                  step="1"
+                  value={helperMotorSteps}
+                  disabled={!canAct}
+                  onChange={(e) => setHelperMotorSteps(e.target.value)}
+                />
+              </label>
+              <label className="cal__field">
+                <span className="cal__field-label">Microsteps</span>
+                <select
+                  className="cal__select"
+                  value={helperMicrosteps}
+                  disabled={!canAct}
+                  onChange={(e) => setHelperMicrosteps(e.target.value)}
+                >
+                  {[1, 2, 4, 8, 16, 32].map((n) => (
+                    <option key={n} value={String(n)}>
+                      {n}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="cal__field">
+                <span className="cal__field-label">mm per rev</span>
+                <input
+                  className="cal__input"
+                  type="number"
+                  inputMode="decimal"
+                  min="0.01"
+                  step="0.01"
+                  value={helperMmPerRev}
+                  disabled={!canAct}
+                  onChange={(e) => setHelperMmPerRev(e.target.value)}
+                />
+              </label>
+            </div>
+            <p className="cal__result-line">
+              Estimate:{" "}
+              <strong>
+                {helperEstimate !== null ? helperEstimate.toFixed(3) : "—"}
+              </strong>{" "}
+              steps/mm
+              {helperEstimate !== null && currentSteps !== null ? (
+                <span className="cal__meta">
+                  {" "}
+                  (controller shows {currentSteps.toFixed(3)})
+                </span>
+              ) : null}
+            </p>
+          </details>
+
           <div className="cal__actions">
             <button
               type="button"
@@ -617,6 +794,7 @@ export function CalibrationPanel({
               onClick={() => {
                 onCalibrateMove(axis, axis === "Z" ? -commandedMm : commandedMm);
                 setMoved(true);
+                setStepsRetestPass(false);
               }}
               title={buildJogCommand(
                 axis === "X"
@@ -627,9 +805,13 @@ export function CalibrationPanel({
                 DEFAULT_JOG_FEED_MM_MIN,
               )}
             >
-              {axis === "Z"
-                ? `Move Z down ${commandedMm} mm`
-                : `Move +${commandedMm} ${axis}`}
+              {stepsRetestPending
+                ? axis === "Z"
+                  ? `Move again — Z down ${commandedMm} mm`
+                  : `Move again — +${commandedMm} ${axis}`
+                : axis === "Z"
+                  ? `Move Z down ${commandedMm} mm`
+                  : `Move +${commandedMm} ${axis}`}
             </button>
           </div>
 
@@ -646,30 +828,72 @@ export function CalibrationPanel({
               disabled={!canAct}
               onChange={(e) => {
                 clearConfirm();
-                setMeasuredMm(e.target.value);
+                const raw = e.target.value;
+                setMeasuredMm(raw);
+                if (stepsRetestPending) {
+                  const m = Number(raw);
+                  setStepsRetestPass(
+                    Number.isFinite(m) &&
+                      Math.abs(m - commandedMm) <= STEPS_RETEST_TOLERANCE_MM,
+                  );
+                } else {
+                  setStepsRetestPass(false);
+                }
               }}
             />
           </label>
 
-          {computed && (
+          {stepsRetestPending && stepsRetestPass ? (
+            <p className="cal__pass" role="status">
+              Within ±{STEPS_RETEST_TOLERANCE_MM} mm of commanded ✓
+            </p>
+          ) : null}
+          {stepsRetestPending &&
+          moved &&
+          measuredMm.trim() &&
+          !stepsRetestPass ? (
+            <p className="cal__hint" role="status">
+              Re-measure: pass when within ±{STEPS_RETEST_TOLERANCE_MM} mm of{" "}
+              {commandedMm} mm.
+            </p>
+          ) : null}
+
+          {computed && !(stepsRetestPending && stepsRetestPass) ? (
             <div className="cal__result" aria-live="polite">
               <p className="cal__result-line">
                 Before: <strong>{computed.before.toFixed(3)}</strong>
                 {" → "}
                 After: <strong>{computed.after.toFixed(3)}</strong> steps/mm
               </p>
+              {stepsLargeChange ? (
+                <p className="cal__warn" role="status">
+                  That&rsquo;s a big change (more than ±
+                  {Math.round(STEPS_MM_LARGE_CHANGE_FRACTION * 100)}%). Usually
+                  this means a microstepping or screw setting is wrong, not a
+                  measuring error. You can still write if you&rsquo;re sure.
+                </p>
+              ) : null}
               <button
                 type="button"
                 className="cal__btn"
                 disabled={!canAct}
-                onClick={() =>
-                  onWriteSteps(axis, computed.before, computed.after)
-                }
+                onClick={() => {
+                  onWriteSteps(axis, computed.before, computed.after);
+                  setStepsRetestPending(true);
+                  resetStepsMeasure();
+                }}
               >
                 Write ${stepsId}={computed.after.toFixed(3)}
               </button>
             </div>
-          )}
+          ) : null}
+
+          {stepsRetestPending && !measuredMm.trim() ? (
+            <p className="cal__hint" role="status">
+              Written. Move again to check — pass within ±
+              {STEPS_RETEST_TOLERANCE_MM} mm of commanded.
+            </p>
+          ) : null}
 
           <WizardStepConfirm
             id="cal-confirm-steps"

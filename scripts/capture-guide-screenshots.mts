@@ -332,8 +332,10 @@ async function main() {
       await page.waitForTimeout(500);
     }
 
-    // zero → direction → steps/mm (guide asset: cal-step2-steps) → soft travel
+    // zero → direction (Z row first) → steps/mm → soft travel
     await confirmAndNext("cal-confirm-zero");
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step-direction.png");
     await confirmAndNext("cal-confirm-direction");
     await page.waitForTimeout(300);
     await shot(page, "cal-step2-steps.png");

@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
   <title id="t">Calibration 2 — Direction $3</title>
-  <desc id="d">Invert axes with $3 bitmask so +jog matches bed: +X right, +Y back up on screen, +Z up</desc>
+  <desc id="d">Invert axes with $3 bitmask so +jog matches bed: Z first (+Z up, tool lifts), then +X right, +Y away. Yes/No after each test.</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -26,29 +26,30 @@
   <circle class="num" cx="56" cy="56" r="28"/>
   <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">2</text>
   <text class="lab big" x="100" y="50">Direction ($3)</text>
-  <text class="lab act" x="100" y="84">Toggle invert → Write $3 → Test ±5 mm</text>
+  <text class="lab act" x="100" y="84">Z first → Test → Yes/No → Write $3</text>
 
   <rect class="card" x="80" y="140" width="420" height="300" rx="14"/>
-  <text class="lab" x="290" y="185" text-anchor="middle" font-weight="700">Bitmask</text>
-  <rect class="bit" x="110" y="220" width="100" height="80" rx="10"/>
-  <text class="lab" x="160" y="248" text-anchor="middle" dominant-baseline="central" font-weight="700">X</text>
-  <text class="mono" x="160" y="272" text-anchor="middle" dominant-baseline="central">= 1</text>
-  <rect class="bit" x="240" y="220" width="100" height="80" rx="10"/>
-  <text class="lab" x="290" y="248" text-anchor="middle" dominant-baseline="central" font-weight="700">Y</text>
-  <text class="mono" x="290" y="272" text-anchor="middle" dominant-baseline="central">= 2</text>
-  <rect class="bit" x="370" y="220" width="100" height="80" rx="10"/>
-  <text class="lab" x="420" y="248" text-anchor="middle" dominant-baseline="central" font-weight="700">Z</text>
-  <text class="mono" x="420" y="272" text-anchor="middle" dominant-baseline="central">= 4</text>
-  <text class="tiny" x="290" y="350" text-anchor="middle">Sum bits to invert · e.g. X+Z = 5</text>
+  <text class="lab" x="290" y="185" text-anchor="middle" font-weight="700">Bitmask · Z row first</text>
+  <rect class="bit" x="110" y="210" width="100" height="70" rx="10"/>
+  <text class="lab" x="160" y="234" text-anchor="middle" dominant-baseline="central" font-weight="700">Z</text>
+  <text class="mono" x="160" y="258" text-anchor="middle" dominant-baseline="central">= 4</text>
+  <rect class="bit" x="240" y="210" width="100" height="70" rx="10"/>
+  <text class="lab" x="290" y="234" text-anchor="middle" dominant-baseline="central" font-weight="700">X</text>
+  <text class="mono" x="290" y="258" text-anchor="middle" dominant-baseline="central">= 1</text>
+  <rect class="bit" x="370" y="210" width="100" height="70" rx="10"/>
+  <text class="lab" x="420" y="234" text-anchor="middle" dominant-baseline="central" font-weight="700">Y</text>
+  <text class="mono" x="420" y="258" text-anchor="middle" dominant-baseline="central">= 2</text>
+  <text class="tiny" x="290" y="320" text-anchor="middle">No on Yes/No auto-ticks Invert · you still Write</text>
+  <text class="tiny" x="290" y="348" text-anchor="middle">If $22=1, changing $3 can flip homing ($23)</text>
   <rect class="btn" x="160" y="380" width="260" height="40" rx="8"/>
   <text class="w" x="290" y="400" text-anchor="middle" dominant-baseline="central" font-size="16">Write $3=…</text>
 
   <rect class="card" x="540" y="140" width="340" height="300" rx="14"/>
   <text class="lab" x="710" y="185" text-anchor="middle" font-weight="700">Expect</text>
-  <!-- Top-down bed view: work +Y (back) points up on screen — same as MachineView (#62) -->
   <path class="arrow" d="M600 360 H800"/>
   <text class="lab" x="700" y="345" text-anchor="middle" dominant-baseline="central" font-weight="700">+X right</text>
   <path class="arrow" d="M620 380 V220"/>
-  <text class="lab" x="640" y="250" dominant-baseline="central" font-weight="700">+Y back</text>
-  <text class="tiny" x="710" y="420" text-anchor="middle">+Z up · wrong way → flip bit</text>
+  <text class="lab" x="640" y="250" dominant-baseline="central" font-weight="700">+Y away</text>
+  <text class="tiny" x="710" y="410" text-anchor="middle">+Z → up (tool lifts off the work)</text>
+  <text class="tiny" x="710" y="435" text-anchor="middle">Wrong +Z = retract into the work</text>
 </svg>

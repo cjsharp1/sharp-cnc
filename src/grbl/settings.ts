@@ -3,13 +3,21 @@ import type { Axis, GrblMachineState } from "./types";
 
 /** GRBL setting IDs used by SharpCNC calibration / soft travel. */
 export const SETTING_DIR_PORT_INVERT = 3;
+export const SETTING_SOFT_LIMITS = 20;
+export const SETTING_HOMING_CYCLE = 22;
+export const SETTING_HOMING_DIR_MASK = 23;
 export const SETTING_STEPS_X = 100;
 export const SETTING_STEPS_Y = 101;
 export const SETTING_STEPS_Z = 102;
 export const SETTING_MAX_TRAVEL_X = 130;
 export const SETTING_MAX_TRAVEL_Y = 131;
 export const SETTING_MAX_TRAVEL_Z = 132;
-export const SETTING_SOFT_LIMITS = 20;
+
+/** Warn before Write when steps/mm would change by more than this fraction. */
+export const STEPS_MM_LARGE_CHANGE_FRACTION = 0.2;
+
+/** Re-test after a steps/mm write passes when |measured − commanded| ≤ this (mm). */
+export const STEPS_RETEST_TOLERANCE_MM = 0.1;
 
 /** Default GRBL 1.1-ish values used by the mock and as UI placeholders. */
 export const DEFAULT_GRBL_SETTINGS: Record<number, number> = {
@@ -170,6 +178,8 @@ export function formatSettingWrite(id: number, value: number): string {
  * Recompute steps/mm after a calibration move.
  * If the controller commanded `commandedMm` but the ruler reads `measuredMm`,
  * newSteps = oldSteps × (commanded / measured).
+ * Distances use absolute value so a negative Z move (down) still yields a
+ * positive steps/mm when the operator enters a positive measured length.
  */
 export function computeStepsPerMm(
   oldSteps: number,
@@ -185,12 +195,47 @@ export function computeStepsPerMm(
   if (!Number.isFinite(measuredMm) || measuredMm === 0) {
     throw new Error("Measured distance must be non-zero.");
   }
-  return oldSteps * (commandedMm / measuredMm);
+  return oldSteps * (Math.abs(commandedMm) / Math.abs(measuredMm));
 }
 
 export function roundStepsPerMm(value: number, decimals = 3): number {
   const f = 10 ** decimals;
   return Math.round(value * f) / f;
+}
+
+/** Absolute fractional change |after − before| / before (0 when before ≤ 0). */
+export function stepsPerMmChangeFraction(before: number, after: number): number {
+  if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
+    return 0;
+  }
+  return Math.abs(after - before) / before;
+}
+
+/**
+ * Estimate steps/mm from drivetrain: (motor steps/rev × microsteps) ÷ mm/rev.
+ * mm/rev is lead-screw lead, or pulley teeth × belt pitch.
+ */
+export function estimateStepsPerMm(
+  motorStepsPerRev: number,
+  microsteps: number,
+  mmPerRev: number,
+): number {
+  if (
+    !Number.isFinite(motorStepsPerRev) ||
+    motorStepsPerRev <= 0 ||
+    !Number.isFinite(microsteps) ||
+    microsteps <= 0 ||
+    !Number.isFinite(mmPerRev) ||
+    mmPerRev <= 0
+  ) {
+    throw new Error("Steps estimate inputs must be positive numbers.");
+  }
+  return (motorStepsPerRev * microsteps) / mmPerRev;
+}
+
+/** True when homing cycle is enabled (`$22=1`). */
+export function homingEnabled(settings: Map<number, GrblSetting>): boolean {
+  return (settings.get(SETTING_HOMING_CYCLE)?.value ?? 0) !== 0;
 }
 
 /** Soft-limits enable value: 1 = on, 0 = off. */
