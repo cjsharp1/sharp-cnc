@@ -3,6 +3,46 @@ import { formatTxPayload, isStatusChatter } from "./activityLog";
 import type { SerialTransport } from "./transport";
 
 /**
+ * localStorage `"1"` → mirror every TX payload onto `window.__SHARPCNC_TX__`
+ * for Playwright smokes (E-Stop loop abort counts `$J=` writes).
+ */
+export const SMOKE_TX_LOG_KEY = "sharpcnc.smoke.txLog.v1";
+
+declare global {
+  interface Window {
+    /** Raw TX payloads when {@link SMOKE_TX_LOG_KEY} is enabled. */
+    __SHARPCNC_TX__?: string[];
+  }
+}
+
+function smokeTxBuffer(): string[] | null {
+  try {
+    if (
+      typeof localStorage === "undefined" ||
+      localStorage.getItem(SMOKE_TX_LOG_KEY) !== "1"
+    ) {
+      return null;
+    }
+    if (typeof window === "undefined") return null;
+    if (!window.__SHARPCNC_TX__) window.__SHARPCNC_TX__ = [];
+    return window.__SHARPCNC_TX__;
+  } catch {
+    return null;
+  }
+}
+
+function rawTxPayload(data: string | Uint8Array): string {
+  if (typeof data === "string") return data.replace(/\r?\n$/, "");
+  const bytes = data instanceof Uint8Array ? data : new Uint8Array(data);
+  if (bytes.length === 1 && bytes[0] === 0x18) return "<0x18>";
+  if (bytes.length === 1 && bytes[0] === 0x85) return "<0x85>";
+  if (bytes.length === 1) return `<0x${bytes[0]!.toString(16)}>`;
+  return `[${Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join(" ")}]`;
+}
+
+/**
  * Wrap a {@link SerialTransport} so every TX/RX (and open/close/error) is
  * mirrored into an {@link ActivityLog}. Logging is attached once to the
  * underlying transport so multiple `onLine` / `onEvent` subscribers do not
@@ -56,6 +96,8 @@ export function instrumentTransport(
     async write(data) {
       const text = formatTxPayload(data);
       log.append("tx", text, { chatter: isStatusChatter("tx", text) });
+      const probe = smokeTxBuffer();
+      if (probe) probe.push(rawTxPayload(data));
       return transport.write(data);
     },
     onLine(handler) {

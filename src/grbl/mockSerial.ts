@@ -70,6 +70,39 @@ function seedVirtualCncSettings(target: Map<number, number>): void {
 }
 
 /**
+ * localStorage key: set to `"1"` before connect so Virtual CNC feed-hold during
+ * `$J=` cancels the jog → Idle (real GRBL 1.1). Default Virtual CNC stays Hold
+ * (see docs/mock-vs-real-grbl.md). Used by the E-Stop loop-abort Playwright smoke;
+ * full strict mode is Remaining T2.
+ */
+export const MOCK_HOLD_DURING_JOG_CANCELS_KEY =
+  "sharpcnc.mock.holdDuringJogCancels.v1";
+
+export interface MockTransportOptions {
+  /**
+   * When true, feed hold (`!` / `$ExtHold`) during Jog cancels the jog and
+   * returns Idle — matching real GRBL 1.1. Default false keeps legacy Virtual
+   * CNC Hold-during-jog behavior.
+   */
+  holdDuringJogCancels?: boolean;
+}
+
+/** Read mock option overrides from localStorage (browser / Playwright seeds). */
+export function mockTransportOptionsFromStorage(): MockTransportOptions {
+  try {
+    if (
+      typeof localStorage !== "undefined" &&
+      localStorage.getItem(MOCK_HOLD_DURING_JOG_CANCELS_KEY) === "1"
+    ) {
+      return { holdDuringJogCancels: true };
+    }
+  } catch {
+    /* ignore — Node smokes / restricted storage */
+  }
+  return {};
+}
+
+/**
  * Virtual CNC — in-app GRBL simulator (no Demon Shield USB). Selected from the
  * Connect port list like a COM port. Simulates status (MPos/WPos via WCO),
  * jog (`$J=`), work zero (`G10 L20`), job motion (G0/G1), soft-reset, homing
@@ -82,7 +115,10 @@ function seedVirtualCncSettings(target: Map<number, number>): void {
  * Program lines are queued and acknowledged in order so the character-counting
  * streamer behaves like GRBL's RX buffer.
  */
-export function createMockTransport(): SerialTransport {
+export function createMockTransport(
+  options: MockTransportOptions = {},
+): SerialTransport {
+  const holdDuringJogCancels = options.holdDuringJogCancels === true;
   let open = false;
   let baud = DEFAULT_BAUD;
   const lineHandlers = new Set<(line: string) => void>();
@@ -705,6 +741,14 @@ export function createMockTransport(): SerialTransport {
 
     // Real-time single-character commands (no newline).
     if (data === "!") {
+      if (state === "Jog" && holdDuringJogCancels) {
+        // Real GRBL 1.1: feed hold during jog cancels the jog → Idle.
+        clearMotion();
+        busy = false;
+        state = "Idle";
+        heldFrom = "Idle";
+        return;
+      }
       if (state === "Run" || state === "Jog") {
         heldFrom = state;
         state = "Hold";
@@ -733,7 +777,12 @@ export function createMockTransport(): SerialTransport {
     // Demon Shield button sim — apply immediately (like real-time pins), not via RX queue.
     if (/^\$ExtHold$/i.test(trimmed)) {
       pulsePin("H");
-      if (state === "Run" || state === "Jog") {
+      if (state === "Jog" && holdDuringJogCancels) {
+        clearMotion();
+        busy = false;
+        state = "Idle";
+        heldFrom = "Idle";
+      } else if (state === "Run" || state === "Jog") {
         heldFrom = state;
         state = "Hold";
       }

@@ -279,11 +279,14 @@ export {
   listDesktopPorts,
 } from "./desktopSerial";
 
+export type { MockTransportOptions } from "./mockSerial";
 export {
   createMockGrblClient,
   createMockTransport,
   isVirtualCncPath,
   listMockPorts,
+  MOCK_HOLD_DURING_JOG_CANCELS_KEY,
+  mockTransportOptionsFromStorage,
   VIRTUAL_CNC_PATH,
 } from "./mockSerial";
 
@@ -482,7 +485,10 @@ export {
   isStatusChatter,
 } from "./activityLog";
 
-export { instrumentTransport } from "./instrumentTransport";
+export {
+  instrumentTransport,
+  SMOKE_TX_LOG_KEY,
+} from "./instrumentTransport";
 
 export type {
   BuildDebugSnapshotInput,

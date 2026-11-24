@@ -33,7 +33,7 @@ npm run smoke:critical
 | Invalid / unsupported g-code | `error:20` (etc. numeric) | `error:Invalid gcode` | Same |
 | Soft-limit **jog** (`$J=`) | `error:15`, jog ignored, **stays Idle** | `ALARM:2`, enters Alarm | Unlock UX / job gates differ |
 | Soft-reset while **Idle** | **Retains** MPos | **Zeros** MPos/WCO to origin | False “back to zero” after Abort |
-| Feed hold during **Jog** | Cancels jog → **Idle** | Stays in **Hold** | Hold/resume UI differs |
+| Feed hold during **Jog** | Cancels jog → **Idle** | Stays in **Hold** (default). Opt-in: `localStorage sharpcnc.mock.holdDuringJogCancels.v1=1` or `createMockTransport({ holdDuringJogCancels: true })` → Idle like real GRBL (used by `smoke-estop-loop-abort`; full strict mode is Remaining T2) | Hold/resume UI differs unless the opt-in is on |
 | Feed hold while **Idle** | Accepted (Hold) | Ignored | External Hold button sim may differ |
 | Force-alarm helpers | N/A | `$Alarm`, `$Alarm2`, `$Alarm5`, … | **Never** send these to USB |
 | External button sim | Hardware pins → `Pn:` | `$ExtHold` / `$ExtResume` / `$ExtAbort` / `$ExtProbe` | Mock-only — never send to USB |

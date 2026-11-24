@@ -13,6 +13,7 @@ import {
   createMockTransport,
   isVirtualCncPath,
   listMockPorts,
+  mockTransportOptionsFromStorage,
   VIRTUAL_CNC_PATH,
 } from "./mockSerial";
 import { createRoutingTransport } from "./routingTransport";
@@ -40,16 +41,18 @@ export function createSessionClient(
   options: SessionClientOptions = {},
 ): GrblClient {
   const log = options.activityLog;
+  const mockOpts = mockTransportOptionsFromStorage();
   if (isDesktopShell()) {
     const routed = createRoutingTransport(
       createDesktopTransport(),
-      createMockTransport(),
+      createMockTransport(mockOpts),
     );
     if (!log) return createGrblClient(routed);
     return createGrblClient(instrumentTransport(routed, log));
   }
-  if (!log) return createMockGrblClient();
-  return createGrblClient(instrumentTransport(createMockTransport(), log));
+  const mock = createMockTransport(mockOpts);
+  if (!log) return createMockGrblClient(mock);
+  return createGrblClient(instrumentTransport(mock, log));
 }
 
 /**

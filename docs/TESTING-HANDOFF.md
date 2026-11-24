@@ -16,7 +16,7 @@ npm run smoke:critical   # PR / CI gate
 npm run smoke            # full suite before tagging
 ```
 
-Both must exit **0**. Critical now covers calibration, **bed travel test**, **stock perimeter**, overrides, first-run order, job recovery, **real GRBL protocol fixtures + mock-vs-firmware diffs** (`smoke-real-grbl`; see [mock-vs-real-grbl.md](mock-vs-real-grbl.md)), plus the full mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop path (`smoke-app-safety`).
+Both must exit **0**. Critical now covers calibration, **bed travel test**, **stock perimeter**, **E-Stop loop abort** (`smoke-estop-loop-abort` Playwright: bed travel → E-Stop → no further `$J=` + latch banner), overrides, first-run order, job recovery, **real GRBL protocol fixtures + mock-vs-firmware diffs** (`smoke-real-grbl`; see [mock-vs-real-grbl.md](mock-vs-real-grbl.md)), plus the full mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop path (`smoke-app-safety`).
 
 If smokes fail: **do not cut**. Fix or roll back first.
 
