@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
-  <title id="t">Calibration 4 — Soft travel</title>
+  <title id="t">Calibration 3 — Soft travel</title>
   <desc id="d">Jog to far end, Use MPos or type max, enable $20</desc>
   <defs>
     <style>
@@ -23,7 +23,7 @@
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
   <circle class="num" cx="56" cy="56" r="28"/>
-  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">4</text>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">3</text>
   <text class="lab big" x="100" y="50">Soft travel</text>
   <text class="lab act" x="100" y="84">Jog far → Use MPos → Write travel + $20</text>
 

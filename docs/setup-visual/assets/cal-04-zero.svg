@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Calibration 4 — Machine zero</title>
+  <desc id="d">Home then confirm Machine XYZ before measuring; blank origin is Prepare</desc>
+  <defs>
+    <style>
+      /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .num { fill: #b8862d; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 18px; }
+      .big { font-size: 28px; font-weight: 700; }
+      .act { font-size: 22px; font-weight: 700; }
+      .tiny { font-size: 14px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .mono { font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #1a2332; font-size: 20px; }
+      .btn { fill: #b8862d; }
+      .ok { fill: #1f6a4a; }
+    </style>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">4</text>
+  <text class="lab big" x="100" y="50">Machine zero</text>
+  <text class="lab act" x="100" y="84">Home ($H) → confirm Machine XYZ → Next</text>
+
+  <rect class="card" x="180" y="140" width="600" height="280" rx="14"/>
+  <text class="lab" x="480" y="190" text-anchor="middle" font-weight="700">Machine</text>
+  <text class="mono" x="480" y="240" text-anchor="middle">X …</text>
+  <text class="mono" x="480" y="280" text-anchor="middle">Y …</text>
+  <text class="mono" x="480" y="320" text-anchor="middle">Z …</text>
+  <text class="tiny" x="480" y="370" text-anchor="middle">After Home: near home corner · blank origin → Prepare</text>
+
+  <rect class="btn" x="360" y="400" width="240" height="44" rx="8"/>
+  <text class="w" x="480" y="422" text-anchor="middle" dominant-baseline="central" font-size="16">Home ($H)</text>
+</svg>

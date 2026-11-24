@@ -3433,6 +3433,11 @@ button {
   align-items: baseline;
 }
 
+.cal__pos--machine .cal__pos-legend,
+.cal__pos--machine .cal__pos-row {
+  grid-template-columns: 2rem 1fr;
+}
+
 .cal__pos-legend {
   font-size: var(--text-2xs);
   letter-spacing: 0.1em;

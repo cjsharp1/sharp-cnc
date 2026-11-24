@@ -21,35 +21,33 @@ import {
   type GrblSetting,
   type GrblStatus,
   type SoftTravelLimits,
-  type ZeroAxisSelection,
 } from "../grbl";
 import { useWizardStepGate, WizardStepConfirm } from "./wizardStepGate";
 
 export type CalibrationStepId = CalibrationGuidedStepId;
 
-const STEP_CHROME: Record<
-  CalibrationStepId,
-  { label: string; short: string }
-> = {
-  zero: { label: "Zero context", short: "1 · Zero" },
-  direction: { label: "Direction", short: "2 · Dir" },
-  steps: { label: "Steps/mm", short: "3 · Steps" },
-  travel: { label: "Soft travel", short: "4 · Travel" },
-};
+const STEP_CHROME: Record<CalibrationStepId, { label: string; short: string }> =
+  {
+    direction: { label: "Direction", short: "Dir" },
+    steps: { label: "Steps/mm", short: "Steps" },
+    travel: { label: "Soft travel", short: "Travel" },
+    zero: { label: "Machine zero", short: "Zero" },
+  };
 
-const WIZARD_STEPS = CALIBRATION_GUIDED_STEPS.map((id) => ({
+const WIZARD_STEPS = CALIBRATION_GUIDED_STEPS.map((id, i) => ({
   id,
-  ...STEP_CHROME[id],
+  label: STEP_CHROME[id].label,
+  short: `${i + 1} · ${STEP_CHROME[id].short}`,
 }));
 
 const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
-  zero: "Material zero looks right — I completed this step",
+  zero: "Machine XYZ looks right — I completed this step",
   direction: "Jog direction matches the machine — I completed this step",
   steps: "Measured and wrote steps/mm — I completed this step",
   travel: "Soft travel / bed extents set — I completed this step",
 };
 
-/** Compact Home ($H) offered on Zero context — recommended, not a hard gate. */
+/** Compact Home ($H) on the final Machine zero step — recommended, not a hard gate. */
 export interface CalibrationHomingProps {
   enabled: boolean;
   blockedReason?: string | null;
@@ -68,20 +66,17 @@ interface CalibrationPanelProps {
   machinePos: { x: number; y: number; z: number };
   busy?: boolean;
   message?: string | null;
-  zeroEnabled: boolean;
-  zeroMessage?: string | null;
   onRefreshSettings: () => void;
   onCalibrateMove: (axis: Axis, distanceMm: number) => void;
   onWriteSteps: (axis: Axis, before: number, after: number) => void;
   onWriteDirInvert: (mask: number) => void;
   onApplySoftTravel: (limits: SoftTravelLimits, enableSoft: boolean) => void;
-  onZero: (axes: ZeroAxisSelection) => void;
   onClose?: () => void;
-  /** Soft travel confirmed — persist calibrated and advance (phase shell). */
+  /** Final step confirmed — persist calibrated and advance (phase shell). */
   onComplete?: () => void;
   /** Open the post-calibration full bed travel test (recommended, not required). */
   onOpenBedTravelTest?: () => void;
-  /** Optional compact Home on Zero context (recommended). */
+  /** Optional compact Home on Machine zero (recommended). */
   homing?: CalibrationHomingProps | null;
   /** Denser chrome for the phase rail (no tall stack). */
   dense?: boolean;
@@ -99,13 +94,6 @@ function formatMm(value: number): string {
   return value.toFixed(3);
 }
 
-const ZERO_BUTTONS: { id: ZeroAxisSelection; label: string }[] = [
-  { id: "X", label: "Zero X" },
-  { id: "Y", label: "Zero Y" },
-  { id: "Z", label: "Zero Z" },
-  { id: "XYZ", label: "Zero XYZ" },
-];
-
 export function CalibrationPanel({
   enabled,
   blockedReason,
@@ -115,14 +103,11 @@ export function CalibrationPanel({
   machinePos,
   busy = false,
   message,
-  zeroEnabled,
-  zeroMessage,
   onRefreshSettings,
   onCalibrateMove,
   onWriteSteps,
   onWriteDirInvert,
   onApplySoftTravel,
-  onZero,
   onClose,
   onComplete,
   onOpenBedTravelTest,
@@ -290,11 +275,13 @@ export function CalibrationPanel({
       {step.id === "zero" && (
         <div className="cal__body" role="group" aria-labelledby="cal-step-zero">
           <h3 id="cal-step-zero" className="cal__step-title">
-            Confirm zero context
+            Confirm machine zero
           </h3>
           <p className="cal__hint">
-            Measurement check only — set material origin at a known reference
-            before steps/mm. Day-to-day blank origin lives in Prepare.
+            Direction, steps/mm, and soft travel are set. Home if you use limit
+            switches, then glance at Machine XYZ. After Home, machine zero comes
+            from the switches — nothing else to set here. Stock / blank origin
+            belongs in Prepare (when the board is on the table).
           </p>
 
           {homing ? (
@@ -309,16 +296,20 @@ export function CalibrationPanel({
                 {homing.busy ? "Homing…" : "Home ($H)"}
               </button>
               <span className="cal__recommend-meta">
-                {homing.homed ? "Homed this session" : "Recommended if you use switches"}
+                {homing.homed
+                  ? "Homed this session — machine zero is set"
+                  : "Recommended if you use switches"}
                 {homing.message ? ` · ${homing.message}` : ""}
               </span>
             </div>
           ) : null}
 
-          <div className="cal__pos" aria-label="Current position">
+          <div
+            className="cal__pos cal__pos--machine"
+            aria-label="Machine position"
+          >
             <div className="cal__pos-legend" aria-hidden>
               <span />
-              <span>Material</span>
               <span>Machine</span>
             </div>
             {(["X", "Y", "Z"] as const).map((ax) => {
@@ -326,8 +317,7 @@ export function CalibrationPanel({
               return (
                 <div key={ax} className="cal__pos-row">
                   <span className="cal__pos-axis">{ax}</span>
-                  <span className="cal__pos-val">{formatMm(status.work[key])}</span>
-                  <span className="cal__pos-val cal__pos-val--muted">
+                  <span className="cal__pos-val">
                     {formatMm(status.machine[key])}
                   </span>
                 </div>
@@ -338,34 +328,11 @@ export function CalibrationPanel({
             </p>
           </div>
 
-          <div
-            className="cal__actions"
-            role="group"
-            aria-label="Set material zero"
-          >
-            {ZERO_BUTTONS.map((btn) => (
-              <button
-                key={btn.id}
-                type="button"
-                className="cal__btn"
-                disabled={!zeroEnabled || busy}
-                onClick={() => onZero(btn.id)}
-                title={`Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as material zero (G10 L20)`}
-              >
-                {btn.label}
-              </button>
-            ))}
-          </div>
-
-          {zeroMessage ? (
-            <p className="cal__message" role="status">
-              {zeroMessage}
-            </p>
-          ) : (
-            <p className="cal__hint">
-              Zeroing sets material origin — it does not move the machine.
-            </p>
-          )}
+          <p className="cal__hint">
+            After Home, Machine XYZ should sit near the home corner of the bed.
+            That is the machine/bed reference for the work you just measured —
+            not a material origin.
+          </p>
 
           <WizardStepConfirm
             id="cal-confirm-zero"

@@ -11,7 +11,7 @@ Friendly, practical docs for running **one** home CNC: Chris’s custom Demon Sh
 | Phase | When | What you do |
 |-------|------|-------------|
 | **0 · [Connect](02-connect.md)** | Every session | Link USB **or** practice on **Virtual CNC** first. Visual: [connect](../setup-visual/connect.html) |
-| **1 · [Calibrate](05-calibration.md)** | Once per machine (or after hardware change) | `$3` direction · steps/mm · soft travel · optional bed test. Visual: [calibrate](../setup-visual/calibration.html) |
+| **1 · [Calibrate](05-calibration.md)** | Once per machine (or after hardware change) | `$3` direction · steps/mm · soft travel · Home / Machine XYZ · optional bed test. Visual: [calibrate](../setup-visual/calibration.html) |
 | **2 · [Prepare](07-prepare-and-z-probe.md)** | Every new job | Stock + tool · Material XYZ · Z probe · load path · Mark ready. Visual: [prepare](../setup-visual/prepare.html) |
 | **3 · Verify** | After Mark ready | Soft-limit check · Simulate · clear-path checklist · **Start**. Visual: [verify](../setup-visual/verify.html) |
 | **4 · Run** | While cutting | Progress · feed/spindle overrides · Hold / Stop. Visual: [run](../setup-visual/run.html) |
@@ -37,7 +37,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | 1 | [Install & run](01-install-and-run.md) | Windows installer, `npm run tauri dev`, mock UI |
 | 2 | [Connect](02-connect.md) | Phase 0 · COM ports · Virtual CNC first · [visual](../setup-visual/connect.html) · [first-run](../setup-visual/first-run.html) |
 | — | [Connect visual](../setup-visual/connect.html) | **Phase 0** · Virtual or COM · Linked |
-| — | [Calibrate visual](../setup-visual/calibration.html) | **Phase 1 · once** · `$3` · steps/mm · soft travel · bed test |
+| — | [Calibrate visual](../setup-visual/calibration.html) | **Phase 1 · once** · `$3` · steps/mm · soft travel · Home / Machine XYZ · bed test |
 | — | [Prepare visual](../setup-visual/prepare.html) | **Phase 2 · every job** · stock · Material XYZ · Z · load |
 | — | [Verify visual](../setup-visual/verify.html) | **Phase 3** · Simulate · checklist · Start |
 | — | [Run visual](../setup-visual/run.html) | **Phase 4** · overrides · Hold / Stop |
@@ -57,7 +57,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 
 1. Install from [Releases](https://github.com/cjsharp1/sharp-cnc/releases/latest), or `npm install` then `npm run tauri dev` on the Windows PC next to the CNC.
 2. **Connect:** Prefer **Virtual CNC** once for practice; then real COM → **Connect**.
-3. **Calibrate (once):** Phase switcher → **Calibrate** (or First-run) — `$3`, steps/mm, soft travel. Optional bed travel test. Next sessions skip to Prepare.
+3. **Calibrate (once):** Phase switcher → **Calibrate** (or First-run) — `$3`, steps/mm, soft travel, then Home / Machine XYZ. Optional bed travel test. Next sessions skip to Prepare.
 4. **Every job:** **Prepare** (stock, Material XY + Z, load) → **Mark ready** → **Verify** (Simulate) → **Start** → **Run**.
 
 ## Screenshots & diagrams

@@ -309,7 +309,7 @@ async function main() {
     await connectVirtual(page);
     await clickPhase(page, "Calibrate");
     await page.waitForTimeout(500);
-    await shot(page, "cal-step1-zero.png");
+    await shot(page, "cal-step1-direction.png");
 
     async function confirmAndNext(confirmId: string) {
       const box = page.locator(`#${confirmId}`);
@@ -322,8 +322,7 @@ async function main() {
       await page.waitForTimeout(500);
     }
 
-    // zero → direction → steps/mm (guide asset: cal-step2-steps) → soft travel
-    await confirmAndNext("cal-confirm-zero");
+    // direction → steps/mm → soft travel → machine zero (Home / Machine XYZ)
     await confirmAndNext("cal-confirm-direction");
     await page.waitForTimeout(300);
     await shot(page, "cal-step2-steps.png");
@@ -331,6 +330,10 @@ async function main() {
     await confirmAndNext("cal-confirm-steps");
     await page.waitForTimeout(300);
     await shot(page, "cal-step3-travel.png");
+
+    await confirmAndNext("cal-confirm-travel");
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step4-zero.png");
   });
 
   // 6) Verify / simulate + job loaded

@@ -5,10 +5,10 @@
 
 /** Guided Calibrate phase steps only (raw $$ lives in Advanced). */
 export const CALIBRATION_GUIDED_STEPS = [
-  "zero",
   "direction",
   "steps",
   "travel",
+  "zero",
 ] as const;
 
 export type CalibrationGuidedStepId =
@@ -17,7 +17,7 @@ export type CalibrationGuidedStepId =
 const STORAGE_KEY = "sharpcnc.calibration.v1";
 
 export interface CalibrationState {
-  /** Operator finished Soft travel confirm (or explicitly marked already calibrated). */
+  /** Operator finished the guided Calibrate steps (or marked already calibrated). */
   calibrationCompleted: boolean;
   completedAt: number | null;
 }

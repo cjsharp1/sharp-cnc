@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
-  <title id="t">Calibration 3 — Steps per mm</title>
+  <title id="t">Calibration 2 — Steps per mm</title>
   <desc id="d">Command move, measure with ruler, write new steps/mm</desc>
   <defs>
     <style>
@@ -22,7 +22,7 @@
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
   <circle class="num" cx="56" cy="56" r="28"/>
-  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">3</text>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">2</text>
   <text class="lab big" x="100" y="50" font-size="28">Steps/mm</text>
   <text class="lab act" x="100" y="84" font-size="22">Move → measure → write $100 / $101 / $102</text>
 

@@ -216,7 +216,6 @@ import {
   type VerifyChecklistState,
   type WcsId,
   type WorkOffsetsStore,
-  type ZeroAxisSelection,
 } from "./grbl";
 import "./App.css";
 
@@ -264,7 +263,6 @@ export default function App() {
   const [stepMm, setStepMm] = useState<number>(JOG_STEP_OPTIONS_MM[1]);
   const [feedMmMin, setFeedMmMin] = useState(DEFAULT_JOG_FEED_MM_MIN);
   const [softLimitHint, setSoftLimitHint] = useState<string | null>(null);
-  const [zeroMessage, setZeroMessage] = useState<string | null>(null);
 
   const [job, setJob] = useState<LoadedJob | null>(null);
   const [streamProgress, setStreamProgress] = useState<StreamProgress | null>(
@@ -1154,7 +1152,6 @@ export default function App() {
     setPhase("connecting");
     setErrorMessage(null);
     setSoftLimitHint(null);
-    setZeroMessage(null);
     setAlarmMessage(null);
     externalControlsRef.current.reset();
     try {
@@ -2032,37 +2029,6 @@ export default function App() {
     return () => cancelAnimationFrame(raf);
   }, []);
 
-  const handleZero = async (axes: ZeroAxisSelection) => {
-    const client = clientRef.current;
-    if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
-    if (!gate.ok) {
-      setZeroMessage(gate.reason ?? "Cannot set zero");
-      return;
-    }
-    try {
-      await client.sendLine(buildSetWorkZeroCommand(axes));
-      setZeroMessage(
-        axes === "XYZ"
-          ? "Material XYZ zero set at current position (G10 L20)."
-          : `Material ${axes} zero set at current position (G10 L20).`,
-      );
-      if (axes === "XYZ") {
-        setPrepareXyZeroed(true);
-        setPrepareZProbed(true);
-        setPrepareReady(false);
-      } else if (axes === "Z") {
-        setPrepareZProbed(true);
-        setPrepareReady(false);
-      }
-      activityLog.append("event", `Material zero ${axes}`);
-      await client.requestStatus();
-    } catch (err) {
-      const message = err instanceof Error ? err.message : String(err);
-      setErrorMessage(message);
-    }
-  };
-
   const handlePrepareZeroXy = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
@@ -2076,7 +2042,6 @@ export default function App() {
       setPrepareXyZeroed(true);
       setPrepareReady(false);
       setPrepareMessage("Material XY zero set at current position (G10 L20).");
-      setZeroMessage("Material XY zero set at current position (G10 L20).");
       activityLog.append("event", "Material zero XY (prepare)");
       await client.requestStatus();
     } catch (err) {
@@ -2101,7 +2066,6 @@ export default function App() {
     const gate = canJogOrZero(statusRef.current.state, connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot set zero");
-      setZeroMessage(gate.reason ?? "Cannot set zero");
       return;
     }
     try {
@@ -2117,7 +2081,6 @@ export default function App() {
       const label = corner.toUpperCase();
       const msg = `Material XY zero + stock ${label} at toolhead (G10 L20). Enter width / length from that corner.`;
       setPrepareMessage(msg);
-      setZeroMessage(msg);
       activityLog.append(
         "event",
         `Material zero XY + stock origin ${label} (toolhead)`,
@@ -2126,7 +2089,6 @@ export default function App() {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setPrepareMessage(message);
-      setZeroMessage(message);
       setErrorMessage(message);
     }
   };
@@ -3463,8 +3425,6 @@ export default function App() {
                     machinePos={status.machine}
                     busy={calBusy}
                     message={calMessage}
-                    zeroEnabled={jogEnabled}
-                    zeroMessage={zeroMessage}
                     onRefreshSettings={() => {
                       void handleRefreshSettings();
                     }}
@@ -3479,9 +3439,6 @@ export default function App() {
                     }}
                     onApplySoftTravel={(limits, enableSoft) => {
                       void handleApplySoftTravel(limits, enableSoft);
-                    }}
-                    onZero={(axes) => {
-                      void handleZero(axes);
                     }}
                     onComplete={handleCalibrationComplete}
                     onOpenBedTravelTest={openBedTravelTest}
@@ -3990,8 +3947,6 @@ export default function App() {
                 machinePos={status.machine}
                 busy={calBusy}
                 message={calMessage}
-                zeroEnabled={jogEnabled}
-                zeroMessage={zeroMessage}
                 onRefreshSettings={() => {
                   void handleRefreshSettings();
                 }}
@@ -4006,9 +3961,6 @@ export default function App() {
                 }}
                 onApplySoftTravel={(limits, enableSoft) => {
                   void handleApplySoftTravel(limits, enableSoft);
-                }}
-                onZero={(axes) => {
-                  void handleZero(axes);
                 }}
                 onClose={() => setCalOpen(false)}
                 onComplete={handleCalibrationComplete}

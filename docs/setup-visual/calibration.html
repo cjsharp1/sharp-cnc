@@ -38,96 +38,22 @@
           <p class="visual-guide__one">
             Teach SharpCNC how your machine moves — direction, distance, and
             safe travel. Do this <strong>before</strong> Prepare or cuts.
-            Prefer <strong>Virtual CNC</strong> for the first pass. After Soft
-            travel confirm, next sessions skip to Prepare. Repeat only after
-            wiring, screws, or bed size change. Clear bed. Keep Z high for XY.
-            E-Stop ready.
+            Prefer <strong>Virtual CNC</strong> for the first pass. After
+            Machine zero confirm, next sessions skip to Prepare. Repeat only
+            after wiring, screws, or bed size change. Clear bed. Keep Z high for
+            XY. E-Stop ready.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
-            <a href="#c1">1 Zero</a>
-            <a href="#c2">2 Direction</a>
-            <a href="#c3">3 Steps/mm</a>
-            <a href="#c4">4 Travel</a>
+            <a href="#c1">1 Direction</a>
+            <a href="#c2">2 Steps/mm</a>
+            <a href="#c3">3 Travel</a>
+            <a href="#c4">4 Zero</a>
           </nav>
         </header>
 
         <article class="step-card" id="c1">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">1</span>
-            <h2>Zero context</h2>
-            <p class="step-card__action">
-              Confirm Material / Machine → Zero if needed → confirm →
-              <strong>Next</strong>
-            </p>
-            <p class="step-card__eli5">
-              Glance at the numbers first. Material XYZ = “start of this blank.”
-              Machine XYZ = “home corner of the bed.” Make sure they make sense
-              before you measure anything.
-            </p>
-          </div>
-          <figure class="step-card__figure">
-            <img
-              src="assets/cal-01-zero.svg"
-              alt="Material and Machine coordinate panels before calibration"
-              width="960"
-              height="520"
-            />
-          </figure>
-          <ol class="step-card__do">
-            <li>
-              <p class="step-card__do-act">
-                Phase switcher → <strong>Calibrate</strong> (or Menu →
-                <strong>Calibrate…</strong> / First-run). Connect first if you
-                are not Linked / Virtual.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Calibrate opens on <strong>Confirm zero context</strong> with
-                Material and Machine X/Y/Z and State.
-              </p>
-            </li>
-            <li>
-              <p class="step-card__do-act">
-                Optional: <strong>Home ($H)</strong> if the session needs it.
-                Use the compact jog in this step if the tip is not at a useful
-                reference.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Positions update as you jog; state stays Idle-capable.
-              </p>
-            </li>
-            <li>
-              <p class="step-card__do-act">
-                If needed, use <strong>Zero X</strong> /
-                <strong>Zero Y</strong> / <strong>Zero Z</strong> /
-                <strong>Zero XYZ</strong> so material origin matches where the
-                tip sits (zeroing does not move the machine).
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Material numbers reset for those axes; Machine numbers stay.
-              </p>
-            </li>
-            <li>
-              <p class="step-card__do-act">
-                Check
-                <strong
-                  >Material zero looks right — I completed this step</strong
-                >, then tap <strong>Next</strong>.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Wizard advances to <strong>Axis direction invert</strong>.
-              </p>
-            </li>
-          </ol>
-          <a class="step-card__next" href="#c2">Next: Direction →</a>
-        </article>
-
-        <article class="step-card" id="c2">
-          <div class="step-card__meta">
-            <span class="step-card__num" aria-hidden="true">2</span>
             <h2>Direction ($3)</h2>
             <p class="step-card__action">
               Invert wrong axes → <strong>Write $3</strong> → Test ±
@@ -140,7 +66,7 @@
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-02-direction.svg"
+              src="assets/cal-01-direction.svg"
               alt="$3 bitmask X=1 Y=2 Z=4 and expected +axis directions"
               width="960"
               height="520"
@@ -149,14 +75,17 @@
           <ol class="step-card__do">
             <li>
               <p class="step-card__do-act">
-                Clear the bed. Keep Z high. For each axis, tap
-                <strong>Test +X</strong> / <strong>Test −X</strong> (and Y/Z).
+                Phase switcher → <strong>Calibrate</strong> (or Menu →
+                <strong>Calibrate…</strong> / First-run). Connect first if you
+                are not Linked / Virtual. Clear the bed. Keep Z high. For each
+                axis, tap <strong>Test +X</strong> / <strong>Test −X</strong>
+                (and Y/Z).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Short ~5 mm jog. Looking down on the bed (matches the
-                visualizer): +X right, +Y back = up on screen, +Z up. Wrong way =
-                that axis needs invert.
+                Calibrate opens on <strong>Axis direction</strong>. Short ~5 mm
+                jog. Looking down on the bed (matches the visualizer): +X right,
+                +Y back = up on screen, +Z up. Wrong way = that axis needs invert.
               </p>
             </li>
             <li>
@@ -197,12 +126,12 @@
             Expect: +X right · +Y back (up on screen) · +Z up (looking down on
             bed)
           </p>
-          <a class="step-card__next" href="#c3">Next: Steps/mm →</a>
+          <a class="step-card__next" href="#c2">Next: Steps/mm →</a>
         </article>
 
-        <article class="step-card" id="c3">
+        <article class="step-card" id="c2">
           <div class="step-card__meta">
-            <span class="step-card__num" aria-hidden="true">3</span>
+            <span class="step-card__num" aria-hidden="true">2</span>
             <h2>Steps/mm</h2>
             <p class="step-card__action">
               Move commanded mm → measure →
@@ -216,7 +145,7 @@
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-03-steps.svg"
+              src="assets/cal-02-steps.svg"
               alt="Command, measure, compute, write steps per mm"
               width="960"
               height="520"
@@ -272,12 +201,12 @@
           <p class="step-card__aside">
             Repeat X → Y → Z. Formula: old × commanded ÷ measured.
           </p>
-          <a class="step-card__next" href="#c4">Next: Soft travel →</a>
+          <a class="step-card__next" href="#c3">Next: Soft travel →</a>
         </article>
 
-        <article class="step-card" id="c4">
+        <article class="step-card" id="c3">
           <div class="step-card__meta">
-            <span class="step-card__num" aria-hidden="true">4</span>
+            <span class="step-card__num" aria-hidden="true">3</span>
             <h2>Soft travel (+ bed test)</h2>
             <p class="step-card__action">
               Jog to far end (margin) → Use MPos →
@@ -293,7 +222,7 @@
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-04-travel.svg"
+              src="assets/cal-03-travel.svg"
               alt="Soft-limit envelope on bed and write travel button"
               width="960"
               height="520"
@@ -349,8 +278,58 @@
                 Check
                 <strong
                   >Soft travel / bed extents set — I completed this step</strong
-                >. Tap <strong>Continue to Prepare</strong>. Raw
-                <code>$$</code> edits live under
+                >, then <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Confirm machine zero</strong>.
+              </p>
+            </li>
+          </ol>
+          <a class="step-card__next" href="#c4">Next: Machine zero →</a>
+        </article>
+
+        <article class="step-card" id="c4">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">4</span>
+            <h2>Machine zero</h2>
+            <p class="step-card__action">
+              Optional <strong>Home ($H)</strong> → confirm Machine XYZ →
+              <strong>Continue to Prepare</strong>
+            </p>
+            <p class="step-card__eli5">
+              After Home, machine zero comes from the limit switches. Glance at
+              Machine XYZ — the home corner of the bed. Stock / blank origin
+              waits for Prepare when the board is on the table.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-04-zero.svg"
+              alt="Machine XYZ readout and Home after calibration measurements"
+              width="960"
+              height="520"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Optional: <strong>Home ($H)</strong> if you use limit switches
+                and this session needs it.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Machine XYZ settles near the home corner; state returns to Idle.
+                No Zero XYZ / material-origin buttons here.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Machine XYZ looks right — I completed this step</strong
+                >, then tap <strong>Continue to Prepare</strong>. Blank origin is
+                set later in Prepare. Raw <code>$$</code> edits live under
                 <strong>Menu → Advanced…</strong> only — not a Calibrate step.
               </p>
               <p class="step-card__do-see">

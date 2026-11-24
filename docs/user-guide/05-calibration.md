@@ -4,20 +4,20 @@
 
 **After done:** next sessions skip Calibrate and open on **Prepare**. Re-enter anytime from the phase switcher or Menu → Calibrate….
 
-**Prefer pictures:** [Calibration visual guide](../setup-visual/calibration.html) (zeros · `$3` · steps/mm · soft travel · bed test).
+**Prefer pictures:** [Calibration visual guide](../setup-visual/calibration.html) (direction · steps/mm · soft travel · Home / Machine XYZ).
 
 Phase switcher → **Calibrate** (also from First-run). Connect first.
 
 | # | Step | Action |
 |---|------|--------|
-| 1 | Zero context | Confirm Material / Machine → optional **Home ($H)** → confirm → **Next** |
-| 2 | Direction | Invert wrong axes → **Write $3** → Test ±5 mm |
-| 3 | Steps/mm | Move → measure → **Write $100 / $101 / $102** |
-| 4 | Soft travel | Jog far → Use MPos → **Write travel + $20** → **Continue to Prepare** |
+| 1 | Direction | Invert wrong axes → **Write $3** → Test ±5 mm |
+| 2 | Steps/mm | Move → measure → **Write $100 / $101 / $102** |
+| 3 | Soft travel | Jog far → Use MPos → **Write travel + $20** |
+| 4 | Machine zero | Optional **Home ($H)** → confirm Machine XYZ → **Continue to Prepare** (blank origin is Prepare) |
 
 Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibrate step). Homing and **Bed travel test…** are recommended, not required to mark calibrated.
 
-Finishing Soft travel (all four steps confirmed) — or explicitly confirming “Machine already calibrated” on a returning profile — marks the machine calibrated and offers **Continue to Prepare**. Optional **Bed travel test…** (or Menu → Bed travel test…) walks all XY soft-limit corners after travel is written.
+Finishing Machine zero (all four steps confirmed) — or explicitly confirming “Machine already calibrated” on a returning profile — marks the machine calibrated and offers **Continue to Prepare**. Optional **Bed travel test…** (or Menu → Bed travel test…) walks all XY soft-limit corners after travel is written.
 
 > **Safety:** Clear bed. Keep Z high for XY. E-Stop ready. Prefer Virtual CNC for the first pass.
 
@@ -37,6 +37,6 @@ After steps/mm look close, cut a known size and measure:
 
 Also available: **50×50 mm** square and **100 mm line**. Details: [Jobs & SVG — cut-size samples](08-jobs-and-svg.md#cut-size-samples).
 
-Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [steps](assets/cal-step2-steps.png) · [travel](assets/cal-step3-travel.png)
+Screenshots (wizard UI): [steps](assets/cal-step2-steps.png) · [travel](assets/cal-step3-travel.png) · [machine zero](assets/cal-step4-zero.png)
 
 Next (every job): [Prepare & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html)
