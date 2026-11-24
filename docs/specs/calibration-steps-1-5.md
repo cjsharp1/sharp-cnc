@@ -9,7 +9,7 @@
 | 0 — Z envelope | **Done.** Z range `[−$132, 0]`, clamp never reverses, Z Use MPos positive, travel input errors, smoke `smoke-safety-fixes.mts`. **Still open:** X/Y sign follow-up if hardware check HW-02a / HW-07a shows negative X/Y (see the review's Remaining work #2). |
 | 1 — Backup / undo | **Done.** Auto-backup on first Calibrate `$$` load (`sharpcnc.settingsBackup.v1`, last 5); meta-bar **Back up settings**; Advanced restore with changed-only diff; session Undo next to result. Smoke: `smoke-calibration.mts`. |
 | 2 — Direction + steps | **Done.** Expected-direction wording + Yes/No (No ticks Invert); Z row first + retract warning; `$3`↔`$23` note when `$22=1`; Z steps/mm down 10/20/25; ±20% Write warning; re-test ±0.1 mm; starting-value helper. Smoke: `smoke-calibration.mts`. |
-| 3 — Speed & accel | Open |
+| 3 — Speed & accel | **Done** on branch (this PR). Wizard step + `smoke-rates-test.mts`. Homing still PR 4. |
 | 4 — Homing setup | Open. The live **Inputs** row under Position (limit/probe/button pins) already exists; reuse its parsing (`status.pins.raw`) for the switch lights |
 | 5 — Soft travel polish | Partly done: the jog pad is now on this step. Rest open |
 

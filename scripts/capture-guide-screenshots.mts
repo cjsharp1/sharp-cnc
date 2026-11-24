@@ -322,17 +322,24 @@ async function main() {
     await shot(page, "cal-step1-zero.png");
 
     async function confirmAndNext(confirmId: string) {
-      const box = page.locator(`#${confirmId}`);
-      await box.check({ force: true });
-      await page.waitForTimeout(200);
+      await page.waitForSelector(`#${confirmId}`, { timeout: 20000 });
+      // Controlled React checkbox — enable + click via DOM (Playwright check()
+      // can hang when the input is disabled briefly during settings load).
+      await page.evaluate((id) => {
+        const el = document.getElementById(id) as HTMLInputElement | null;
+        if (!el) throw new Error(`missing #${id}`);
+        el.disabled = false;
+        el.click();
+      }, confirmId);
+      await page.waitForTimeout(300);
       const next = page
         .locator("footer.cal__nav button.cal__btn:not(.cal__btn--ghost)")
         .first();
-      await next.click();
-      await page.waitForTimeout(500);
+      await next.click({ force: true });
+      await page.waitForTimeout(600);
     }
 
-    // zero → direction (Z row first) → steps/mm → soft travel
+    // zero → direction → steps/mm → speed & accel → soft travel
     await confirmAndNext("cal-confirm-zero");
     await page.waitForTimeout(300);
     await shot(page, "cal-step-direction.png");
@@ -341,6 +348,17 @@ async function main() {
     await shot(page, "cal-step2-steps.png");
 
     await confirmAndNext("cal-confirm-steps");
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step-rates.png");
+    // Z tab for the gravity callout
+    const zTab = page.getByRole("tab", { name: /^Z$/i }).first();
+    if (await zTab.count()) {
+      await zTab.click();
+      await page.waitForTimeout(200);
+      await shot(page, "cal-step-rates-z.png");
+    }
+
+    await confirmAndNext("cal-confirm-rates");
     await page.waitForTimeout(300);
     await shot(page, "cal-step3-travel.png");
   });

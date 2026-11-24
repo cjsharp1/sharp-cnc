@@ -51,6 +51,15 @@ import {
   SETTING_DIR_PORT_INVERT,
   SETTING_SOFT_LIMITS,
   STEPS_SETTING_FOR_AXIS,
+  buildRatesTrialLines,
+  canFitRatesTest,
+  clearPendingRatesRestore,
+  loadPendingRatesRestore,
+  mergePendingRatesRestore,
+  ratesSettingId,
+  ratesSettingPlainLabel,
+  ratesSettingUnit,
+  savePendingRatesRestore,
   describeDirInvertMask,
   HOME_COMMAND,
   UNLOCK_COMMAND,
@@ -216,6 +225,7 @@ import {
   type OverrideStep,
   type PathSimSnapshot,
   type ProbeConfig,
+  type RatesKind,
   type RapidOverrideStep,
   type RecentJobEntry,
   type SimSpeedRate,
@@ -395,6 +405,13 @@ export default function App() {
   const [calBusy, setCalBusy] = useState(false);
   /** Session-only Calibrate write undo stack (newest at end). */
   const [calUndoStack, setCalUndoStack] = useState<CalibrateWriteEntry[]>([]);
+  /** Rates/accel out-and-back trial in progress. */
+  const [ratesTrialRunning, setRatesTrialRunning] = useState(false);
+  const ratesTrialAbortRef = useRef(false);
+  const ratesTrialRunningRef = useRef(false);
+  /** True while Calibrate holds temporary rate/accel trial writes this session. */
+  const ratesTempActiveRef = useRef(false);
+  const wasConnectedRef = useRef(false);
   /** Persisted $$ snapshots (auto-backup + download). */
   const [settingsBackups, setSettingsBackups] = useState(() =>
     loadSettingsBackups(),
@@ -703,6 +720,26 @@ export default function App() {
   useEffect(() => {
     streamPhaseRef.current = streamProgress?.phase ?? "idle";
   }, [streamProgress]);
+
+  // Abandoned rate/accel trial writes after disconnect — restore once Idle.
+  useEffect(() => {
+    const justConnected = connected && !wasConnectedRef.current;
+    wasConnectedRef.current = connected;
+    if (!justConnected) return;
+    if (!loadPendingRatesRestore()) return;
+    ratesTempActiveRef.current = false;
+    const tryRestore = () => {
+      if (!clientRef.current?.transport.isOpen) return;
+      const st = statusRef.current.state;
+      if (st !== "Idle" && st !== "Check") {
+        window.setTimeout(tryRestore, 200);
+        return;
+      }
+      void handleRestoreRatesPending("reconnect");
+    };
+    tryRestore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rising-edge connect only
+  }, [connected]);
 
   // M6: wait for Idle (buffered motion done), then send M5 before the panel unlocks.
   useEffect(() => {
@@ -1362,6 +1399,9 @@ export default function App() {
       setCalMessage(null);
       setCalBusy(false);
       setCalUndoStack([]);
+      setRatesTrialRunning(false);
+      ratesTrialRunningRef.current = false;
+      ratesTempActiveRef.current = false;
       setRestoreMessage(null);
       sessionSettingsBackupTakenRef.current = false;
       setHomed(false);
@@ -1404,6 +1444,7 @@ export default function App() {
   const abortAppMotionLoops = (reasonLabel: string) => {
     bedTravelAbortRef.current = true;
     stockPerimeterAbortRef.current = true;
+    ratesTrialAbortRef.current = true;
     if (bedTravelRunningRef.current) {
       bedTravelRunningRef.current = false;
       setBedTravelPhase("aborted");
@@ -1413,6 +1454,11 @@ export default function App() {
       stockPerimeterRunningRef.current = false;
       setStockPerimeterPhase("aborted");
       setStockPerimeterMessage(`Aborted by ${reasonLabel}.`);
+    }
+    if (ratesTrialRunningRef.current) {
+      ratesTrialRunningRef.current = false;
+      setRatesTrialRunning(false);
+      setCalMessage(`Rates trial aborted by ${reasonLabel}.`);
     }
   };
 
@@ -2162,6 +2208,230 @@ export default function App() {
       );
       setCalMessage(
         `${axis} steps/mm: ${before.toFixed(3)} → ${after.toFixed(3)} ($${id})`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const waitRatesIdle = async (client: GrblClient) => {
+    const deadline = Date.now() + (usingMock ? 60_000 : 300_000);
+    await new Promise((r) => setTimeout(r, usingMock ? 40 : 80));
+    while (Date.now() < deadline) {
+      if (ratesTrialAbortRef.current) return;
+      await client.requestStatus().catch(() => undefined);
+      const st = statusRef.current.state;
+      if (st === "Alarm") {
+        throw new Error(alarmMessage ?? "Alarm during rates trial");
+      }
+      if (st === "Hold") {
+        await new Promise((r) => setTimeout(r, usingMock ? 80 : 200));
+        continue;
+      }
+      if (st === "Idle" || st === "Check") return;
+      await new Promise((r) => setTimeout(r, usingMock ? 50 : 120));
+    }
+    throw new Error("Timed out waiting for Idle after rates trial.");
+  };
+
+  /** Restore abandoned temp rate/accel writes (cancel, leave, reconnect). */
+  const handleRestoreRatesPending = async (reason: string) => {
+    const pending = loadPendingRatesRestore();
+    if (!pending || pending.entries.length === 0) return;
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    // Use transport openness (not React `connected`) so reconnect can restore
+    // before the next render flips phase → connected.
+    const gate = canWriteSettings(statusRef.current.state, true, streaming);
+    if (!gate.ok) {
+      // Keep pending for a later Idle/connect attempt.
+      return;
+    }
+    setCalBusy(true);
+    try {
+      await writeGrblSettings(
+        client,
+        pending.entries.map((e) => ({ id: e.id, value: e.value })),
+        { timeoutMs: usingMock ? 1500 : 4000 },
+      );
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        for (const e of pending.entries) {
+          next.set(e.id, { id: e.id, value: e.value });
+        }
+        return next;
+      });
+      clearPendingRatesRestore();
+      ratesTempActiveRef.current = false;
+      activityLog.append(
+        "event",
+        `Rates pending restore (${reason}): ${pending.entries
+          .map((e) => `$${e.id}=${e.value}`)
+          .join(", ")}`,
+      );
+      setCalMessage(`Restored temporary rate/accel writes (${reason}).`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      activityLog.append("event", `Rates pending restore failed: ${message}`);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleRatesTrial = async (args: {
+    axis: Axis;
+    kind: RatesKind;
+    trialValue: number;
+    baselineValue: number;
+    distanceMm: number;
+    cycles: number;
+  }) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) {
+      throw new Error("Connect first.");
+    }
+    if (statusRef.current.state !== "Idle" && statusRef.current.state !== "Check") {
+      throw new Error("Wait for Idle before starting a trial.");
+    }
+    const fit = canFitRatesTest(
+      statusRef.current.machine,
+      softTravel,
+      args.axis,
+      args.distanceMm,
+    );
+    if (!fit.ok) {
+      throw new Error(fit.reason ?? "Test does not fit soft travel.");
+    }
+    const id = ratesSettingId(args.kind, args.axis);
+    const writeGate = canWriteSettings(
+      statusRef.current.state,
+      connected,
+      streaming,
+    );
+    if (!writeGate.ok) {
+      throw new Error(writeGate.reason ?? "Cannot write settings.");
+    }
+
+    ratesTrialAbortRef.current = false;
+    ratesTrialRunningRef.current = true;
+    setRatesTrialRunning(true);
+    setCalBusy(true);
+    setCalMessage(null);
+
+    try {
+      await stopContinuousJog();
+
+      // Record baseline once per setting id; trial value is temporary.
+      const existing = loadPendingRatesRestore()?.entries ?? [];
+      const merged = mergePendingRatesRestore(existing, [
+        { id, value: args.baselineValue },
+      ]);
+      savePendingRatesRestore(merged);
+      ratesTempActiveRef.current = true;
+
+      await writeGrblSetting(client, id, args.trialValue, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value: args.trialValue });
+        return next;
+      });
+
+      // Feed for G1: use the trial max rate when tuning rate; when tuning
+      // accel, use the current max rate for this axis so accel is the variable.
+      const feedMmMin =
+        args.kind === "rate"
+          ? args.trialValue
+          : (grblSettings?.get(ratesSettingId("rate", args.axis))?.value ??
+            args.trialValue);
+
+      const lines = buildRatesTrialLines(
+        args.axis,
+        args.distanceMm,
+        args.cycles,
+        feedMmMin,
+      );
+      activityLog.append(
+        "event",
+        `Rates trial ${args.kind} ${args.axis}: $${id}=${args.trialValue} · ${args.cycles}× ${args.distanceMm} mm`,
+      );
+      for (const line of lines) {
+        if (ratesTrialAbortRef.current) break;
+        await client.sendLine(line);
+      }
+      await waitRatesIdle(client);
+      if (ratesTrialAbortRef.current) {
+        throw new Error("Rates trial aborted.");
+      }
+      setCalMessage(
+        `Trial done at ${args.trialValue} ${ratesSettingUnit(args.kind)} — check the mark.`,
+      );
+      activityLog.append(
+        "event",
+        `Rates trial complete ${args.kind} ${args.axis} @ ${args.trialValue}`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      activityLog.append("event", `Rates trial failed: ${message}`);
+      throw err;
+    } finally {
+      ratesTrialRunningRef.current = false;
+      setRatesTrialRunning(false);
+      setCalBusy(false);
+    }
+  };
+
+  const handleWriteRates = async (
+    kind: RatesKind,
+    axis: Axis,
+    before: number,
+    after: number,
+  ) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    const id = ratesSettingId(kind, axis);
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await writeGrblSetting(client, id, after, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value: after });
+        return next;
+      });
+      recordCalibrateWrites([{ id, before, after }]);
+      // Accepted write replaces any pending restore for this id.
+      const pending = loadPendingRatesRestore();
+      if (pending) {
+        const rest = pending.entries.filter((e) => e.id !== id);
+        if (rest.length === 0) {
+          clearPendingRatesRestore();
+          ratesTempActiveRef.current = false;
+        } else {
+          savePendingRatesRestore(rest);
+        }
+      } else {
+        ratesTempActiveRef.current = false;
+      }
+      activityLog.append(
+        "event",
+        `Wrote $${id}=${after} (was ${before}) ${ratesSettingPlainLabel(kind, axis)}`,
+      );
+      setCalMessage(
+        `${ratesSettingPlainLabel(kind, axis)}: ${before} → ${after} ${ratesSettingUnit(kind)} ($${id})`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -4005,6 +4275,14 @@ export default function App() {
                     onApplySoftTravel={(limits, enableSoft) => {
                       void handleApplySoftTravel(limits, enableSoft);
                     }}
+                    onRatesTrial={handleRatesTrial}
+                    onWriteRates={(kind, axis, before, after) => {
+                      void handleWriteRates(kind, axis, before, after);
+                    }}
+                    onRatesCancelRestore={() => {
+                      void handleRestoreRatesPending("cancel/leave");
+                    }}
+                    ratesTrialRunning={ratesTrialRunning}
                     onZero={(axes) => {
                       void handleZero(axes);
                     }}
@@ -4557,6 +4835,14 @@ export default function App() {
                 onApplySoftTravel={(limits, enableSoft) => {
                   void handleApplySoftTravel(limits, enableSoft);
                 }}
+                onRatesTrial={handleRatesTrial}
+                onWriteRates={(kind, axis, before, after) => {
+                  void handleWriteRates(kind, axis, before, after);
+                }}
+                onRatesCancelRestore={() => {
+                  void handleRestoreRatesPending("cancel/leave");
+                }}
+                ratesTrialRunning={ratesTrialRunning}
                 onZero={(axes) => {
                   void handleZero(axes);
                 }}

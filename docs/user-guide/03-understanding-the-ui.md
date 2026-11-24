@@ -53,7 +53,7 @@ A persistent stepper: **Connect · Calibrate · Prepare · Verify · Run**. Inco
 | Phase | What the pane shows |
 |-------|---------------------|
 | **Connect** | Ports, baud note, Connect, Virtual CNC |
-| **Calibrate** | Four guided steps: Start (home) · Direction · Steps/mm · Soft travel (with a jog pad) |
+| **Calibrate** | Five guided steps: Start (home) · Direction · Steps/mm · Speed & accel · Soft travel (with a jog pad) |
 | **Prepare** | Stepped wizard: stock+tool → Material XY → Z → load → Mark ready |
 | **Verify** | Soft-limit summary, Simulate, checklist, **Start** |
 | **Run** | Progress + overrides + Pause / Resume / Stop |

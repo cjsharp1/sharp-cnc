@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Calibration 4 — Speed &amp; acceleration</title>
+  <desc id="d">Out-and-back G1 trials with a dial indicator; Yes / off / stall; recommend ×0.75 for max rate and accel</desc>
+  <defs>
+    <style>
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .num { fill: #b8862d; }
+      .ok { fill: #1f6a4a; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 16px; }
+      .big { font-size: 28px; font-weight: 700; }
+      .act { font-size: 20px; font-weight: 700; }
+      .tiny { font-size: 13px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .arrow { stroke: #3a4550; stroke-width: 3; fill: none; marker-end: url(#a); }
+      .rail { stroke: #3a4550; stroke-width: 4; fill: none; }
+      .mark { stroke: #b8862d; stroke-width: 3; }
+    </style>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#3a4550"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">4</text>
+  <text class="lab big" x="100" y="50" font-size="28">Speed &amp; accel</text>
+  <text class="lab act" x="100" y="84" font-size="20">Out-and-back → check the mark → back off ×0.75</text>
+
+  <rect class="card" x="48" y="130" width="210" height="300" rx="12"/>
+  <circle class="num" cx="153" cy="175" r="22"/>
+  <text class="w" x="153" y="175" text-anchor="middle" dominant-baseline="central" font-size="18">A</text>
+  <text class="lab" x="153" y="230" text-anchor="middle" font-weight="700">Ready</text>
+  <text class="tiny" x="153" y="260" text-anchor="middle">Dial / pencil mark</text>
+  <text class="tiny" x="153" y="285" text-anchor="middle">X/Y 50 mm · Z 15</text>
+  <text class="tiny" x="153" y="310" text-anchor="middle">Z starts down</text>
+  <line class="mark" x1="100" y1="350" x2="206" y2="350"/>
+  <text class="tiny" x="153" y="380" text-anchor="middle">reference</text>
+
+  <path class="arrow" d="M270 280 H310"/>
+
+  <rect class="card" x="320" y="130" width="240" height="300" rx="12"/>
+  <circle class="num" cx="440" cy="175" r="22"/>
+  <text class="w" x="440" y="175" text-anchor="middle" dominant-baseline="central" font-size="18">B</text>
+  <text class="lab" x="440" y="230" text-anchor="middle" font-weight="700">G1 out &amp; back</text>
+  <path class="rail" d="M360 300 H520"/>
+  <path class="arrow" d="M380 300 H500"/>
+  <path class="arrow" d="M500 330 H380"/>
+  <text class="tiny" x="440" y="370" text-anchor="middle">N cycles @ trial rate</text>
+  <text class="tiny" x="440" y="395" text-anchor="middle">temp $11x / $12x write</text>
+
+  <path class="arrow" d="M575 280 H615"/>
+
+  <rect class="card" x="625" y="130" width="280" height="300" rx="12"/>
+  <circle class="num" cx="765" cy="175" r="22"/>
+  <text class="w" x="765" y="175" text-anchor="middle" dominant-baseline="central" font-size="18">C</text>
+  <text class="lab" x="765" y="230" text-anchor="middle" font-weight="700">Came back?</text>
+  <text class="tiny" x="765" y="265" text-anchor="middle">Yes, same spot → +20%</text>
+  <text class="tiny" x="765" y="290" text-anchor="middle">Off / stall → stop</text>
+  <text class="lab" x="765" y="340" text-anchor="middle" font-weight="700">Recommend ×0.75</text>
+  <text class="tiny" x="765" y="370" text-anchor="middle">slider 0.7–0.8 · Write</text>
+  <circle class="ok" cx="765" cy="405" r="16"/>
+  <text class="w" x="765" y="405" text-anchor="middle" dominant-baseline="central" font-size="14">✓</text>
+</svg>

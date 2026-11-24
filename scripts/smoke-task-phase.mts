@@ -130,10 +130,10 @@ const mem = new Map<string, string>();
 } as Storage;
 
 assert(
-  CALIBRATION_GUIDED_STEPS.join(",") === "zero,direction,steps,travel",
-  "calibrate = four guided steps (no raw $$)",
+  CALIBRATION_GUIDED_STEPS.join(",") === "zero,direction,steps,rates,travel",
+  "calibrate = five guided steps (rates before travel; homing in PR4)",
 );
-assert(CALIBRATION_GUIDED_STEPS.length === 4, "four calibrate steps");
+assert(CALIBRATION_GUIDED_STEPS.length === 5, "five calibrate steps");
 
 assert(
   PREPARE_GUIDED_STEPS.join(",") === "stock,xy,probe,load,ready",
