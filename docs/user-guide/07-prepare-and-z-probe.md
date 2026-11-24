@@ -28,7 +28,7 @@ Prepare is **required before Verify/Start** until you finish **Mark ready** for 
 |------|------|
 | 1 · Stock + tool | Size / thickness / bed corner (map: NW NE / SW SE) + bit type and diameter on one dense screen |
 | 2 · Material XY | Jog tip to a stock corner → **Set XY zero + stock … at tip** (`G10 L20` + stock origin). Compact jog + optional XY edge/corner probe. Optional: **Trace perimeter…** |
-| 3 · Z probe | Touch plate on **stock top** (or **Manual Zero Z**), retract, confirm plate removed / clamps clear |
+| 3 · Z probe | Continuity check (clip → plate lights Probe) → touch plate on **stock top** (or **Manual Zero Z**), retract, confirm plate removed / clamps clear |
 | 4 · Load | G-code file, recent, or SVG generate; external folder/Drive behind one button |
 | 5 · Ready | Short checklist → **Mark ready → Verify** |
 
@@ -58,11 +58,22 @@ Chris’s hardware path: conductive plate on the **stock top**, alligator clip o
 
 ---
 
+## Continuity check (before Run Z probe)
+
+Before the seek unlocks, Prepare asks you to prove the circuit:
+
+1. Clip on the bit, plate on the stock top.  
+2. **Touch the clip to the plate — the light should come on** (same **Probe** light as Position → Inputs, driven by `Pn:P`).  
+3. Separate the clip so the light goes off.  
+4. **Run Z probe** unlocks only after that light has lit once this Prepare session.
+
+On **Virtual CNC**, use **Simulate clip touch** to pulse the probe pin (mock-only — never sent to a real USB port). **Manual Zero Z** stays available as a paper-feel fallback and does not require the continuity check.
+
 ## Probe cycle (what SharpCNC sends)
 
 ![G38.2 cycle](assets/diagram-probe-cycle.svg)
 
-1. Gate: connected, Idle-capable, not Alarm / Hold / streaming; probe pin not already ON.  
+1. Gate: connected, Idle-capable, not Alarm / Hold / streaming; **continuity confirmed** this session; probe pin not already ON.  
 2. `G91` then `G38.2 Z-{seek} F{feed}` (default seek 30 mm, feed 80 mm/min — editable in the wizard).  
 3. On success: `[PRB:x,y,z:1]` then `ok`.  
 4. `G90` then `G10 L20 P1 Z{plateThickness}` so stock top is Material Z0.  
@@ -72,7 +83,8 @@ Chris’s hardware path: conductive plate on the **stock top**, alligator clip o
 |---------|---------|
 | **ALARM:4** | Probe already active at start — clear contact / invert `$6` |
 | **ALARM:5** | No contact within seek — lower the start height, check the clip and wiring, or increase seek |
-| Pin already ON | UI refuses to seek (same early-contact risk) |
+| Continuity not confirmed | Run Z probe stays disabled until the Probe light has lit once |
+| Pin already ON | UI refuses to seek (same early-contact / Alarm 4 risk) |
 
 **Manual Zero Z** is the paper-feel fallback (`G10 L20 P1 Z0` at the current tip) if the plate is unavailable.
 

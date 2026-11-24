@@ -77,6 +77,7 @@ import {
   canHome,
   canJogOrZero,
   canProbe,
+  canRunPrepareZProbe,
   canSendConsole,
   canStartJob,
   canWriteSettings,
@@ -433,6 +434,9 @@ export default function App() {
   /** Session flags from Prepare wizard (reset on disconnect / new job). */
   const [prepareXyZeroed, setPrepareXyZeroed] = useState(false);
   const [prepareZProbed, setPrepareZProbed] = useState(false);
+  /** Latch when Inputs probe pin (`Pn:P`) lights during Prepare continuity check. */
+  const [prepareProbeContinuityOk, setPrepareProbeContinuityOk] =
+    useState(false);
   const [prepareReady, setPrepareReady] = useState(false);
   const [prepareMessage, setPrepareMessage] = useState<string | null>(null);
   const [prepareBusy, setPrepareBusy] = useState(false);
@@ -762,6 +766,13 @@ export default function App() {
   useEffect(() => {
     dryRunRef.current = dryRun;
   }, [dryRun]);
+
+  /** Latch Prepare continuity once the probe pin lights (`status.pins.probe`). */
+  useEffect(() => {
+    if (status.pins?.probe) {
+      setPrepareProbeContinuityOk(true);
+    }
+  }, [status.pins?.probe]);
 
   /** First real-machine Start defaults dry-run on; Virtual CNC uses last preference. */
   useEffect(() => {
@@ -2376,14 +2387,29 @@ export default function App() {
     }
   };
 
+  const handleSimulateProbeTouch = async () => {
+    // Mock-only — never send $ExtProbe to a real Demon Shield port.
+    if (!usingMock) return;
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.sendLine("$ExtProbe");
+      activityLog.append("event", "Simulated probe clip touch (Virtual CNC)");
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPrepareMessage(message);
+    }
+  };
+
   const handleRunZProbe = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canProbe(
-      gateStateLive(),
-      connected,
-      streaming,
-      { probePinActive: !!statusRef.current.pins?.probe },
+    const pinActive = !!statusRef.current.pins?.probe;
+    const gate = canRunPrepareZProbe(
+      prepareProbeContinuityOk,
+      canProbe(gateStateLive(), connected, streaming),
+      pinActive,
     );
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot probe");
@@ -2474,6 +2500,7 @@ export default function App() {
   const resetPrepareSession = () => {
     setPrepareXyZeroed(false);
     setPrepareZProbed(false);
+    setPrepareProbeContinuityOk(false);
     setPrepareReady(false);
     setPrepareMessage(null);
     setVerifyChecklist(emptyVerifyChecklist());
@@ -3843,14 +3870,22 @@ export default function App() {
                       bedMm={bedMm}
                       jogEnabled={jogEnabled}
                       probeEnabled={
-                        canProbe(gateState, connected, streaming, {
-                          probePinActive: !!status.pins?.probe,
-                        }).ok && !prepareBusy
+                        canRunPrepareZProbe(
+                          prepareProbeContinuityOk,
+                          canProbe(gateState, connected, streaming),
+                          !!status.pins?.probe,
+                        ).ok && !prepareBusy
                       }
                       probeBlockedReason={
-                        canProbe(gateState, connected, streaming, {
-                          probePinActive: !!status.pins?.probe,
-                        }).reason ?? null
+                        canRunPrepareZProbe(
+                          prepareProbeContinuityOk,
+                          canProbe(gateState, connected, streaming),
+                          !!status.pins?.probe,
+                        ).reason ?? null
+                      }
+                      probeContinuityOk={prepareProbeContinuityOk}
+                      onSimulateProbeTouch={
+                        usingMock ? () => void handleSimulateProbeTouch() : null
                       }
                       busy={prepareBusy}
                       message={prepareMessage}

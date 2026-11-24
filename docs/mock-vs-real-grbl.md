@@ -36,7 +36,7 @@ npm run smoke:critical
 | Feed hold during **Jog** | Cancels jog → **Idle** | Stays in **Hold** | Hold/resume UI differs |
 | Feed hold while **Idle** | Accepted (Hold) | Ignored | External Hold button sim may differ |
 | Force-alarm helpers | N/A | `$Alarm`, `$Alarm2`, `$Alarm5`, … | **Never** send these to USB |
-| External button sim | Hardware pins → `Pn:` | `$ExtHold` / `$ExtResume` / `$ExtAbort` | Mock-only |
+| External button sim | Hardware pins → `Pn:` | `$ExtHold` / `$ExtResume` / `$ExtAbort` / `$ExtProbe` | Mock-only — never send to USB |
 | Settings / motion fidelity | Planner, accel, EEPROM quirks | Simplified timers + settings map | Timing/streamer edge cases |
 
 ## Probe alarms 4/5

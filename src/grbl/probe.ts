@@ -149,6 +149,37 @@ export function buildProbeRetractCommand(
   return `$J=G90 G21 Z${fmt(z)} F${feed}`;
 }
 
+/** Plain-language gate shown until the probe circuit has lit once this session. */
+export const PROBE_CONTINUITY_HINT =
+  "Touch the clip to the plate — the light should come on.";
+
+/**
+ * Prepare → Z probe unlock: continuity must have been seen (`status.pins.probe`
+ * lit at least once) before Run Z probe is enabled. While the pin is still
+ * active after that, keep the seek blocked (same early-contact risk as
+ * {@link canProbe}).
+ */
+export function canRunPrepareZProbe(
+  continuityConfirmed: boolean,
+  machineGate: { ok: boolean; reason?: string },
+  probePinActive: boolean,
+): { ok: boolean; reason?: string } {
+  if (!continuityConfirmed) {
+    return { ok: false, reason: PROBE_CONTINUITY_HINT };
+  }
+  if (!machineGate.ok) {
+    return machineGate;
+  }
+  if (probePinActive) {
+    return {
+      ok: false,
+      reason:
+        "Probe pin still active — separate clip from plate before seeking.",
+    };
+  }
+  return { ok: true };
+}
+
 export function canProbe(
   state: GrblMachineState,
   connected: boolean,
@@ -172,7 +203,7 @@ export function canProbe(
     return {
       ok: false,
       reason:
-        "Probe pin already active — clear contact (Alarm 5 risk) before seeking.",
+        "Probe pin already active — clear contact (Alarm 4 risk) before seeking.",
     };
   }
   return { ok: true };

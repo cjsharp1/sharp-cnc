@@ -227,6 +227,12 @@ await client.requestStatus();
 await new Promise((r) => setTimeout(r, 40));
 assert(last.state === "Idle" || last.state === "Alarm", `after abort ${last.state}`);
 
+await client.sendLine("$ExtProbe");
+await new Promise((r) => setTimeout(r, 40));
+await client.requestStatus();
+await new Promise((r) => setTimeout(r, 40));
+assert(last.pins?.probe === true, "Pn:P after ExtProbe");
+
 streamer.dispose();
 await client.disconnect();
 await transport.close();

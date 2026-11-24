@@ -4342,6 +4342,33 @@ button {
   font-weight: 600;
 }
 
+.prep__continuity {
+  margin: 0.55rem 0 0.75rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--line);
+  background: var(--panel-deep);
+  display: grid;
+  gap: 0.4rem;
+}
+
+.prep__continuity.is-ok {
+  border-color: var(--ok-border);
+  background: var(--ok-fill);
+}
+
+.prep__continuity-title {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--text);
+}
+
+.prep__continuity-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.65rem;
+}
+
 .prep__ok {
   color: var(--ok-hot);
 }

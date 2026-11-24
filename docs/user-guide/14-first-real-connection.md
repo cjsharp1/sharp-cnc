@@ -229,8 +229,8 @@ This confirms the E-Stop fix on real hardware: before the fix, E-Stop between mo
 No bit yet: clip onto a metal dowel or an old bit shank in the collet, or just test continuity.
 
 **Do**
-1. Touch the clip to the plate by hand. Watch the **Probe** light in the Inputs row.
-2. Jog Z so the clip-holder is about **10 mm above** the plate. **Prepare → 3 · Z probe** → run the probe.
+1. Touch the clip to the plate by hand. Watch the **Probe** light in the Inputs row (and in Prepare → Z probe continuity).
+2. Jog Z so the clip-holder is about **10 mm above** the plate. **Prepare → 3 · Z probe** → confirm continuity (light on once) → separate clip → **Run Z probe**.
 3. **Initial-state alarm check:** hold the clip on the plate and run the probe again.
 4. **No-contact check:** move the plate away, set the seek to 5 mm, and run the probe in the air.
 

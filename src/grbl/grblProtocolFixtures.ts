@@ -147,7 +147,9 @@ export const MOCK_ONLY_COMMANDS = [
   "$Alarm1",
   "$Alarm2",
   "$Alarm4",
+  "$Alarm5",
   "$ExtHold",
   "$ExtResume",
   "$ExtAbort",
+  "$ExtProbe",
 ] as const;
