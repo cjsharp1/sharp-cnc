@@ -93,6 +93,21 @@ export function StockPerimeterTestPanel({
       : null;
   const canAct = enabled && !busy && gate.ok && !blockedReason;
   const canStart = canAct && confirmed && preview.ok;
+  const startBlockedReason = !enabled
+    ? (blockedReason ?? "Connect and clear alarms first")
+    : busy
+      ? "Already running — Stop or Abort first"
+      : blockedReason
+        ? blockedReason
+        : !gate.ok
+          ? (gate.reason ?? "Stock / soft travel not ready")
+          : preview.blocked
+            ? preview.blocked
+            : !confirmed
+              ? "Confirm the safety checkbox first"
+              : !preview.ok
+                ? "Perimeter plan is not ready"
+                : null;
   const uniqueCorners = preview.ok
     ? preview.corners.filter((c, i, a) => a.indexOf(c) === i)
     : [];
@@ -241,11 +256,19 @@ export function StockPerimeterTestPanel({
         onChange={setConfirmed}
       />
 
+      {/* Confirm-only hint — gate/blocked reasons already render above as warns. */}
+      {canAct && !confirmed ? (
+        <p className="bedtravel__hint" role="status">
+          Confirm the safety checkbox before Start.
+        </p>
+      ) : null}
+
       <div className="bedtravel__actions">
         <button
           type="button"
           className="bedtravel__btn bedtravel__btn--primary"
           disabled={!canStart}
+          title={startBlockedReason ?? undefined}
           onClick={start}
         >
           Trace stock perimeter

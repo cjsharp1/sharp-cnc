@@ -21,6 +21,7 @@ interface AdvancedPanelProps {
   onSaveMacro: (name: string, body: string) => void;
   onDeleteMacro: (id: string) => void;
   offsetsEnabled: boolean;
+  offsetsBlockedReason?: string | null;
   activeWcs: WcsId;
   offsetSlots: Partial<Record<WcsId, SavedWorkOffset>>;
   currentWco: Position3;
@@ -55,6 +56,7 @@ export function AdvancedPanel({
   onSaveMacro,
   onDeleteMacro,
   offsetsEnabled,
+  offsetsBlockedReason = null,
   activeWcs,
   offsetSlots,
   currentWco,
@@ -93,6 +95,7 @@ export function AdvancedPanel({
 
       <WorkOffsetsPanel
         enabled={offsetsEnabled}
+        blockedReason={offsetsBlockedReason}
         active={activeWcs}
         slots={offsetSlots}
         currentWco={currentWco}

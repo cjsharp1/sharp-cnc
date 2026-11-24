@@ -127,7 +127,7 @@ const HOMING_CORNERS: {
 
 const LIMIT_AXES: LimitAxis[] = ["X", "Y", "Z"];
 
-/** Compact Home ($H) offered on Zero context — recommended, not a hard gate. */
+/** Compact Home offered on Start — recommended, not a hard gate. */
 export interface CalibrationHomingProps {
   enabled: boolean;
   blockedReason?: string | null;
@@ -196,7 +196,7 @@ interface CalibrationPanelProps {
   onComplete?: () => void;
   /** Open the post-calibration full bed travel test (recommended, not required). */
   onOpenBedTravelTest?: () => void;
-  /** Optional compact Home on Zero context (recommended). */
+  /** Optional compact Home on Start (recommended). */
   homing?: CalibrationHomingProps | null;
   /** Denser chrome for the phase rail (no tall stack). */
   dense?: boolean;
@@ -752,10 +752,20 @@ export function CalibrationPanel({
                 type="button"
                 className="cal__btn cal__btn--ghost"
                 disabled={!homing.enabled || !!homing.busy}
-                title={homing.blockedReason ?? "Cycle home ($H)"}
+                title={
+                  !homing.enabled
+                    ? (homing.blockedReason ?? "Homing unavailable")
+                    : (homing.blockedReason ?? "Cycle home ($H)")
+                }
                 onClick={homing.onHome}
               >
-                {homing.busy ? "Homing…" : "Home ($H)"}
+                {homing.busy ? (
+                  "Homing…"
+                ) : (
+                  <>
+                    Home <span className="cal__btn-code">$H</span>
+                  </>
+                )}
               </button>
               <span className="cal__recommend-meta">
                 {homing.homed ? "Homed this session" : "Home once after each power-on"}
@@ -763,29 +773,6 @@ export function CalibrationPanel({
               </span>
             </div>
           ) : null}
-
-          <div className="cal__pos" aria-label="Current position">
-            <div className="cal__pos-legend" aria-hidden>
-              <span />
-              <span>Material</span>
-              <span>Machine</span>
-            </div>
-            {(["X", "Y", "Z"] as const).map((ax) => {
-              const key = ax.toLowerCase() as "x" | "y" | "z";
-              return (
-                <div key={ax} className="cal__pos-row">
-                  <span className="cal__pos-axis">{ax}</span>
-                  <span className="cal__pos-val">{formatMm(status.work[key])}</span>
-                  <span className="cal__pos-val cal__pos-val--muted">
-                    {formatMm(status.machine[key])}
-                  </span>
-                </div>
-              );
-            })}
-            <p className="cal__pos-state">
-              State <strong>{status.state}</strong>
-            </p>
-          </div>
 
           <div
             className="cal__actions"
@@ -799,7 +786,13 @@ export function CalibrationPanel({
                 className="cal__btn"
                 disabled={!zeroEnabled || busy}
                 onClick={() => onZero(btn.id)}
-                title={`Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as material zero (G10 L20)`}
+                title={
+                  busy
+                    ? "Busy — wait for the machine"
+                    : !zeroEnabled
+                      ? (blockedReason ?? "Connect and clear alarms first")
+                      : `Set current ${btn.id === "XYZ" ? "position" : `${btn.id} position`} as material zero (G10 L20)`
+                }
               >
                 {btn.label}
               </button>
@@ -979,18 +972,29 @@ export function CalibrationPanel({
                 type="button"
                 className="cal__btn"
                 disabled={!canAct || !dirDirty}
+                title={
+                  !canAct
+                    ? (blockedReason ?? "Connect and clear alarms first")
+                    : !dirDirty
+                      ? "Change a direction toggle first"
+                      : undefined
+                }
                 onClick={() => {
                   onWriteDirInvert(draftDirMask);
                   setDirTestPending(null);
                 }}
               >
-                Write ${SETTING_DIR_PORT_INVERT}={draftDirMask}
+                Save direction{" "}
+                <span className="cal__btn-code">
+                  ${SETTING_DIR_PORT_INVERT}={draftDirMask}
+                </span>
               </button>
               {currentDirMask !== null && dirDirty ? (
                 <button
                   type="button"
                   className="cal__btn cal__btn--ghost"
                   disabled={!canAct}
+                  title={!canAct ? (blockedReason ?? undefined) : undefined}
                   onClick={() =>
                     setDirFlags(decodeDirInvertMask(currentDirMask))
                   }
@@ -1240,13 +1244,21 @@ export function CalibrationPanel({
                 type="button"
                 className="cal__btn"
                 disabled={!canAct}
+                title={
+                  !canAct
+                    ? (blockedReason ?? "Connect and clear alarms first")
+                    : undefined
+                }
                 onClick={() => {
                   onWriteSteps(axis, computed.before, computed.after);
                   setStepsRetestPending(true);
                   resetStepsMeasure();
                 }}
               >
-                Write ${stepsId}={computed.after.toFixed(3)}
+                Save steps/mm{" "}
+                <span className="cal__btn-code">
+                  ${stepsId}={computed.after.toFixed(3)}
+                </span>
               </button>
             </div>
           ) : null}
@@ -1566,6 +1578,13 @@ export function CalibrationPanel({
                         type="button"
                         className="cal__btn"
                         disabled={!canAct || !onWriteRates}
+                        title={
+                          !canAct
+                            ? (blockedReason ?? "Connect and clear alarms first")
+                            : !onWriteRates
+                              ? "Write handler unavailable"
+                              : undefined
+                        }
                         onClick={() => {
                           onWriteRates?.(
                             ratesKind,
@@ -1582,9 +1601,11 @@ export function CalibrationPanel({
                           setRatesReady(false);
                         }}
                       >
-                        Write $
-                        {ratesSettingId(ratesKind, ratesAxis)}=
-                        {ratesRecommended}
+                        Save {ratesKind === "rate" ? "max speed" : "accel"}{" "}
+                        <span className="cal__btn-code">
+                          ${ratesSettingId(ratesKind, ratesAxis)}=
+                          {ratesRecommended}
+                        </span>
                       </button>
                     </>
                   ) : null}
@@ -1723,6 +1744,11 @@ export function CalibrationPanel({
                   type="button"
                   className="cal__btn"
                   disabled={!canAct || !onWriteHomingSetting}
+                  title={
+                    !canAct
+                      ? (blockedReason ?? "Connect and clear alarms first")
+                      : undefined
+                  }
                   onClick={() => {
                     clearConfirm();
                     onWriteHomingSetting?.(
@@ -1732,8 +1758,11 @@ export function CalibrationPanel({
                     );
                   }}
                 >
-                  Write ${SETTING_LIMIT_INVERT}=
-                  {flippedLimitInvert(limitInvertNow)}
+                  Flip switch polarity{" "}
+                  <span className="cal__btn-code">
+                    ${SETTING_LIMIT_INVERT}=
+                    {flippedLimitInvert(limitInvertNow)}
+                  </span>
                 </button>
               </div>
             ) : null}
@@ -1799,6 +1828,13 @@ export function CalibrationPanel({
                     disabled={
                       !canAct || !homingDirDirty || !onWriteHomingSetting
                     }
+                    title={
+                      !canAct
+                        ? (blockedReason ?? "Connect and clear alarms first")
+                        : !homingDirDirty
+                          ? "Pick a different home corner first"
+                          : undefined
+                    }
                     onClick={() => {
                       clearConfirm();
                       onWriteHomingSetting?.(
@@ -1808,7 +1844,10 @@ export function CalibrationPanel({
                       );
                     }}
                   >
-                    Write ${SETTING_HOMING_DIR_MASK}={draftHomingMask}
+                    Save homing direction{" "}
+                    <span className="cal__btn-code">
+                      ${SETTING_HOMING_DIR_MASK}={draftHomingMask}
+                    </span>
                   </button>
                 </div>
               </section>
@@ -1845,6 +1884,11 @@ export function CalibrationPanel({
                     type="button"
                     className="cal__btn cal__btn--ghost"
                     disabled={!canAct || !onWriteHomingSetting}
+                    title={
+                      !canAct
+                        ? (blockedReason ?? "Connect and clear alarms first")
+                        : undefined
+                    }
                     onClick={() => {
                       const after = Number(seekDraft);
                       const before =
@@ -1854,7 +1898,10 @@ export function CalibrationPanel({
                       onWriteHomingSetting?.(SETTING_HOMING_SEEK, before, after);
                     }}
                   >
-                    Write ${SETTING_HOMING_SEEK}={seekDraft || "…"}
+                    Save seek speed{" "}
+                    <span className="cal__btn-code">
+                      ${SETTING_HOMING_SEEK}={seekDraft || "…"}
+                    </span>
                   </button>
                   <label className="cal__field">
                     <span className="cal__field-label">
@@ -1884,6 +1931,11 @@ export function CalibrationPanel({
                     type="button"
                     className="cal__btn cal__btn--ghost"
                     disabled={!canAct || !onWriteHomingSetting}
+                    title={
+                      !canAct
+                        ? (blockedReason ?? "Connect and clear alarms first")
+                        : undefined
+                    }
                     onClick={() => {
                       const after = Number(feedDraft);
                       const before =
@@ -1893,7 +1945,10 @@ export function CalibrationPanel({
                       onWriteHomingSetting?.(SETTING_HOMING_FEED, before, after);
                     }}
                   >
-                    Write ${SETTING_HOMING_FEED}={feedDraft || "…"}
+                    Save touch speed{" "}
+                    <span className="cal__btn-code">
+                      ${SETTING_HOMING_FEED}={feedDraft || "…"}
+                    </span>
                   </button>
                   <label className="cal__field">
                     <span className="cal__field-label">
@@ -1922,6 +1977,11 @@ export function CalibrationPanel({
                     type="button"
                     className="cal__btn cal__btn--ghost"
                     disabled={!canAct || !onWriteHomingSetting}
+                    title={
+                      !canAct
+                        ? (blockedReason ?? "Connect and clear alarms first")
+                        : undefined
+                    }
                     onClick={() => {
                       const after = Number(pullOffDraft);
                       const before =
@@ -1935,7 +1995,10 @@ export function CalibrationPanel({
                       );
                     }}
                   >
-                    Write ${SETTING_HOMING_PULLOFF}={pullOffDraft || "…"}
+                    Save pull-off{" "}
+                    <span className="cal__btn-code">
+                      ${SETTING_HOMING_PULLOFF}={pullOffDraft || "…"}
+                    </span>
                   </button>
                 </div>
               </section>
@@ -1957,6 +2020,11 @@ export function CalibrationPanel({
                       type="button"
                       className="cal__btn"
                       disabled={!canAct || !onWriteHomingSetting}
+                      title={
+                        !canAct
+                          ? (blockedReason ?? "Connect and clear alarms first")
+                          : undefined
+                      }
                       onClick={() => {
                         clearConfirm();
                         onWriteHomingSetting?.(
@@ -1966,7 +2034,10 @@ export function CalibrationPanel({
                         );
                       }}
                     >
-                      Write ${SETTING_HOMING_CYCLE}=1
+                      Enable homing{" "}
+                      <span className="cal__btn-code">
+                        ${SETTING_HOMING_CYCLE}=1
+                      </span>
                     </button>
                   </div>
                 ) : (
@@ -2012,7 +2083,13 @@ export function CalibrationPanel({
                         homing.onHome();
                       }}
                     >
-                      {homing.busy ? "Homing…" : "Home ($H)"}
+                      {homing.busy ? (
+                        "Homing…"
+                      ) : (
+                        <>
+                          Home <span className="cal__btn-code">$H</span>
+                        </>
+                      )}
                     </button>
                     {homing.message ? (
                       <p className="cal__hint" role="status">
@@ -2023,7 +2100,7 @@ export function CalibrationPanel({
                 ) : null}
                 {(firstHomeDone || homing?.homed) && (
                   <p className="cal__hint">
-                    MPos now X {formatMm(machinePos.x)}, Y{" "}
+                    Machine position now X {formatMm(machinePos.x)}, Y{" "}
                     {formatMm(machinePos.y)}, Z {formatMm(machinePos.z)}. On a
                     real machine Z reads about −1 mm after homing — that&apos;s
                     the pull-off; the switch trigger point is 0. Every Z position
@@ -2134,9 +2211,10 @@ export function CalibrationPanel({
           </h3>
           <p className="cal__hint">
             Home first. Then jog each axis to the far end of its travel, stop a
-            few mm short of the hard stop, and click <strong>Use MPos</strong>.
-            For Z, jog <strong>down</strong> to the lowest safe point. Writes
-            $130–$132 and turns on soft limits ($20).
+            few mm short of the hard stop, and click{" "}
+            <strong>Use machine position</strong>. For Z, jog{" "}
+            <strong>down</strong> to the lowest safe point. Saves bed travel
+            ($130–$132) and turns on soft limits ($20).
           </p>
 
           {!homingOn ? (
@@ -2197,9 +2275,13 @@ export function CalibrationPanel({
                   className="cal__btn cal__btn--ghost"
                   disabled={!canAct || !homingOn}
                   title={
-                    ax === "Z"
-                      ? `Use how far Z is below home now (${Math.abs(mpos).toFixed(2)} mm)`
-                      : `Use current machine ${ax} (${mpos.toFixed(2)} mm)`
+                    !homingOn
+                      ? SOFT_TRAVEL_NEEDS_HOMING_COPY
+                      : !canAct
+                        ? (blockedReason ?? "Connect and clear alarms first")
+                        : ax === "Z"
+                          ? `Use how far Z is below home now (${Math.abs(mpos).toFixed(2)} mm)`
+                          : `Use current machine ${ax} (${mpos.toFixed(2)} mm)`
                   }
                   onClick={() => {
                     clearConfirm();
@@ -2209,7 +2291,8 @@ export function CalibrationPanel({
                     setter(Math.abs(mpos).toFixed(2));
                   }}
                 >
-                  Use MPos
+                  Use machine pos{" "}
+                  <span className="cal__btn-code">MPos</span>
                 </button>
               </div>
             ))}
@@ -2251,6 +2334,13 @@ export function CalibrationPanel({
               type="button"
               className="cal__btn"
               disabled={!canAct || !homingOn}
+              title={
+                !homingOn
+                  ? SOFT_TRAVEL_NEEDS_HOMING_COPY
+                  : !canAct
+                    ? (blockedReason ?? "Connect and clear alarms first")
+                    : undefined
+              }
               onClick={() => {
                 const next: SoftTravelLimits = {
                   maxX: parseTravel(maxX),
@@ -2277,7 +2367,8 @@ export function CalibrationPanel({
                 onApplySoftTravel(next, enableSoft, enableHard);
               }}
             >
-              Write travel + $20
+              Save bed travel & soft limits{" "}
+              <span className="cal__btn-code">$130–$132 · $20</span>
             </button>
           </div>
           {travelError ? (

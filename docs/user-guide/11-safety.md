@@ -15,10 +15,19 @@ The **safety strip** stays visible in every phase — including before connect (
 | Control | Use when |
 |---------|----------|
 | **E-Stop** | Anything unexpected — feed hold, cancel the job and any test moves (bed travel, stock trace), soft reset, then **lock motion** until you click **Clear E-Stop** |
-| **Hold** | Pause motion without full abort (`!`) |
+| **Hold** | Pause motion without full abort (`!`). Shortcut: **Space** (see below) |
 | **Resume** | Continue from Hold (`~`) only if the path is still safe |
-| **Reset** | Soft reset GRBL (Ctrl-X) and cancel the job — no lock afterwards |
+| **Reset** | Soft reset GRBL (Ctrl-X) and cancel the job — no lock afterwards. Lives only on this Safety strip (not in the header chip) |
 | **Unlock** | After Alarm, once the physical cause is cleared (`$X`) |
+
+### Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| **Space** | **Hold** — same as the Hold button. Ignored while focus is in a text field, number input, select, or on a button / link / menu item |
+| **Escape** | Closes open dialogs (Calibrate, Advanced, About, bed travel, stock perimeter, Menu). **Not** E-Stop |
+
+There is no keyboard binding for E-Stop on purpose — Escape already dismisses dialogs, and an accidental keypress must not soft-reset the machine. Use the red **E-Stop** control (or a physical power cutoff).
 
 Alarm banner: **Alarm lock** — jog and job Start stay refused until unlocked.
 

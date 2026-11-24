@@ -128,7 +128,7 @@ export function SafetyControls({
           className="safety__btn safety__btn--hold"
           disabled={!canMotion || inHold}
           onClick={onHold}
-          title="Feed hold (!)"
+          title="Feed hold (!) — Space when focus isn’t in a text field or on a button"
         >
           Hold
         </button>

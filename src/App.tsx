@@ -360,6 +360,8 @@ export default function App() {
    */
   const [estopLatched, setEstopLatchedState] = useState(false);
   const estopLatchedRef = useRef(false);
+  /** Latest Hold handler for the Space shortcut (M4) without re-binding keys. */
+  const handleHoldRef = useRef<() => Promise<void>>(async () => {});
   const setEstopLatched = (value: boolean) => {
     estopLatchedRef.current = value;
     setEstopLatchedState(value);
@@ -1134,6 +1136,40 @@ export default function App() {
     };
   }, []);
 
+  // M4: Space = Hold when focus isn't in a text field or on a button.
+  // Escape stays dialog-close only — never E-Stop.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== " " && event.code !== "Space") return;
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (
+        target.closest(
+          "input, textarea, select, [contenteditable='true'], [contenteditable='']",
+        )
+      ) {
+        return;
+      }
+      if (
+        target.closest(
+          "button, a, [role='button'], [role='menuitem'], [role='tab']",
+        )
+      ) {
+        return;
+      }
+      if (!connected || estopLatchedRef.current) return;
+      if (statusRef.current.state === "Hold") return;
+      if (statusRef.current.state === "Alarm") return;
+      event.preventDefault();
+      void handleHoldRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [connected]);
+
   useEffect(() => {
     if (!calOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -1543,6 +1579,8 @@ export default function App() {
       setErrorMessage(message);
     }
   };
+
+  handleHoldRef.current = handleHold;
 
   const handleResume = async () => {
     const client = clientRef.current;
@@ -4074,9 +4112,6 @@ export default function App() {
             onDisconnect={() => {
               void handleDisconnect();
             }}
-            onSoftReset={() => {
-              void handleSoftReset();
-            }}
           />
         </div>
         <div className="brand__actions">
@@ -5127,6 +5162,13 @@ export default function App() {
                 onSaveMacro={handleSaveMacro}
                 onDeleteMacro={handleDeleteMacro}
                 offsetsEnabled={jogEnabled}
+                offsetsBlockedReason={
+                  !connected
+                    ? "Connect first."
+                    : !jogGate.ok
+                      ? (jogGate.reason ?? "Motion locked")
+                      : null
+                }
                 activeWcs={workOffsets.active}
                 offsetSlots={workOffsets.slots}
                 currentWco={currentWco}

@@ -485,8 +485,8 @@
             <span class="step-card__num" aria-hidden="true">6</span>
             <h2>Soft travel (+ bed test)</h2>
             <p class="step-card__action">
-              Homing on ($22) → Jog to far end → Use MPos →
-              <strong>Write travel + $20</strong> →
+              Homing on ($22) → Jog to far end → Use machine pos →
+              <strong>Save bed travel & soft limits</strong> →
               <strong>Test the limit</strong> · optional hard limits ($21) ·
               optional <strong>Bed travel test</strong>
             </p>
@@ -533,7 +533,7 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                For each axis, tap <strong>Use MPos</strong> (or type Max X/Y/Z
+                For each axis, tap <strong>Use machine pos</strong> (or type Max X/Y/Z
                 mm). Enter Z as a <strong>positive</strong> travel length (e.g.
                 80 → GRBL allows 0 down to −80). Enable
                 <strong>Enable soft limits ($20=1)</strong>. Optional: hard
@@ -547,7 +547,7 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Write travel + $20</strong>, then
+                Tap <strong>Save bed travel & soft limits</strong>, then
                 <strong>Test the limit</strong> for Z / X / Y (expects
                 <code>error:15</code>, stays Idle).
               </p>
