@@ -44,6 +44,18 @@ async function seedStorage(
         JSON.stringify(debug),
       );
       localStorage.setItem("sharpcnc.uiTheme.v1", JSON.stringify("dark"));
+      // Calibrated machines have soft travel; seed Z so the Z gauge shows 0→−$132.
+      if (calibrated) {
+        localStorage.setItem(
+          "sharpcnc.softTravel.v1",
+          JSON.stringify({
+            maxX: 1000,
+            maxY: 1000,
+            maxZ: 200,
+            min: { x: 0, y: 0, z: 0 },
+          }),
+        );
+      }
     },
     { firstRun, calibrated, debug },
   );
@@ -319,7 +331,7 @@ async function main() {
       .waitFor({ timeout: 15000 })
       .catch(() => undefined);
     await page.waitForTimeout(400);
-    await shot(page, "cal-step1-zero.png");
+    await shot(page, "cal-step1-start.png");
 
     async function confirmAndNext(confirmId: string) {
       await page.waitForSelector(`#${confirmId}`, { timeout: 20000 });
@@ -370,6 +382,35 @@ async function main() {
       if (await btn.count()) {
         await btn.click();
         await page.waitForTimeout(350);
+        // Capture Inputs with X lim lit while the pin is still on.
+        if (ax === "X") {
+          const inputs = page.locator(".coords__inputs").first();
+          if (await inputs.count()) {
+            const box = await inputs.boundingBox();
+            if (box) {
+              await page.screenshot({
+                path: path.join(OUT, "inputs-pin-lit.png"),
+                type: "png",
+                clip: {
+                  x: Math.max(0, box.x - 8),
+                  y: Math.max(0, box.y - 8),
+                  width: Math.min(
+                    VIEWPORT.width - box.x + 8,
+                    box.width + 16,
+                  ),
+                  height: Math.min(
+                    VIEWPORT.height - box.y + 8,
+                    box.height + 16,
+                  ),
+                },
+              });
+              console.log(
+                "wrote",
+                path.relative(ROOT, path.join(OUT, "inputs-pin-lit.png")),
+              );
+            }
+          }
+        }
         await btn.click();
         await page.waitForTimeout(350);
       }
@@ -390,6 +431,7 @@ async function main() {
 
     await confirmAndNext("cal-confirm-homing");
     await page.waitForTimeout(300);
+    // Soft travel includes the jog pad for measuring far ends.
     await shot(page, "cal-step6-travel.png");
   });
 
@@ -497,6 +539,138 @@ async function main() {
     await clickPhase(page, "Prepare");
     await page.waitForTimeout(400);
     await shotWebp(page, "estop.webp");
+  });
+
+  // 9b) E-Stop latch banner (motion locked until Clear E-Stop)
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    await clickPhase(page, "Prepare");
+    await page.waitForTimeout(300);
+    // Accessible name is aria-label "Emergency stop" (visible text is E-Stop).
+    const estopClicked = await page.evaluate(() => {
+      const btn = document.querySelector<HTMLButtonElement>(
+        'button.safety__estop, button[aria-label="Emergency stop"]',
+      );
+      if (!btn || btn.disabled) return false;
+      btn.click();
+      return true;
+    });
+    if (!estopClicked) throw new Error("E-Stop button was not clickable");
+    await page.waitForFunction(
+      () =>
+        !!document.querySelector(".safety__banner") &&
+        /E-Stop pressed — motion locked/i.test(
+          document.querySelector(".safety__banner")?.textContent ?? "",
+        ),
+      { timeout: 10000 },
+    );
+    await page.waitForTimeout(400);
+    const banner = page.locator(".safety__banner").first();
+    if (await banner.count()) {
+      await banner.scrollIntoViewIfNeeded();
+      const box = await banner.boundingBox();
+      if (box) {
+        await page.screenshot({
+          path: path.join(OUT, "estop-latch.png"),
+          type: "png",
+          clip: {
+            x: Math.max(0, box.x - 12),
+            y: Math.max(0, box.y - 40),
+            width: Math.min(VIEWPORT.width - box.x + 12, box.width + 24),
+            height: Math.min(VIEWPORT.height - box.y + 40, box.height + 56),
+          },
+        });
+        console.log(
+          "wrote",
+          path.relative(ROOT, path.join(OUT, "estop-latch.png")),
+        );
+      } else {
+        await shot(page, "estop-latch.png");
+      }
+    } else {
+      await shot(page, "estop-latch.png");
+    }
+  });
+
+  // 9c) First-run three steps (Connect → Home → Calibrate)
+  await withFreshPage(
+    browser,
+    { firstRun: false, calibrated: false },
+    async (page) => {
+      await page.waitForSelector(".firstrun", { timeout: 15000 });
+      await page.waitForTimeout(400);
+      await shot(page, "first-run-three-steps.png");
+    },
+  );
+
+  // 9d+9e) Z gauge (material Z0 + job range) and Verify dry run + resume note
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    // Lower Z before Prepare zeros so material Z0 sits below home (realistic gauge).
+    await clickPhase(page, "Prepare");
+    await page.waitForTimeout(300);
+    const zDown = page.getByRole("button", { name: /^Z−$|^Z-$/i }).first();
+    for (let i = 0; i < 8 && (await zDown.count()); i++) {
+      await zDown.click();
+      await page.waitForTimeout(120);
+    }
+    await prepareThroughReady(page);
+    await page.waitForTimeout(600);
+    const gauge = page.locator(".zgauge").first();
+    if (await gauge.count()) {
+      await gauge.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+      const box = await gauge.boundingBox();
+      if (box) {
+        await page.screenshot({
+          path: path.join(OUT, "z-gauge-material.png"),
+          type: "png",
+          clip: {
+            x: Math.max(0, box.x - 12),
+            y: Math.max(0, box.y - 12),
+            width: Math.min(VIEWPORT.width - box.x + 12, box.width + 24),
+            height: Math.min(VIEWPORT.height - box.y + 12, box.height + 24),
+          },
+        });
+        console.log(
+          "wrote",
+          path.relative(ROOT, path.join(OUT, "z-gauge-material.png")),
+        );
+      } else {
+        await shot(page, "z-gauge-material.png");
+      }
+    } else {
+      console.warn("skip z-gauge-material.png — Z gauge not found");
+    }
+
+    await clickPhase(page, "Verify");
+    await page.waitForTimeout(500);
+    const dry = page.locator(".job__dryrun input[type='checkbox']").first();
+    if (await dry.count()) {
+      await dry.check({ force: true }).catch(() => undefined);
+    }
+    const scrub = page.locator("#job-scrub").first();
+    if (await scrub.count()) {
+      const max = Number(await scrub.getAttribute("max")) || 10;
+      const mid = Math.max(1, Math.floor(max / 3));
+      await scrub.evaluate((el, value) => {
+        const input = el as HTMLInputElement;
+        const setter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        setter?.call(input, String(value));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }, mid);
+      await page.waitForTimeout(300);
+    }
+    await page
+      .getByText(/Starting mid-file/i)
+      .waitFor({ timeout: 5000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(400);
+    await shot(page, "verify-dry-run.png");
   });
 
   // 10) M6 tool-change panel (Idle → M5 strip with Re-probe Z / Continue)

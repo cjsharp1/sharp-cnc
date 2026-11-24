@@ -44,6 +44,12 @@ Shows:
 - Optional **Simulate** overlay when a path is loaded — preview only, not serial motion
 - **Z gauge** (top-right, while connected) — a side view of Z: home at the top (0), the bottom of travel (−`$132`), material Z0 (brass line), the stock below it, the loaded job's Z range (red if it leaves travel), and the tool tip. The number underneath is Z from material zero, or machine Z if no zero is set
 
+![Z gauge with material Z0 and job range](assets/z-gauge-material.png)
+
+- **Inputs** (Position panel, while connected) — live pin lights (X/Y/Z lim, Probe, Hold, Start, Reset, Door). Same `Pn:` letters GRBL reports.
+
+![Inputs row with a pin lit](assets/inputs-pin-lit.png)
+
 Axis convention (matches the guides): **+X** right, **+Y** back = up on screen, **+Z** up. Bed corners use map layout: **NW NE** on the top row, **SW SE** on the bottom.
 
 ## Phase switcher (right rail)

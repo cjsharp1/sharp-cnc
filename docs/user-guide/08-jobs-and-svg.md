@@ -85,6 +85,12 @@ With a job loaded (and not streaming):
 - Rough **time estimate** from path length  
 - **Dry run (spindle off, Z lifted)** — turns `M3`/`M4` into `M5`, strips `S`, and lifts every absolute Z so the deepest point of the job stays **5 mm above material Z0**. Use it to watch the whole path in the air. If the lift would push the job above Z home, Start is refused with the reason.
 
+![Dry run Z lift](assets/diagram-dry-run-lift.svg)
+
+![Resume setup before mid-file Start](assets/diagram-resume-preamble.svg)
+
+Screenshot: [Verify with dry run + resume note](assets/verify-dry-run.png)
+
 ### Before Start: the soft-limit check
 
 Start checks the whole job against soft travel in machine coordinates:
