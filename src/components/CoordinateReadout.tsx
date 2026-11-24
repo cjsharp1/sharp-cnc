@@ -7,7 +7,7 @@ interface CoordinateReadoutProps {
 }
 
 /** GRBL `Pn:` letters → plain labels, in display order. */
-const INPUT_PINS: { letter: string; label: string; title: string }[] = [
+export const INPUT_PINS: { letter: string; label: string; title: string }[] = [
   { letter: "X", label: "X lim", title: "X limit switch" },
   { letter: "Y", label: "Y lim", title: "Y limit switch" },
   { letter: "Z", label: "Z lim", title: "Z limit switch" },
@@ -17,6 +17,30 @@ const INPUT_PINS: { letter: string; label: string; title: string }[] = [
   { letter: "R", label: "Reset", title: "Reset / abort button" },
   { letter: "D", label: "Door", title: "Safety door input" },
 ];
+
+const PROBE_PIN = INPUT_PINS.find((p) => p.letter === "P")!;
+
+/**
+ * Single probe pin light — same chrome as the Position → Inputs row.
+ * Driven by parsed `status.pins.probe` (GRBL `Pn:P`).
+ */
+export function ProbePinLight({
+  active,
+  className,
+}: {
+  active: boolean;
+  className?: string;
+}) {
+  return (
+    <span
+      className={`coords__pin${active ? " is-on" : ""}${className ? ` ${className}` : ""}`}
+      title={`${PROBE_PIN.title}: ${active ? "ACTIVE" : "not active"}`}
+      aria-label={`Probe pin ${active ? "on" : "off"}`}
+    >
+      {PROBE_PIN.label}
+    </span>
+  );
+}
 
 /**
  * Live inputs from the status report: lights up while a pin reads active.

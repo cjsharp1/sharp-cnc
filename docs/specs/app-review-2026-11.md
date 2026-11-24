@@ -15,7 +15,7 @@ Most of this review was fixed and verified against the Virtual CNC on branch `fi
 | R1 | E-Stop doesn't stop test loops | **FIXED** — latch + shared abort; feed hold first. Hardware check HW-10 |
 | R2 | Z soft envelope inverted | **FIXED** for Z. X/Y sign **OPEN pending hardware** (HW-02a / HW-07a) |
 | R3 | Start-at-line skips modal state; checkpoint skips lines | **FIXED** — resume preamble + 20-line backoff |
-| R4 | Probe timeout too short | **FIXED** — derived timeout; hold + reset on timeout. Continuity check: **OPEN** (Inputs row now shows the probe pin; a guided check in the Z probe step is still to do) |
+| R4 | Probe timeout too short | **FIXED** — derived timeout; hold + reset on timeout. Continuity check: **FIXED** (Prepare → Z probe gates Run Z probe on `status.pins.probe`) |
 | R5 | Mid-job alarm hang / lost code | **FIXED** |
 | R6 | `error:N` leaves spindle running | **FIXED** (feed hold + message). A "Skip line and continue" option: **OPEN, optional** |
 | R7 | Tool change doesn't make spindle safe | **FIXED** (this PR) |
@@ -92,7 +92,7 @@ The recovery checkpoint also resumes from the wrong line. It saves `absoluteLine
 **Fix:**
 - Derive the timeout: `seek / feed × 60 s + 5 s`.
 - On timeout, send feed hold and soft reset, then say plainly what happened.
-- Add a **probe continuity check** before seeking: "Touch the clip to the plate; the probe light should come on" (the `Pn:P` pin is already parsed).
+- Add a **probe continuity check** before seeking: "Touch the clip to the plate; the probe light should come on" (the `Pn:P` pin is already parsed). **DONE** in Prepare → Z probe (`canRunPrepareZProbe` + Inputs-style Probe light).
 - Fix the known probe ALARM 4/5 polarity (R9) in the same PR, since it's the same message path.
 
 ### R5. Mid-job alarms hang the job and hide the alarm code
@@ -252,7 +252,7 @@ Same rules as before: every PR ships with smoke coverage and its user-guide / vi
 ### Safety
 1. ~~**R7 Tool change (M6).**~~ **FIXED** — Idle → `M5` → full-width panel (re-probe Z / same tool length) → restore `M3 S…` + dwell; side-command oks do not steal job-line acks (`smoke-tool-change`).
 2. **X/Y soft envelope sign (R2 follow-up)** — only if hardware check HW-02a/HW-07a shows X/Y read **negative** after homing. Then derive each axis's range from `$23` and the observed sign in `minForAxis`/`maxForAxis` (`machineConfig.ts`), update `bedTravelTest`, `stockPerimeterTest`, the machine view bed frame, and the mock. If X/Y read positive, just record it in `mock-vs-real-grbl.md`.
-3. **Probe continuity step (R4 follow-up).** In Prepare → Z probe, before the Probe button unlocks: "Touch the clip to the plate — the light should come on" using `status.pins.probe`.
+3. **Probe continuity step (R4 follow-up).** ~~In Prepare → Z probe, before the Probe button unlocks: "Touch the clip to the plate — the light should come on" using `status.pins.probe`.~~ **DONE** — continuity gate + Probe pin light; Virtual CNC `$ExtProbe` practice.
 4. **E-Stop loop abort smoke.** The latch and loop abort are verified by hand in the browser only. Add a Playwright smoke (reuse `scripts/capture-guide-screenshots.mts` setup) that starts the bed travel test on Virtual CNC, presses E-Stop after the first segment, and asserts no further `$J=` is sent and the banner shows.
 
 ### Tests

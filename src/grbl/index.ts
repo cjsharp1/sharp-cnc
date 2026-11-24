@@ -596,11 +596,13 @@ export type {
 export {
   DEFAULT_PROBE_CONFIG,
   PROBE_CONFIG_KEY,
+  PROBE_CONTINUITY_HINT,
   buildManualZZeroCommand,
   buildProbeRetractCommand,
   buildProbeWorkZZeroCommand,
   buildZProbeSeekCommand,
   canProbe,
+  canRunPrepareZProbe,
   loadProbeConfig,
   parseProbeResult,
   probeTimeoutMs,

@@ -40,7 +40,7 @@ Things that **can only be checked on the real machine**: the Virtual CNC can't p
 | HW-08 | Steps/mm X/Y (100 mm) and Z (20 mm **down**) within ±0.1 mm; final `$100`–`$102` | Dimensional accuracy | | todo |
 | HW-09 | Soft travel written; Z "Use MPos" gives positive `$132`; jog past limit refused (`error:15` from console, stays Idle) | Z envelope fix (review R2); real GRBL soft-limit jog response | | todo |
 | HW-10 | E-Stop mid bed-travel-test: **no further segment sent**; then full clean run | Confirms review R1 fix on real hardware | | todo |
-| HW-11 | Probe light on only while touching; `$6`; plate thickness | Continuity / polarity | | todo |
+| HW-11 | Probe light on only while touching; `$6`; plate thickness; Prepare continuity gate unlocks Run Z probe after light once | Continuity / polarity (app gate covered by `smoke-probe`) | | todo |
 | HW-11a | Probe already touching → **ALARM:4**; no contact → **ALARM:5**; app wording matches | Alarm 4/5 meanings fixed to official GRBL (review R9) | | todo |
 | HW-11b | Full 30 mm seek at 80 mm/min never reports "timed out" early | Probe timeout fix (review R4) | | todo |
 | HW-12 | Dry run stays ≥ 5 mm above Z0 the whole path (watch Z gauge) | Dry run now lifts Z | | todo |

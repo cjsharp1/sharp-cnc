@@ -754,6 +754,13 @@ export function createMockTransport(): SerialTransport {
       softReset();
       return;
     }
+    // Virtual CNC: pulse probe pin so Prepare continuity can be practiced.
+    // Hold long enough for the 250 ms status poll to observe Pn:P.
+    if (/^\$ExtProbe$/i.test(trimmed)) {
+      pulsePin("P", 900);
+      emitLine("ok");
+      return;
+    }
 
     queue.push(trimmed);
     pump();
