@@ -5213,6 +5213,77 @@ button {
   font-family: var(--font-mono);
 }
 
+.job__toolchange-panel {
+  width: 100%;
+  margin: 0.55rem 0 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid rgba(196, 146, 74, 0.45);
+  background: linear-gradient(
+    165deg,
+    rgba(196, 146, 74, 0.14),
+    rgba(20, 24, 28, 0.35)
+  );
+  color: var(--ink);
+}
+
+.job__toolchange-title {
+  margin: 0 0 0.45rem;
+  font-size: var(--text-sm);
+  font-family: var(--font-mono);
+  color: var(--warn);
+}
+
+.job__toolchange-steps {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--text-sm);
+  color: var(--steel);
+}
+
+.job__toolchange-step {
+  position: relative;
+  padding-left: 0;
+}
+
+.job__toolchange-step:not(:last-child)::after {
+  content: "·";
+  margin-left: 0.75rem;
+  color: var(--steel);
+  opacity: 0.7;
+}
+
+.job__toolchange-step.is-done {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.job__toolchange-note {
+  margin: 0.45rem 0 0;
+  font-size: var(--text-sm);
+  color: var(--steel);
+}
+
+.job__toolchange-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.65rem 1rem;
+  margin-top: 0.65rem;
+}
+
+.job__toolchange-same {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: var(--text-sm);
+  color: var(--ink);
+  cursor: pointer;
+}
+
 .job__phase.is-tool-change {
   color: var(--warn);
 }

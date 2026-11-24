@@ -62,7 +62,7 @@ Things that **can only be checked on the real machine**: the Virtual CNC can't p
 | HW-24 | A G-code `error:N` mid-job (e.g. an unsupported word in a test file, dry run) → job halts, motion held, message names the line; **Stop** turns spindle off | Stream error handling (review R6) | | todo |
 | HW-25 | Mid-job alarm (e.g. soft limit in a test file, dry run) → job ends cleanly, alarm explained, no hang | Stream alarm handling (review R5) | | todo |
 | HW-26 | Recovery checkpoint after Stop → resume line is a little **before** where it stopped | Checkpoint backoff (review R3) | | todo |
-| HW-27 | **Tool change (M6)** in a dry-run test file: what does the machine do? Spindle state? | **Not fixed yet**: app doesn't stop the spindle or prompt a re-probe at M6. Avoid M6 in real jobs until it is | | todo |
+| HW-27 | **Tool change (M6)** in a dry-run test file: waits for Idle, sends M5, panel requires re-probe Z or “Same tool length”, then restores spindle + dwell before Continue | App path covered by `smoke-tool-change`; confirm on Demon Shield with a short M6 file (spindle stops before bit change; Z re-probe or same-length gate) | | todo |
 | HW-28 | Z max rate / acceleration: 20 fast up/down Z cycles return to the same dial reading | Z skipping makes cuts progressively deeper | | todo |
 | HW-29 | Hard limits (`$21=1`) don't false-trip with steppers and spindle running | Only if you turn hard limits on | | todo |
 | HW-30 | Gamepad jog (if used) respects soft limits and stops on release | Continuous jog path | | todo |

@@ -34,6 +34,7 @@ const CRITICAL = [
   "smoke-task-phase.mts",
   "smoke-job-recovery.mts",
   "smoke-app-safety.mts",
+  "smoke-tool-change.mts",
   "smoke-stock-tool.mts",
   "smoke-app-update.mts",
   "smoke-layout.mts"
@@ -73,6 +74,7 @@ const FULL = [
   "smoke-recent-jobs.mts",
   "smoke-full-control.mts",
   "smoke-app-safety.mts",
+  "smoke-tool-change.mts",
   "smoke-app-update.mts"
 ];
 

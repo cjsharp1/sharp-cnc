@@ -60,9 +60,13 @@ import {
   bedSizeFromLimits,
   bitRadiusMm,
   buildResumePreamble,
+  buildToolChangeSpindleRestore,
+  buildToolChangeSpindleStop,
+  canContinueToolChange,
   RESUME_BACKOFF_LINES,
   dryRunJobLines,
   dryRunLiftMm,
+  scanResumeState,
   buildJobFromSvg,
   buildJogCommand,
   buildProbeRetractCommand,
@@ -274,6 +278,16 @@ export default function App() {
   const [streamProgress, setStreamProgress] = useState<StreamProgress | null>(
     null,
   );
+  /** Spindle-safe M6 UI: Idle → M5 → re-probe / same-length → restore → resume. */
+  const [toolChangeUi, setToolChangeUi] = useState<{
+    waitingForIdle: boolean;
+    spindleStopped: boolean;
+    zReprobed: boolean;
+    sameToolLength: boolean;
+    busy: boolean;
+    statusNote: string | null;
+  } | null>(null);
+  const toolChangeArmRef = useRef(0);
   const [svgDraft, setSvgDraft] = useState<SvgImportResult | null>(null);
   const [sim, setSim] = useState<PathSimSnapshot>(() => createIdleSim([]));
   const [simSpeed, setSimSpeed] = useState<SimSpeedRate>(DEFAULT_SIM_SPEED);
@@ -540,6 +554,12 @@ export default function App() {
     streamProgress?.phase === "paused" ||
     streamProgress?.phase === "tool-change" ||
     streamProgress?.phase === "stopping";
+  /** Jog/probe allowed after M5 while paused for a tool change. */
+  const toolChangeMotionOk =
+    streamProgress?.phase === "tool-change" &&
+    !!toolChangeUi?.spindleStopped &&
+    !toolChangeUi.busy;
+  const streamingBlocksMotion = streaming && !toolChangeMotionOk;
 
   const phaseCtx = useMemo(
     () => ({
@@ -660,6 +680,80 @@ export default function App() {
   useEffect(() => {
     streamPhaseRef.current = streamProgress?.phase ?? "idle";
   }, [streamProgress]);
+
+  // M6: wait for Idle (buffered motion done), then send M5 before the panel unlocks.
+  useEffect(() => {
+    if (streamProgress?.phase !== "tool-change") {
+      setToolChangeUi(null);
+      return;
+    }
+    const arm = ++toolChangeArmRef.current;
+    setToolChangeUi({
+      waitingForIdle: true,
+      spindleStopped: false,
+      zReprobed: false,
+      sameToolLength: false,
+      busy: true,
+      statusNote: "Waiting for the machine to finish moving…",
+    });
+    let cancelled = false;
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    void (async () => {
+      try {
+        const started = Date.now();
+        while (!cancelled && toolChangeArmRef.current === arm) {
+          const pending = streamerRef.current?.getProgress().pendingLines ?? 0;
+          const idle = statusRef.current.state === "Idle";
+          if (pending === 0 && idle) break;
+          if (Date.now() - started > 120_000) {
+            throw new Error("Timed out waiting for Idle before spindle stop");
+          }
+          await wait(100);
+        }
+        if (cancelled || toolChangeArmRef.current !== arm) return;
+        setToolChangeUi((prev) =>
+          prev
+            ? {
+                ...prev,
+                statusNote: "Stopping the spindle…",
+              }
+            : prev,
+        );
+        await streamerRef.current?.sendDuringToolChange(
+          buildToolChangeSpindleStop(),
+        );
+        if (cancelled || toolChangeArmRef.current !== arm) return;
+        setToolChangeUi({
+          waitingForIdle: false,
+          spindleStopped: true,
+          zReprobed: false,
+          sameToolLength: false,
+          busy: false,
+          statusNote: null,
+        });
+        activityLog.append("event", "Tool change: spindle stopped (M5)");
+      } catch (err) {
+        if (cancelled || toolChangeArmRef.current !== arm) return;
+        const message = err instanceof Error ? err.message : String(err);
+        setToolChangeUi((prev) =>
+          prev
+            ? { ...prev, busy: false, statusNote: message }
+            : {
+                waitingForIdle: false,
+                spindleStopped: false,
+                zReprobed: false,
+                sameToolLength: false,
+                busy: false,
+                statusNote: message,
+              },
+        );
+        setErrorMessage(message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [streamProgress?.phase, activityLog]);
 
   useEffect(() => {
     jobRef.current = job;
@@ -1668,12 +1762,112 @@ export default function App() {
     }
   };
 
-  const handleResumeToolChange = async () => {
+  const handleToolChangeSameLength = (checked: boolean) => {
+    setToolChangeUi((prev) =>
+      prev ? { ...prev, sameToolLength: checked } : prev,
+    );
+  };
+
+  const handleToolChangeReprobeZ = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    if (!toolChangeMotionOk) {
+      setErrorMessage(
+        toolChangeUi?.spindleStopped
+          ? "Wait for the spindle command to finish."
+          : "Wait until the spindle is stopped.",
+      );
+      return;
+    }
+    const gate = canProbe(gateStateLive(), connected, false, {
+      probePinActive: !!statusRef.current.pins?.probe,
+    });
+    if (!gate.ok) {
+      setErrorMessage(gate.reason ?? "Cannot probe");
+      return;
+    }
+    setToolChangeUi((prev) =>
+      prev
+        ? { ...prev, busy: true, statusNote: "Re-probing Z…" }
+        : prev,
+    );
     try {
-      await streamerRef.current?.resumeAfterToolChange();
-      activityLog.append("event", "Resumed after M6 tool change");
+      const result = await runToolLengthProbeCycle(client, {
+        plateThicknessMm: probeConfig.plateThicknessMm,
+        seekMm: probeConfig.seekMm,
+        feedMmMin: probeConfig.feedMmMin,
+        timeoutMs: usingMock ? 5000 : 20_000,
+      });
+      setToolChangeUi((prev) =>
+        prev
+          ? {
+              ...prev,
+              busy: false,
+              zReprobed: true,
+              statusNote: `Z re-probed · ${result.workZeroCommand}`,
+            }
+          : prev,
+      );
+      activityLog.append("event", "Tool change: Z re-probed");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      setToolChangeUi((prev) =>
+        prev ? { ...prev, busy: false, statusNote: message } : prev,
+      );
+      setErrorMessage(message);
+    }
+  };
+
+  const handleResumeToolChange = async () => {
+    const streamer = streamerRef.current;
+    const currentJob = jobRef.current;
+    if (!streamer || !toolChangeUi) return;
+    if (
+      !canContinueToolChange({
+        spindleStopped: toolChangeUi.spindleStopped,
+        zReprobed: toolChangeUi.zReprobed,
+        sameToolLength: toolChangeUi.sameToolLength,
+        busy: toolChangeUi.busy,
+      })
+    ) {
+      setErrorMessage(
+        "Re-probe Z or tick “Same tool length” before continuing.",
+      );
+      return;
+    }
+    setToolChangeUi((prev) =>
+      prev
+        ? { ...prev, busy: true, statusNote: "Restoring spindle…" }
+        : prev,
+    );
+    try {
+      const m6Line =
+        streamer.getProgress().toolChangeLine ??
+        Math.max(0, (streamer.getProgress().absoluteLine ?? 1) - 1);
+      const resume =
+        currentJob != null
+          ? scanResumeState(currentJob.lines, m6Line)
+          : { spindle: null, spindleSpeed: null };
+      // Dry-run jobs keep the spindle off after the bit change.
+      const restore = dryRunRef.current
+        ? []
+        : buildToolChangeSpindleRestore(resume);
+      for (const line of restore) {
+        await streamer.sendDuringToolChange(line);
+      }
+      await streamer.resumeAfterToolChange();
+      activityLog.append(
+        "event",
+        restore.length > 0
+          ? `Resumed after M6 (restored ${restore[0]})`
+          : "Resumed after M6 tool change",
+      );
+      setToolChangeUi(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setToolChangeUi((prev) =>
+        prev ? { ...prev, busy: false, statusNote: message } : prev,
+      );
       setErrorMessage(message);
     }
   };
@@ -1937,9 +2131,9 @@ export default function App() {
   const sendJogDelta = async (axes: JogAxisMap, continuous: boolean) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    if (streaming) return;
+    if (streamingBlocksMotion) return;
 
-    const gate = canJogOrZero(gateStateLive(), connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streamingBlocksMotion);
     if (!gate.ok) {
       setSoftLimitHint(gate.reason ?? "Cannot jog");
       if (continuous) await stopContinuousJog();
@@ -1997,7 +2191,7 @@ export default function App() {
   };
 
   const handleJog = (axes: JogAxisMap) => {
-    if (!connected || streaming) return;
+    if (!connected || streamingBlocksMotion) return;
     if (statusRef.current.state === "Alarm") {
       setSoftLimitHint("Alarm lock — unlock before jogging.");
       return;
@@ -2706,7 +2900,7 @@ export default function App() {
           ? "Virtual CNC"
           : selectedPath || "No port";
 
-  const jogGate = canJogOrZero(gateState, connected, streaming);
+  const jogGate = canJogOrZero(gateState, connected, streamingBlocksMotion);
   const jogEnabled = jogGate.ok;
 
   /** Same jog pad as Prepare, for Calibrate steps that need to move the machine. */
@@ -3911,6 +4105,11 @@ export default function App() {
                         showSimNudge={!verifyRunPrefs.simNudgeDismissed}
                         onDismissSimNudge={handleDismissSimNudge}
                         usingVirtualCnc={usingVirtualCnc}
+                        toolChangeUi={toolChangeUi}
+                        onToolChangeSameLength={handleToolChangeSameLength}
+                        onToolChangeReprobeZ={() => {
+                          void handleToolChangeReprobeZ();
+                        }}
                         onResumeToolChange={() => {
                           void handleResumeToolChange();
                         }}
@@ -3954,6 +4153,11 @@ export default function App() {
                     }}
                     timeEstimate={jobTimeEstimate}
                     dryRun={dryRun}
+                    toolChangeUi={toolChangeUi}
+                    onToolChangeSameLength={handleToolChangeSameLength}
+                    onToolChangeReprobeZ={() => {
+                      void handleToolChangeReprobeZ();
+                    }}
                     onResumeToolChange={() => {
                       void handleResumeToolChange();
                     }}
