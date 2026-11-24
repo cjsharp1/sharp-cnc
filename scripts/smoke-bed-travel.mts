@@ -54,7 +54,8 @@ assert(
 );
 assert(canStartBedTravelTest(limits, true).ok === true, "ready when set");
 
-const start = { x: 100, y: 100, z: 5 };
+// Z homes to the top (0) and travels negative; start partway down.
+const start = { x: 100, y: 100, z: -40 };
 const plan = planBedTravelTest({
   machine: start,
   softTravel: limits,
@@ -157,7 +158,7 @@ const settings = await fetchGrblSettings(client, { timeoutMs: 2000 });
 assert(softLimitsEnabled(settings) === true, "mock $20 on");
 
 const mockPlan = planBedTravelTest({
-  machine: { x: 50, y: 50, z: 2 },
+  machine: { x: 50, y: 50, z: 0 }, // mock sits at home (Z top)
   softTravel: {
     maxX: 1000,
     maxY: 800,

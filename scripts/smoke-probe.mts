@@ -69,9 +69,9 @@ try {
     timeoutMs: 5000,
   });
 } catch (err) {
-  alarmed = /ALARM:4/i.test(err instanceof Error ? err.message : String(err));
+  alarmed = /ALARM:5/i.test(err instanceof Error ? err.message : String(err));
 }
-assert(alarmed, "short seek should ALARM:4");
+assert(alarmed, "short seek should ALARM:5 (no contact)");
 
 await client.disconnect();
 console.log("smoke-probe: ok");

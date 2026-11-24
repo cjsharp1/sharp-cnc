@@ -83,7 +83,7 @@ assert(REAL_ALARM_CODES[4].toLowerCase().includes("initial"), "real ALARM:4 = in
 assert(REAL_ALARM_CODES[5].toLowerCase().includes("did not contact"), "real ALARM:5 = no contact");
 pass("official probe alarm 4/5 polarity");
 
-// App guide still documents the *app/mock* polarity (diff called out below).
+// App guide follows the official polarity.
 const guide4 = guideFromAlarmLine("ALARM:4");
 assert(guide4.kind === "probe-fail", "guide ALARM:4 probe");
 pass("alarm guide accepts ALARM:4");
@@ -279,27 +279,17 @@ await client.sendLine(UNLOCK_COMMAND);
 await new Promise((r) => setTimeout(r, 50));
 pass("soft-reset from Alarm");
 
-// Probe alarm polarity on mock (swapped vs official)
+// Probe alarm polarity on mock now matches official GRBL 1.1:
+// ALARM:4 = probe not in expected initial state (wrong-way / already touching).
 rxBuffer.length = 0;
 await client.sendLine("G91");
-await client.sendLine("G38.2 Z0.1 F50"); // tiny seek wrong way / early → mock ALARM:5
+await client.sendLine("G38.2 Z0 F50"); // zero-length seek → probe already "at" contact → initial-state fault
 await new Promise((r) => setTimeout(r, 200));
 const earlyAlarm = rxBuffer.find((l) => /^ALARM:\d+/i.test(l));
-assert(earlyAlarm, "probe early/fail emits ALARM");
-// Mock uses ALARM:5 for “already contacting / wrong seek”; real uses ALARM:4 for wrong initial state.
-assert(
-  earlyAlarm === "ALARM:5" || earlyAlarm === "ALARM:4",
-  `probe alarm line ${earlyAlarm}`,
-);
-if (earlyAlarm === "ALARM:5") {
-  assert(
-    true,
-    "MOCK DIFF: early/wrong-state probe → ALARM:5; real official = ALARM:4",
-  );
-}
+assert(earlyAlarm === "ALARM:4", `wrong-state probe should be ALARM:4, got ${earlyAlarm}`);
 await client.sendLine(UNLOCK_COMMAND);
 await new Promise((r) => setTimeout(r, 50));
-pass("probe alarm codes (mock polarity may ≠ real 4/5)");
+pass("probe alarm codes match official 4/5 polarity");
 
 unsubStatus();
 unsubRx();

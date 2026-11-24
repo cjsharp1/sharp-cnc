@@ -51,7 +51,7 @@ Chris’s hardware path: conductive plate on the **stock top**, alligator clip o
 ### Assumptions (verify on Demon Shield)
 
 1. **Probe pin** is wired to GRBL’s PROBE input (Arduino Uno GRBL 1.1 default **A5**). Demon Shield should expose this the same way as a stock Uno shield — confirm continuity from plate/clip to that pin.  
-2. **`$6` probe invert** matches your polarity (normally-open plate vs inverted wiring). Wrong invert → Alarm 5 (already contacting) or never-trigger.  
+2. **`$6` probe invert** matches your polarity (normally-open plate vs inverted wiring). Wrong invert → Alarm 4 (reads as already touching) or never-trigger.  
 3. Soft limits (`$20` / `$130`–`$132`) allow the seek distance downward from your start Z.  
 4. Spindle / bit is conductive enough for the clip; coatings or collet isolation can break the circuit.  
 5. Plate thickness is measured accurately — SharpCNC sets Material Z0 at the **stock face** by offsetting that thickness.
@@ -70,8 +70,8 @@ Chris’s hardware path: conductive plate on the **stock top**, alligator clip o
 
 | Failure | Meaning |
 |---------|---------|
-| **ALARM:4** | No contact within seek — raise start height, check wiring, or increase seek |
-| **ALARM:5** | Probe already active at start — clear contact / invert `$6` |
+| **ALARM:4** | Probe already active at start — clear contact / invert `$6` |
+| **ALARM:5** | No contact within seek — lower the start height, check the clip and wiring, or increase seek |
 | Pin already ON | UI refuses to seek (same early-contact risk) |
 
 **Manual Zero Z** is the paper-feel fallback (`G10 L20 P1 Z0` at the current tip) if the plate is unavailable.

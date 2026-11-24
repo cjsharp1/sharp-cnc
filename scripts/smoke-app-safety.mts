@@ -391,9 +391,9 @@ await client.requestStatus();
 await wait(40);
 assert(status?.state === "Idle", "unlocked after soft-limit");
 
-await client.sendLine("$Alarm4");
+await client.sendLine("$Alarm5");
 await wait(60);
-const probeGuide = guideFromAlarmLine("ALARM:4");
+const probeGuide = guideFromAlarmLine("ALARM:5");
 assert(probeGuide.kind === "probe-fail", "guided probe-fail unlock");
 assert(parseAlarmLine("ALARM:4")?.code === 4, "parse probe alarm");
 await client.sendLine(UNLOCK_COMMAND);

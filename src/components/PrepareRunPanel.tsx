@@ -523,7 +523,7 @@ export function PrepareRunPanel({
               >
                 {homing.homed ? "Re-home ($H)" : "Home ($H)"}
               </button>
-              <span className="cal__meta">Optional — when switches need it</span>
+              <span className="cal__meta">Home once after each power-on, before setting zeros</span>
             </div>
           ) : null}
           <WizardStepConfirm

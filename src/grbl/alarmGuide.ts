@@ -74,7 +74,7 @@ const PROBE_FAIL: AlarmGuide = {
     {
       title: "Check plate and clip",
       detail:
-        "Alarm 4 = no contact in seek. Alarm 5 = already contacting at start. Verify alligator clip, plate, and $6 invert.",
+        "Alarm 4 = probe was already touching (or reads as touching) before the move. Alarm 5 = no contact within the seek distance. Verify alligator clip, plate, and $6 invert.",
     },
     {
       title: "Raise Z / clear contact",

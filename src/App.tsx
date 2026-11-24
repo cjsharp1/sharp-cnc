@@ -32,7 +32,8 @@ import {
   type ExternalJobKind,
 } from "./components/ExternalJobsPanel";
 import { JobLoad } from "./components/JobLoad";
-import { type JogAxisMap } from "./components/JogPanel";
+import { JogPanel, type JogAxisMap } from "./components/JogPanel";
+import { ZGauge } from "./components/ZGauge";
 import { MachineView, type TrailPoint } from "./components/MachineView";
 import { OverridesStrip } from "./components/OverridesStrip";
 import {
@@ -58,7 +59,10 @@ import {
   applyRapidOverrideStep,
   bedSizeFromLimits,
   bitRadiusMm,
-  buildDryRunLines,
+  buildResumePreamble,
+  RESUME_BACKOFF_LINES,
+  dryRunJobLines,
+  dryRunLiftMm,
   buildJobFromSvg,
   buildJogCommand,
   buildProbeRetractCommand,
@@ -304,6 +308,23 @@ export default function App() {
     () => loadOverridePercents().spindle,
   );
   const [homed, setHomed] = useState(false);
+  /**
+   * Set by E-Stop. Blocks every motion gate (jog, home, probe, start, test
+   * loops) until the operator explicitly clears it. GRBL may be Idle after a
+   * soft reset at rest, so we cannot rely on its Alarm state alone.
+   */
+  const [estopLatched, setEstopLatchedState] = useState(false);
+  const estopLatchedRef = useRef(false);
+  const setEstopLatched = (value: boolean) => {
+    estopLatchedRef.current = value;
+    setEstopLatchedState(value);
+  };
+  /** Machine state as seen by motion gates — E-Stop latch reads as a lock. */
+  const gateStateLive = (): GrblStatus["state"] =>
+    estopLatchedRef.current ? "EStopLatched" : statusRef.current.state;
+  const gateState: GrblStatus["state"] = estopLatched
+    ? "EStopLatched"
+    : status.state;
   const [homeBusy, setHomeBusy] = useState(false);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
   const [workOffsets, setWorkOffsets] = useState<WorkOffsetsStore>(() =>
@@ -576,11 +597,12 @@ export default function App() {
             z: status.machine.z - status.work.z,
           },
           softTravel,
+          job.zRange,
         )
       : null;
 
   const checklistOk = verifyChecklistComplete(verifyChecklist);
-  const startGate = canStartJob(status.state, connected);
+  const startGate = canStartJob(gateState, connected);
   const startBlockedReason = !job
     ? null
     : !startGate.ok
@@ -871,16 +893,18 @@ export default function App() {
           p.phase === "stopping" ||
           p.phase === "error"
         ) {
-          const nextLine =
-            typeof p.absoluteLine === "number"
-              ? p.absoluteLine
+          // Resume from before the last acknowledged line: GRBL acks lines
+          // when it plans them, not when it finishes cutting them.
+          const acked =
+            typeof p.ackedAbsoluteLine === "number"
+              ? p.ackedAbsoluteLine
               : p.ackedLines;
+          const nextLine = Math.max(0, acked - RESUME_BACKOFF_LINES);
           const checkpoint = {
             jobName: currentJob.name,
             totalLines: currentJob.lines.length,
             nextLine: Math.min(nextLine, currentJob.lines.length),
-            absoluteLine:
-              typeof p.absoluteLine === "number" ? p.absoluteLine : null,
+            absoluteLine: nextLine,
             work: { ...statusRef.current.work },
             machine: { ...statusRef.current.machine },
             phase: p.phase,
@@ -1215,14 +1239,14 @@ export default function App() {
       setCalBusy(false);
       setHomed(false);
       setHomeMessage(null);
+      setEstopLatched(false);
       resetPrepareSession();
       setTaskPhase("connect");
     }
   };
 
   const handleSoftReset = async () => {
-    bedTravelAbortRef.current = true;
-    stockPerimeterAbortRef.current = true;
+    abortAppMotionLoops("soft reset");
     await stopContinuousJog();
     externalControlsRef.current.noteSoftwareAction("abort");
     if (streaming) {
@@ -1238,16 +1262,6 @@ export default function App() {
       setHomed(false);
       setErrorMessage(null);
       setSoftLimitHint(null);
-      if (bedTravelRunningRef.current) {
-        bedTravelRunningRef.current = false;
-        setBedTravelPhase("aborted");
-        setBedTravelMessage("Aborted by soft reset / E-Stop.");
-      }
-      if (stockPerimeterRunningRef.current) {
-        stockPerimeterRunningRef.current = false;
-        setStockPerimeterPhase("aborted");
-        setStockPerimeterMessage("Aborted by soft reset / E-Stop.");
-      }
       activityLog.append("event", "Soft reset");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1255,17 +1269,41 @@ export default function App() {
     }
   };
 
+  /**
+   * Stop every app-driven motion loop (bed travel, stock perimeter, continuous
+   * jog) and reset session flags. Shared by E-Stop and Reset so neither can
+   * leave a loop running that sends the next move after the controller stops.
+   */
+  const abortAppMotionLoops = (reasonLabel: string) => {
+    bedTravelAbortRef.current = true;
+    stockPerimeterAbortRef.current = true;
+    if (bedTravelRunningRef.current) {
+      bedTravelRunningRef.current = false;
+      setBedTravelPhase("aborted");
+      setBedTravelMessage(`Aborted by ${reasonLabel}.`);
+    }
+    if (stockPerimeterRunningRef.current) {
+      stockPerimeterRunningRef.current = false;
+      setStockPerimeterPhase("aborted");
+      setStockPerimeterMessage(`Aborted by ${reasonLabel}.`);
+    }
+  };
+
   const handleEstop = async () => {
     const client = clientRef.current;
+    // Latch first so no gate lets new motion through while we stop.
+    setEstopLatched(true);
+    abortAppMotionLoops("E-Stop");
     if (!client || !client.transport.isOpen) return;
-    activityLog.append("event", "E-Stop");
-    externalControlsRef.current.noteSoftwareAction("abort");
-    await stopContinuousJog();
+    // Feed hold goes out before anything else.
     try {
       await client.feedHold();
     } catch {
       /* best-effort */
     }
+    activityLog.append("event", "E-Stop (motion locked until cleared)");
+    externalControlsRef.current.noteSoftwareAction("abort");
+    await stopContinuousJog();
     // Brief pause so hold latches before soft reset clears the buffer.
     await new Promise((r) => setTimeout(r, 40));
     try {
@@ -1281,11 +1319,24 @@ export default function App() {
       } else {
         await client.softReset();
       }
+      setFeedOverridePercent(100);
+      setRapidOverridePercent(100);
+      setSpindleOverridePercent(100);
+      setHomed(false);
       setErrorMessage(null);
       setSoftLimitHint(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
+    }
+  };
+
+  const handleClearEstop = async () => {
+    setEstopLatched(false);
+    activityLog.append("event", "E-Stop cleared by operator");
+    const client = clientRef.current;
+    if (client?.transport.isOpen && statusRef.current.state === "Alarm") {
+      await handleUnlock();
     }
   };
 
@@ -1370,13 +1421,13 @@ export default function App() {
   };
 
   const handleSimulateProbeFail = async () => {
-    await simulateMockAlarm("$Alarm4", "Simulated probe-fail alarm (mock)");
+    await simulateMockAlarm("$Alarm5", "Simulated probe no-contact alarm (mock)");
   };
 
   const handleHome = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canHome(statusRef.current.state, connected, streaming);
+    const gate = canHome(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setHomeMessage(gate.reason ?? "Cannot home");
       return;
@@ -1510,7 +1561,7 @@ export default function App() {
   ) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canProbe(statusRef.current.state, connected, streaming, {
+    const gate = canProbe(gateStateLive(), connected, streaming, {
       probePinActive: !!statusRef.current.pins?.probe,
     });
     if (!gate.ok) {
@@ -1544,7 +1595,7 @@ export default function App() {
   const handleXyCornerProbe = async (mode: "outside" | "inside") => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canProbe(statusRef.current.state, connected, streaming, {
+    const gate = canProbe(gateStateLive(), connected, streaming, {
       probePinActive: !!statusRef.current.pins?.probe,
     });
     if (!gate.ok) {
@@ -1575,7 +1626,7 @@ export default function App() {
   const handleToolLengthProbe = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canProbe(statusRef.current.state, connected, streaming, {
+    const gate = canProbe(gateStateLive(), connected, streaming, {
       probePinActive: !!statusRef.current.pins?.probe,
     });
     if (!gate.ok) {
@@ -1666,7 +1717,7 @@ export default function App() {
   const handleCalibrateMove = async (axis: Axis, distanceMm: number) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setCalMessage(gate.reason ?? "Cannot move for calibration");
       return;
@@ -1888,7 +1939,7 @@ export default function App() {
     if (!client || !client.transport.isOpen) return;
     if (streaming) return;
 
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setSoftLimitHint(gate.reason ?? "Cannot jog");
       if (continuous) await stopContinuousJog();
@@ -2035,7 +2086,7 @@ export default function App() {
   const handleZero = async (axes: ZeroAxisSelection) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setZeroMessage(gate.reason ?? "Cannot set zero");
       return;
@@ -2066,7 +2117,7 @@ export default function App() {
   const handlePrepareZeroXy = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot set zero");
       return;
@@ -2098,7 +2149,7 @@ export default function App() {
       );
       return;
     }
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot set zero");
       setZeroMessage(gate.reason ?? "Cannot set zero");
@@ -2135,7 +2186,7 @@ export default function App() {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
     const gate = canProbe(
-      statusRef.current.state,
+      gateStateLive(),
       connected,
       streaming,
       { probePinActive: !!statusRef.current.pins?.probe },
@@ -2178,7 +2229,7 @@ export default function App() {
   const handlePrepareManualZZero = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot set zero");
       return;
@@ -2201,7 +2252,7 @@ export default function App() {
   const handlePrepareRetract = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot retract");
       return;
@@ -2478,13 +2529,19 @@ export default function App() {
       return;
     }
 
-    const gate = canStartJob(statusRef.current.state, connected);
+    const gate = canStartJob(gateStateLive(), connected);
     if (!gate.ok) {
       setErrorMessage(gate.reason ?? "Cannot start");
       return;
     }
 
     resetSimForPath(job.path);
+
+    // Dry run lifts every absolute Z so the deepest cut stays above material Z0.
+    const lift = dryRun ? dryRunLiftMm(job.zRange) : 0;
+    const effectiveZRange = job.zRange
+      ? { minZ: job.zRange.minZ + lift, maxZ: job.zRange.maxZ + lift }
+      : null;
 
     const soft = checkJobSoftLimits(
       job.bounds,
@@ -2494,17 +2551,33 @@ export default function App() {
         z: statusRef.current.machine.z - statusRef.current.work.z,
       },
       softTravel,
+      effectiveZRange,
     );
     if (!soft.ok) {
-      setErrorMessage(soft.reason ?? "Job outside soft limits");
+      setErrorMessage(
+        dryRun
+          ? `${soft.reason ?? "Job outside soft limits"} (Dry run lifts Z by ${lift.toFixed(1)} mm to keep the bit above the stock.)`
+          : (soft.reason ?? "Job outside soft limits"),
+      );
       return;
     }
 
     const startAt = clampScrubIndex(scrubIndex, job.lines.length);
-    const sliced = job.lines.slice(startAt);
-    const sourceLines = dryRun
-      ? buildDryRunLines(sliced, { spindleOff: true })
-      : sliced;
+    const jobLines = dryRun ? dryRunJobLines(job.lines, lift) : job.lines;
+    // Starting mid-file: restore units, offsets, spindle, and feed first, then
+    // retract → move over the start point → spin up → plunge.
+    const resumePreamble = buildResumePreamble(jobLines, startAt, {
+      clearanceZMm: effectiveZRange?.maxZ ?? 5,
+    });
+    const preamble = dryRun
+      ? ["M5", ...dryRunJobLines(resumePreamble, 0)]
+      : resumePreamble;
+    if (resumePreamble.length > 0) {
+      activityLog.append(
+        "event",
+        `Resume setup before line ${startAt + 1}: ${resumePreamble.join(" | ")}`,
+      );
+    }
 
     await stopContinuousJog();
     setErrorMessage(null);
@@ -2518,11 +2591,16 @@ export default function App() {
       !usingVirtualCnc ? markStartedOnRealMachine() : loadVerifyRunState(),
     );
     try {
-      await streamer.start(sourceLines);
+      await streamer.start(jobLines, { startIndex: startAt, preamble });
       activityLog.append("event", `Job completed: ${job.name}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorMessage(message);
+      const shown = /^error:/i.test(message)
+        ? `Job halted — GRBL rejected a line (${message}). Motion is on hold. Press Stop to cancel the job and turn the spindle off.`
+        : /^ALARM:/i.test(message)
+          ? `Job stopped by ${message}. See the alarm panel for what it means.`
+          : message;
+      setErrorMessage(shown);
       activityLog.append("event", `Job error: ${message}`);
     }
   };
@@ -2628,8 +2706,27 @@ export default function App() {
           ? "Virtual CNC"
           : selectedPath || "No port";
 
-  const jogGate = canJogOrZero(status.state, connected, streaming);
+  const jogGate = canJogOrZero(gateState, connected, streaming);
   const jogEnabled = jogGate.ok;
+
+  /** Same jog pad as Prepare, for Calibrate steps that need to move the machine. */
+  const calibrationJogPad = (
+    <JogPanel
+      enabled={jogEnabled && !calBusy}
+      mode={jogMode}
+      stepMm={stepMm}
+      feedMmMin={feedMmMin}
+      softLimitHint={
+        softLimitHint ?? (!jogGate.ok && connected ? jogGate.reason : null)
+      }
+      gamepadStatus={gamepadStatus}
+      onModeChange={setJogMode}
+      onStepChange={setStepMm}
+      onFeedChange={setFeedMmMin}
+      onJog={handleJog}
+      onJogEnd={handleJogEnd}
+    />
+  );
   const softLimitsOn = grblSettings
     ? softLimitsEnabled(grblSettings)
     : false;
@@ -2718,7 +2815,7 @@ export default function App() {
   const handleBedTravelStart = async (plan: BedTravelPlan) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setBedTravelMessage(gate.reason ?? "Cannot start bed travel");
       return;
@@ -2873,7 +2970,7 @@ export default function App() {
   const handleStockPerimeterStart = async (plan: StockPerimeterPlan) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setStockPerimeterMessage(gate.reason ?? "Cannot start stock perimeter");
       return;
@@ -3023,19 +3120,6 @@ export default function App() {
       "event",
       skipped ? "First-run setup skipped" : "First-run setup finished",
     );
-  };
-
-  const handleFirstRunSoftTravel = async () => {
-    updateSoftTravel(softTravel);
-    setFirstRunMessage(
-      `Saved local soft travel X${softTravel.maxX ?? "—"} Y${softTravel.maxY ?? "—"} Z${softTravel.maxZ ?? "—"}`,
-    );
-    if (connected) {
-      await handleApplySoftTravel(softTravel, true);
-      setFirstRunMessage(
-        (prev) => `${prev ?? "Saved"} · wrote GRBL max travel + $20=1`,
-      );
-    }
   };
 
   const openPrepareRun = () => {
@@ -3233,6 +3317,10 @@ export default function App() {
               <SafetyControls
                 connected={connected}
                 machineState={status.state}
+                estopLatched={estopLatched}
+                onClearEstop={() => {
+                  void handleClearEstop();
+                }}
                 alarmMessage={alarmMessage}
                 alarmGuide={alarmGuide}
                 usingMock={usingMock}
@@ -3333,7 +3421,25 @@ export default function App() {
             simActivity={simulating ? sim.activity : null}
             wco={status.wco ?? currentWco}
             overlay={
-              job && job.path.length > 0 ? (
+              <>
+              {connected ? (
+                <ZGauge
+                  machineZ={status.machine.z}
+                  zTravelMm={softTravel.maxZ}
+                  homeZ={softTravel.min.z}
+                  materialZeroMachineZ={
+                    prepareZProbed ||
+                    Math.abs((status.wco ?? currentWco).z) > 1e-6
+                      ? (status.wco ?? currentWco).z
+                      : null
+                  }
+                  stockThicknessMm={
+                    taskPhase === "calibrate" ? null : stock.thicknessMm
+                  }
+                  jobZRange={job?.zRange ?? null}
+                />
+              ) : null}
+              {job && job.path.length > 0 ? (
                 <div className="machine__overlay">
                   <SimControls
                     variant="overlay"
@@ -3354,7 +3460,8 @@ export default function App() {
                     onStop={handleSimStop}
                   />
                 </div>
-              ) : null
+              ) : null}
+              </>
             }
           />
         </div>
@@ -3437,7 +3544,7 @@ export default function App() {
                         Machine already calibrated
                       </button>
                       <span className="phase-cal__skip-hint">
-                        Four guided steps — Home and bed travel are optional.
+                        Four guided steps. Home first (once per power-on); the bed travel test at the end is optional.
                       </span>
                     </div>
                   ) : (
@@ -3446,6 +3553,7 @@ export default function App() {
                     </p>
                   )}
                   <CalibrationPanel
+                    jogPad={calibrationJogPad}
                     dense
                     enabled={settingsGate.ok && !calBusy}
                     blockedReason={
@@ -3487,10 +3595,10 @@ export default function App() {
                     onOpenBedTravelTest={openBedTravelTest}
                     homing={{
                       enabled:
-                        canHome(status.state, connected, streaming).ok &&
+                        canHome(gateState, connected, streaming).ok &&
                         !homeBusy,
                       blockedReason:
-                        canHome(status.state, connected, streaming).reason ??
+                        canHome(gateState, connected, streaming).reason ??
                         null,
                       homed,
                       busy: homeBusy,
@@ -3541,12 +3649,12 @@ export default function App() {
                       bedMm={bedMm}
                       jogEnabled={jogEnabled}
                       probeEnabled={
-                        canProbe(status.state, connected, streaming, {
+                        canProbe(gateState, connected, streaming, {
                           probePinActive: !!status.pins?.probe,
                         }).ok && !prepareBusy
                       }
                       probeBlockedReason={
-                        canProbe(status.state, connected, streaming, {
+                        canProbe(gateState, connected, streaming, {
                           probePinActive: !!status.pins?.probe,
                         }).reason ?? null
                       }
@@ -3604,11 +3712,11 @@ export default function App() {
                       onOpenStockPerimeter={openStockPerimeterTest}
                       xyProbe={{
                         enabled:
-                          canProbe(status.state, connected, streaming, {
+                          canProbe(gateState, connected, streaming, {
                             probePinActive: !!status.pins?.probe,
                           }).ok && !xyProbeBusy,
                         blockedReason:
-                          canProbe(status.state, connected, streaming, {
+                          canProbe(gateState, connected, streaming, {
                             probePinActive: !!status.pins?.probe,
                           }).reason ?? null,
                         busy: xyProbeBusy,
@@ -3626,10 +3734,10 @@ export default function App() {
                       }}
                       homing={{
                         enabled:
-                          canHome(status.state, connected, streaming).ok &&
+                          canHome(gateState, connected, streaming).ok &&
                           !homeBusy,
                         blockedReason:
-                          canHome(status.state, connected, streaming).reason ??
+                          canHome(gateState, connected, streaming).reason ??
                           null,
                         busy: homeBusy,
                         homed,
@@ -3914,11 +4022,9 @@ export default function App() {
               homed={homed}
               homeBusy={homeBusy}
               homeBlockedReason={
-                canHome(status.state, connected, streaming).reason ?? null
+                canHome(gateState, connected, streaming).reason ?? null
               }
               homeMessage={homeMessage}
-              softTravel={softTravel}
-              stock={stock}
               message={firstRunMessage}
               onStepChange={setFirstRunStep}
               onRefreshPorts={() => {
@@ -3933,11 +4039,6 @@ export default function App() {
               onOpenCalibration={() => {
                 openCalibration();
               }}
-              onSoftTravelChange={updateSoftTravel}
-              onApplySoftTravel={() => {
-                void handleFirstRunSoftTravel();
-              }}
-              onStockChange={handleStockChange}
               onComplete={() => finishFirstRun(false)}
               onSkip={() => finishFirstRun(true)}
             />
@@ -3974,6 +4075,7 @@ export default function App() {
             </header>
             <div className="cal-modal__body">
               <CalibrationPanel
+                jogPad={calibrationJogPad}
                 enabled={settingsGate.ok && !calBusy}
                 blockedReason={
                   !connected

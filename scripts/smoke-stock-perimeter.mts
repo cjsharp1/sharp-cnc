@@ -83,7 +83,8 @@ assert(
   "NE machine = work + WCO",
 );
 
-const start = { x: 100, y: 100, z: 5 };
+// Z homes to the top (0) and travels negative; start partway down.
+const start = { x: 100, y: 100, z: -40 };
 const plan = planStockPerimeterTest({
   machine: start,
   softTravel: limits,
@@ -168,7 +169,7 @@ const oversized: StockConfig = {
   originCorner: "sw",
 };
 const overPlan = planStockPerimeterTest({
-  machine: { x: 10, y: 10, z: 5 },
+  machine: { x: 10, y: 10, z: -40 },
   softTravel: limits,
   softLimitsOn: true,
   stock: oversized,
@@ -187,7 +188,7 @@ const seStock: StockConfig = {
 };
 const seWco = { x: 200, y: 100, z: 5 };
 const sePlan = planStockPerimeterTest({
-  machine: { x: 150, y: 120, z: 3 },
+  machine: { x: 150, y: 120, z: -40 },
   softTravel: limits,
   softLimitsOn: true,
   stock: seStock,
@@ -225,7 +226,7 @@ const settings = await fetchGrblSettings(client, { timeoutMs: 2000 });
 assert(softLimitsEnabled(settings) === true, "mock $20 on");
 
 const mockPlan = planStockPerimeterTest({
-  machine: { x: 80, y: 60, z: 2 },
+  machine: { x: 80, y: 60, z: 0 }, // mock sits at home (Z top)
   softTravel: {
     maxX: 1000,
     maxY: 800,

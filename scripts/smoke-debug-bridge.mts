@@ -55,7 +55,7 @@ const json = JSON.parse(log.exportJson("raw")) as {
   count: number;
   entries: Array<{ category: string }>;
 };
-assert(json.schemaVersion === 1, "json schema");
+assert(json.schemaVersion === 2, "json schema");
 assert(json.count === 5, "json count");
 assert(
   json.entries.some((e) => e.category === "jog"),

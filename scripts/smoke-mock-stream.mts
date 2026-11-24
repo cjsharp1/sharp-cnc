@@ -11,13 +11,15 @@ function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 
+// Ends with a retract to Z0 (home). Z5 would be above home: the mock's Z
+// soft range is [-$132, 0] like real GRBL, and would ALARM:2.
 const sample = `G21 G90
 G0 X10 Y10
 G1 X30 F2000
 G1 Y30
 G1 X10
 G1 Y10
-G0 Z5
+G0 Z0
 `;
 
 async function main() {

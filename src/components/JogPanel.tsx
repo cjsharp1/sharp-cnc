@@ -250,7 +250,7 @@ export function JogPanel({
           <div className="jog__z" role="group" aria-label="Z jog">
             <JogButton
               label="Z+"
-              ariaLabel="Jog Z positive"
+              ariaLabel="Jog Z up (positive, away from the work)"
               disabled={!enabled}
               mode={mode}
               onJog={onJog}
@@ -260,7 +260,7 @@ export function JogPanel({
             />
             <JogButton
               label="Z−"
-              ariaLabel="Jog Z negative"
+              ariaLabel="Jog Z down (negative, toward the work)"
               disabled={!enabled}
               mode={mode}
               onJog={onJog}

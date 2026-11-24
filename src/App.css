@@ -3066,6 +3066,17 @@ button {
   background: var(--ok-fill);
 }
 
+.safety__mock-label {
+  align-self: center;
+  color: var(--steel-dim);
+  font-size: var(--text-xs);
+  letter-spacing: 0.04em;
+}
+
+.safety__banner .safety__btn--unlock {
+  margin-top: 0.5rem;
+}
+
 .safety__mock {
   align-self: flex-start;
   padding: 0.3rem 0.55rem;
@@ -3473,6 +3484,21 @@ button {
   flex-wrap: wrap;
   padding-top: 0.35rem;
   border-top: 1px solid var(--border-soft);
+  /* Keep Back / Next reachable on short screens: the step body scrolls
+     underneath, the footer stays pinned to the bottom of the rail. */
+  position: sticky;
+  /* The rail body has 0.75rem bottom padding; stick over it so nothing
+     scrolls visibly underneath the footer. */
+  bottom: -0.75rem;
+  z-index: 2;
+  margin-bottom: -0.75rem;
+  padding-bottom: calc(0.35rem + 0.75rem);
+  background: var(--menu-bg);
+  box-shadow: 0 -0.6rem 0.8rem -0.6rem rgba(0, 0, 0, 0.45);
+}
+
+.cal__jog {
+  margin: 0.5rem 0 0.75rem;
 }
 
 .cal__nav-meta {
@@ -5142,6 +5168,12 @@ button {
   border-top: 1px solid var(--line);
 }
 
+.job__scrub-note {
+  margin: 0.25rem 0;
+  color: var(--steel-dim);
+  font-size: var(--text-xs);
+}
+
 .job__scrub-label {
   font-size: var(--text-sm);
   color: var(--steel);
@@ -5546,4 +5578,93 @@ button {
   font-size: var(--text-xs);
   color: var(--muted);
   flex: 1 1 12rem;
+}
+
+/* --- Z side-view gauge (machine view overlay, top-right) ----------------- */
+.zgauge {
+  position: absolute;
+  top: 3.25rem;
+  right: 0.85rem;
+  z-index: 2;
+  margin: 0;
+  padding: 0.4rem 0.45rem 0.45rem;
+  border: 1px solid var(--border-soft);
+  background: var(--viz-toolbar-bg);
+  color: var(--viz-toolbar-fg);
+  text-align: center;
+  pointer-events: none;
+}
+
+.zgauge__title {
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  color: var(--steel-dim);
+}
+
+.zgauge__svg {
+  display: block;
+}
+
+.zgauge__travel {
+  fill: var(--inset-bg);
+  stroke: var(--border-mid);
+}
+
+.zgauge__home {
+  stroke: var(--steel);
+  stroke-width: 1;
+}
+
+.zgauge__stock {
+  fill: var(--viz-stock-fill);
+  stroke: var(--viz-stock-stroke);
+}
+
+.zgauge__job {
+  fill: var(--viz-path-todo-feed);
+}
+
+.zgauge__job.is-out,
+.zgauge__tool.is-out {
+  fill: var(--danger);
+}
+
+.zgauge__z0 {
+  stroke: var(--brass);
+  stroke-width: 1.5;
+}
+
+.zgauge__tool {
+  fill: var(--viz-tool-stroke);
+}
+
+.zgauge__label {
+  font-family: var(--font-mono);
+  font-size: 8px;
+  fill: var(--viz-label);
+}
+
+.zgauge__label--z0 {
+  fill: var(--brass);
+}
+
+.zgauge__read {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  color: var(--ink);
+}
+
+.zgauge__read span {
+  display: block;
+  font-size: var(--text-2xs);
+  color: var(--steel-dim);
+}
+
+.zgauge__warn {
+  margin: 0.2rem 0 0;
+  max-width: 4.5rem;
+  font-size: var(--text-2xs);
+  color: var(--warn-text);
 }

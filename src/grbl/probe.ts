@@ -1,5 +1,5 @@
 import type { GrblClient } from "./transport";
-import type { GrblMachineState, Position3 } from "./types";
+import { ESTOP_LATCHED_REASON, type GrblMachineState, type Position3 } from "./types";
 import { buildSetWorkZeroCommand } from "./workZero";
 
 /**
@@ -156,6 +156,7 @@ export function canProbe(
   options?: { probePinActive?: boolean },
 ): { ok: boolean; reason?: string } {
   if (!connected) return { ok: false, reason: "Connect first." };
+  if (state === "EStopLatched") return { ok: false, reason: ESTOP_LATCHED_REASON };
   if (streaming) return { ok: false, reason: "Stop the job first." };
   if (state === "Alarm") {
     return { ok: false, reason: "Alarm lock — unlock before probing." };
@@ -177,11 +178,20 @@ export function canProbe(
   return { ok: true };
 }
 
+/**
+ * How long a G38.2 seek can legitimately take: full seek distance at the probe
+ * feed, plus a margin for acceleration and the PRB/ok round trip.
+ */
+export function probeTimeoutMs(seekMm: number, feedMmMin: number): number {
+  const feed = Math.max(1, feedMmMin);
+  return Math.ceil((Math.abs(seekMm) / feed) * 60_000) + 5_000;
+}
+
 export interface RunZProbeOptions {
   plateThicknessMm: number;
   seekMm: number;
   feedMmMin: number;
-  /** Wait for PRB + ok. Default 15000ms. */
+  /** Wait for PRB + ok. Default: {@link probeTimeoutMs} for the seek/feed. */
   timeoutMs?: number;
   /** Skip setting work Z after contact (rare). */
   skipWorkZero?: boolean;
@@ -200,7 +210,7 @@ export async function runZProbeCycle(
   client: GrblClient,
   options: RunZProbeOptions,
 ): Promise<RunZProbeOutcome> {
-  const timeoutMs = options.timeoutMs ?? 15_000;
+  const timeoutMs = options.timeoutMs ?? probeTimeoutMs(options.seekMm, options.feedMmMin);
   if (!client.transport.isOpen) {
     throw new Error("Not connected.");
   }
@@ -212,7 +222,17 @@ export async function runZProbeCycle(
   const wait = new Promise<void>((resolve, reject) => {
     const timer = setTimeout(() => {
       unsub();
-      reject(new Error("Timed out waiting for probe result (G38.2)."));
+      // The probe may still be moving. Stop it before reporting failure.
+      void client.transport
+        .write("!")
+        .then(() => new Promise((r) => setTimeout(r, 40)))
+        .then(() => client.softReset())
+        .catch(() => undefined);
+      reject(
+        new Error(
+          "Probe took too long and was stopped (feed hold + reset). Check the clip and plate, then re-home before probing again.",
+        ),
+      );
     }, timeoutMs);
 
     const unsub = client.transport.onLine((line) => {

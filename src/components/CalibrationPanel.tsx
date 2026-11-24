@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   CALIBRATION_DISTANCE_OPTIONS_MM,
   CALIBRATION_GUIDED_STEPS,
@@ -31,7 +31,7 @@ const STEP_CHROME: Record<
   CalibrationStepId,
   { label: string; short: string }
 > = {
-  zero: { label: "Zero context", short: "1 · Zero" },
+  zero: { label: "Start", short: "1 · Start" },
   direction: { label: "Direction", short: "2 · Dir" },
   steps: { label: "Steps/mm", short: "3 · Steps" },
   travel: { label: "Soft travel", short: "4 · Travel" },
@@ -43,7 +43,7 @@ const WIZARD_STEPS = CALIBRATION_GUIDED_STEPS.map((id) => ({
 }));
 
 const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
-  zero: "Material zero looks right — I completed this step",
+  zero: "Machine homed (or no switches) and positions look right — I completed this step",
   direction: "Jog direction matches the machine — I completed this step",
   steps: "Measured and wrote steps/mm — I completed this step",
   travel: "Soft travel / bed extents set — I completed this step",
@@ -85,6 +85,8 @@ interface CalibrationPanelProps {
   homing?: CalibrationHomingProps | null;
   /** Denser chrome for the phase rail (no tall stack). */
   dense?: boolean;
+  /** Jog pad shown where a step needs the operator to move the machine. */
+  jogPad?: ReactNode;
 }
 
 function settingValue(
@@ -128,6 +130,7 @@ export function CalibrationPanel({
   onOpenBedTravelTest,
   homing = null,
   dense = false,
+  jogPad = null,
 }: CalibrationPanelProps) {
   const {
     stepIndex,
@@ -164,6 +167,7 @@ export function CalibrationPanel({
     softTravel.maxZ !== null ? String(softTravel.maxZ) : "",
   );
   const [enableSoft, setEnableSoft] = useState(true);
+  const [travelError, setTravelError] = useState<string | null>(null);
 
   const stepsId = STEPS_SETTING_FOR_AXIS[axis];
   const currentSteps = settingValue(settings, stepsId);
@@ -290,11 +294,13 @@ export function CalibrationPanel({
       {step.id === "zero" && (
         <div className="cal__body" role="group" aria-labelledby="cal-step-zero">
           <h3 id="cal-step-zero" className="cal__step-title">
-            Confirm zero context
+            Before you start
           </h3>
           <p className="cal__hint">
-            Measurement check only — set material origin at a known reference
-            before steps/mm. Day-to-day blank origin lives in Prepare.
+            Clear the bed and keep a hand near E-Stop. Home the machine so
+            machine positions are trustworthy. Setting a material zero here is
+            optional — it only helps if you want to measure from a mark. Job
+            zeros are set in Prepare.
           </p>
 
           {homing ? (
@@ -309,7 +315,7 @@ export function CalibrationPanel({
                 {homing.busy ? "Homing…" : "Home ($H)"}
               </button>
               <span className="cal__recommend-meta">
-                {homing.homed ? "Homed this session" : "Recommended if you use switches"}
+                {homing.homed ? "Homed this session" : "Home once after each power-on"}
                 {homing.message ? ` · ${homing.message}` : ""}
               </span>
             </div>
@@ -643,9 +649,12 @@ export function CalibrationPanel({
             Soft travel
           </h3>
           <p className="cal__hint">
-            Far end of each axis (or known bed size) → $130–$132 and soft limits
-            ($20). Updates the visualizer bed frame.
+            Home first. Then jog each axis to the far end of its travel, stop a
+            few mm short of the hard stop, and click <strong>Use MPos</strong>.
+            For Z, jog <strong>down</strong> to the lowest safe point. Writes
+            $130–$132 and turns on soft limits ($20).
           </p>
+          {jogPad ? <div className="cal__jog">{jogPad}</div> : null}
 
           <div className="cal__travel">
             {(
@@ -679,10 +688,17 @@ export function CalibrationPanel({
                   type="button"
                   className="cal__btn cal__btn--ghost"
                   disabled={!canAct}
-                  title={`Use current machine ${ax} (${mpos.toFixed(2)} mm)`}
+                  title={
+                    ax === "Z"
+                      ? `Use how far Z is below home now (${Math.abs(mpos).toFixed(2)} mm)`
+                      : `Use current machine ${ax} (${mpos.toFixed(2)} mm)`
+                  }
                   onClick={() => {
                     clearConfirm();
-                    setter(mpos.toFixed(2));
+                    setTravelError(null);
+                    // Z homes to the top, so machine Z is negative below home.
+                    // GRBL wants $132 as a positive travel length.
+                    setter(Math.abs(mpos).toFixed(2));
                   }}
                 >
                   Use MPos
@@ -716,21 +732,33 @@ export function CalibrationPanel({
                   maxZ: parseTravel(maxZ),
                   min: softTravel.min,
                 };
-                if (next.maxX === null && maxX.trim()) {
+                const bad = (
+                  [
+                    ["X", next.maxX, maxX],
+                    ["Y", next.maxY, maxY],
+                    ["Z", next.maxZ, maxZ],
+                  ] as const
+                )
+                  .filter(([, parsed, raw]) => parsed === null && raw.trim())
+                  .map(([ax]) => ax);
+                if (bad.length > 0) {
+                  setTravelError(
+                    `Max ${bad.join(", ")} must be a positive number of millimeters (travel length, not a coordinate).`,
+                  );
                   return;
                 }
-                if (next.maxY === null && maxY.trim()) {
-                  return;
-                }
-                if (next.maxZ === null && maxZ.trim()) {
-                  return;
-                }
+                setTravelError(null);
                 onApplySoftTravel(next, enableSoft);
               }}
             >
               Write travel + $20
             </button>
           </div>
+          {travelError ? (
+            <p className="cal__warn" role="alert">
+              {travelError}
+            </p>
+          ) : null}
 
           <WizardStepConfirm
             id="cal-confirm-travel"

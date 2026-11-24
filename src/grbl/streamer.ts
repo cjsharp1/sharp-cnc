@@ -25,6 +25,11 @@ export interface StreamProgress {
    * (accounts for skip-to-line start offset).
    */
   absoluteLine?: number;
+  /**
+   * Absolute 0-based index of the first job line GRBL has NOT acknowledged.
+   * Lines before it were parsed by GRBL, though not necessarily executed yet.
+   */
+  ackedAbsoluteLine?: number;
   /** Percent complete based on acked lines (0–100). */
   percent: number;
   /** Last error message from GRBL, if any. */
@@ -48,6 +53,12 @@ export interface GcodeStreamerOptions {
 export interface StreamStartOptions {
   /** 0-based offset into jobLines — skip earlier lines (scrubber / skip-to-line). */
   startIndex?: number;
+  /**
+   * Setup lines sent before jobLines[startIndex] (e.g. the resume preamble).
+   * They are not part of the job, so progress and error line numbers keep
+   * pointing at real job lines.
+   */
+  preamble?: string[];
 }
 
 interface PendingLine {
@@ -89,8 +100,13 @@ export function createGcodeStreamer(
   const pauseOnToolChange = options.pauseOnToolChange !== false;
 
   let lines: string[] = [];
-  /** Absolute index of lines[0] in the original job. */
+  /** Absolute index (in the original job) of the first job line sent. */
   let lineOffset = 0;
+  /** Number of setup lines at the front of `lines` that are not job lines. */
+  let preambleCount = 0;
+  /** Absolute job line for an index into `lines` (null for preamble lines). */
+  const jobLineFor = (index: number): number | null =>
+    index < preambleCount ? null : lineOffset + (index - preambleCount);
   let sendIndex = 0;
   let acked = 0;
   let bufferUsed = 0;
@@ -114,7 +130,8 @@ export function createGcodeStreamer(
       sentLines: sendIndex,
       ackedLines: acked,
       totalLines: total,
-      absoluteLine: lineOffset + sendIndex,
+      absoluteLine: lineOffset + Math.max(0, sendIndex - preambleCount),
+      ackedAbsoluteLine: lineOffset + Math.max(0, acked - preambleCount),
       percent,
       lastError,
       toolChangeLine,
@@ -171,7 +188,7 @@ export function createGcodeStreamer(
       // Pause *before* sending M6 so the operator can change the bit first
       // when configured; still allow resumeAfterToolChange to send it.
       if (pauseOnToolChange && isToolChangeLine(body) && toolChangeLine == null) {
-        enterToolChange(lineOffset + sendIndex, body);
+        enterToolChange(jobLineFor(sendIndex) ?? lineOffset, body);
         return;
       }
 
@@ -186,7 +203,7 @@ export function createGcodeStreamer(
       bufferUsed += chars;
       sendIndex += 1;
       // Clear latch so a later M6 can pause again.
-      if (toolChangeLine !== undefined && index === toolChangeLine - lineOffset) {
+      if (toolChangeLine !== undefined && jobLineFor(index) === toolChangeLine) {
         toolChangeLine = undefined;
         toolChangeMessage = undefined;
       }
@@ -235,14 +252,18 @@ export function createGcodeStreamer(
           acked = Math.max(acked, item.index + 1);
           emit();
         }
-        if (trimmed.startsWith("error")) {
-          lastError = trimmed;
-          phase = "error";
-          emit();
-          settleReject?.(new Error(trimmed));
-          settle = null;
-          settleReject = null;
+        if (trimmed.startsWith("error") && item) {
+          const jobLine = jobLineFor(item.index);
+          failStream(
+            `${trimmed} ${jobLine === null ? "in the resume setup" : `on line ${jobLine + 1}`}`,
+            true,
+          );
         }
+      } else if (
+        phase === "tool-change" &&
+        /^ALARM:\s*\d+/i.test(trimmed)
+      ) {
+        failStream(trimmed, false);
       }
       return;
     }
@@ -257,12 +278,14 @@ export function createGcodeStreamer(
       acked = Math.max(acked, item.index + 1);
 
       if (trimmed.startsWith("error")) {
-        lastError = trimmed;
-        phase = "error";
-        emit();
-        settleReject?.(new Error(trimmed));
-        settle = null;
-        settleReject = null;
+        const jobLine = jobLineFor(item.index);
+        const where =
+          jobLine === null ? "in the resume setup" : `on line ${jobLine + 1}`;
+        const source = (lines[item.index] ?? "").trim();
+        failStream(
+          `${trimmed} ${where}${source ? `: ${source}` : ""}`,
+          true,
+        );
         return;
       }
 
@@ -272,11 +295,34 @@ export function createGcodeStreamer(
       return;
     }
 
-    if (trimmed.startsWith("ALARM:") || trimmed.startsWith("<Alarm")) {
-      lastError = trimmed;
-      phase = "error";
-      emit();
+    if (phase === "error") return; // keep the first failure as lastError
+
+    if (/^ALARM:\s*\d+/i.test(trimmed)) {
+      failStream(trimmed, false);
+      return;
     }
+    if (trimmed.startsWith("<Alarm")) {
+      // Real GRBL prints ALARM:n first; this is a fallback if that line was missed.
+      failStream("Controller entered Alarm state", false);
+    }
+  };
+
+  /**
+   * Stop streaming and reject the pending start() promise.
+   * On a G-code error GRBL keeps running what is already buffered (spindle on),
+   * so send a feed hold to stop motion until the operator chooses Stop.
+   */
+  const failStream = (message: string, holdMotion: boolean) => {
+    lastError = message;
+    phase = "error";
+    emit();
+    if (holdMotion) {
+      void transport.write("!").catch(() => undefined);
+    }
+    const fail = settleReject;
+    settle = null;
+    settleReject = null;
+    fail?.(new Error(message));
   };
 
   const attach = () => {
@@ -323,7 +369,9 @@ export function createGcodeStreamer(
 
       attach();
       lineOffset = startIndex;
-      lines = jobLines.slice(startIndex);
+      const preamble = startOptions.preamble ?? [];
+      preambleCount = preamble.length;
+      lines = [...preamble, ...jobLines.slice(startIndex)];
       resetCounters();
       phase = "running";
       emit();
@@ -353,7 +401,7 @@ export function createGcodeStreamer(
     async resumeAfterToolChange() {
       if (phase !== "tool-change") return;
       // Mark so fillBuffer will send the pending M6 line instead of re-pausing.
-      toolChangeLine = lineOffset + sendIndex;
+      toolChangeLine = jobLineFor(sendIndex) ?? lineOffset;
       toolChangeMessage = undefined;
       phase = "running";
       emit();
@@ -423,6 +471,7 @@ export function createGcodeStreamer(
       detach();
       lines = [];
       lineOffset = 0;
+      preambleCount = 0;
       resetCounters();
       phase = "idle";
       settle = null;

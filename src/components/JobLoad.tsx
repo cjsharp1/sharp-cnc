@@ -357,6 +357,13 @@ export function JobLoad({
               <span className="job__scrub-preview"> · {previewLine}</span>
             ) : null}
           </label>
+          {scrubIndex > 0 ? (
+            <p className="job__scrub-note">
+              Starting mid-file: SharpCNC first restores units, offsets, feed, and
+              spindle from earlier lines, then retracts, moves over this point,
+              spins up, and plunges. Details go to the activity log.
+            </p>
+          ) : null}
           <input
             id="job-scrub"
             type="range"
@@ -377,14 +384,17 @@ export function JobLoad({
               Reset to start
             </button>
             {onDryRunChange && (
-              <label className="job__dryrun">
+              <label
+                className="job__dryrun"
+                title="Spindle stays off and every Z is lifted so the deepest cut stays 5 mm above material Z0. Use it to watch the path in the air."
+              >
                 <input
                   type="checkbox"
                   checked={dryRun}
                   disabled={simulating}
                   onChange={(e) => onDryRunChange(e.target.checked)}
                 />
-                Spindle-off dry run
+                Dry run (spindle off, Z lifted above the stock)
               </label>
             )}
           </div>

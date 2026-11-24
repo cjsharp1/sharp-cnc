@@ -447,7 +447,7 @@ export function createMockTransport(): SerialTransport {
     }
 
     // Mock-only: force Alarm so unlock / refuse-motion UX can be exercised.
-    // `$Alarm` / `$Alarm1` hard limit; `$Alarm2` soft limit; `$Alarm4` probe fail.
+    // `$Alarm` / `$Alarm1` hard limit; `$Alarm2` soft limit; `$Alarm5` probe no-contact.
     const mockAlarm = /^\$Alarm(\d+)?$/i.exec(trimmed);
     if (mockAlarm) {
       clearMotion();
@@ -532,18 +532,18 @@ export function createMockTransport(): SerialTransport {
         clearMotion();
         busy = false;
         state = "Alarm";
-        emitLine("ALARM:5");
+        emitLine("ALARM:4"); // official: probe not in expected initial state
         return;
       }
       if (dir < 0 && seekAbsolute >= machine[axis] - 1e-6) {
         clearMotion();
         busy = false;
         state = "Alarm";
-        emitLine("ALARM:5");
+        emitLine("ALARM:4"); // official: probe not in expected initial state
         return;
       }
 
-      // Seek does not reach contact → Alarm 4.
+      // Seek does not reach contact → Alarm 5 (official: no contact).
       const reaches =
         dir > 0 ? seekAbsolute >= contact - 1e-6 : seekAbsolute <= contact + 1e-6;
       if (!reaches) {
@@ -552,7 +552,7 @@ export function createMockTransport(): SerialTransport {
         animateTo(failTarget, feed, "Run", () => {
           busy = false;
           state = "Alarm";
-          emitLine("ALARM:4");
+          emitLine("ALARM:5");
         });
         return;
       }

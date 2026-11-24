@@ -19,7 +19,16 @@ export type GrblMachineState =
   | "Home"
   | "Sleep"
   | "Offline"
-  | "Unknown";
+  | "Unknown"
+  /**
+   * App-only: SharpCNC's E-Stop latch. Never reported by GRBL; motion gates
+   * treat it as locked until the operator clears it.
+   */
+  | "EStopLatched";
+
+/** Plain-English reason shown wherever the E-Stop latch blocks motion. */
+export const ESTOP_LATCHED_REASON =
+  "E-Stop latched — check the machine, then click Clear E-Stop in the Safety panel.";
 
 /**
  * Active pins from a GRBL `Pn:` status field.

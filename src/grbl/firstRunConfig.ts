@@ -4,14 +4,12 @@
 
 const STORAGE_KEY = "sharpcnc.firstRun.v1";
 
-export type FirstRunStepId =
-  | "connect"
-  | "home"
-  | "calibrate"
-  | "travel"
-  | "stock";
+export type FirstRunStepId = "connect" | "home" | "calibrate";
 
-/** Bootstrap order: connect → home → calibrate → soft travel → stock seed. */
+/**
+ * Bootstrap order: connect → home → calibrate. Soft travel lives inside the
+ * Calibrate wizard and stock lives in Prepare, so First-run doesn't repeat them.
+ */
 export const FIRST_RUN_STEPS: {
   id: FirstRunStepId;
   label: string;
@@ -20,8 +18,6 @@ export const FIRST_RUN_STEPS: {
   { id: "connect", label: "Connect", short: "1 · Connect" },
   { id: "home", label: "Home", short: "2 · Home" },
   { id: "calibrate", label: "Calibrate", short: "3 · Calibrate" },
-  { id: "travel", label: "Travel", short: "4 · Travel" },
-  { id: "stock", label: "Stock seed", short: "5 · Stock" },
 ];
 
 export interface FirstRunState {

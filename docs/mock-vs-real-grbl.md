@@ -32,18 +32,16 @@ npm run smoke:critical
 | Alarm-lock refusal | `error:9` | `error:Alarm lock` | Parsers that only match `error:N` miss lock |
 | Invalid / unsupported g-code | `error:20` (etc. numeric) | `error:Invalid gcode` | Same |
 | Soft-limit **jog** (`$J=`) | `error:15`, jog ignored, **stays Idle** | `ALARM:2`, enters Alarm | Unlock UX / job gates differ |
-| Probe **ALARM:4** | Probe **not** in expected initial state | App/mock treat **4 = no contact** | Wrong operator guidance |
-| Probe **ALARM:5** | **No contact** within seek | App/mock treat **5 = early contact** | Same (4/5 swapped vs firmware) |
 | Soft-reset while **Idle** | **Retains** MPos | **Zeros** MPos/WCO to origin | False “back to zero” after Abort |
 | Feed hold during **Jog** | Cancels jog → **Idle** | Stays in **Hold** | Hold/resume UI differs |
 | Feed hold while **Idle** | Accepted (Hold) | Ignored | External Hold button sim may differ |
-| Force-alarm helpers | N/A | `$Alarm`, `$Alarm2`, `$Alarm4`, … | **Never** send these to USB |
+| Force-alarm helpers | N/A | `$Alarm`, `$Alarm2`, `$Alarm5`, … | **Never** send these to USB |
 | External button sim | Hardware pins → `Pn:` | `$ExtHold` / `$ExtResume` / `$ExtAbort` | Mock-only |
 | Settings / motion fidelity | Planner, accel, EEPROM quirks | Simplified timers + settings map | Timing/streamer edge cases |
 
-## App copy note (probe 4/5)
+## Probe alarms 4/5
 
-`src/grbl/safety.ts`, `alarmGuide.ts`, and parts of the user guide follow the **mock polarity** (4 = no contact, 5 = early). Official GRBL CSVs are the opposite. Until those strings are aligned to firmware, treat probe alarm numbers on a real machine using the **official** table in `grblProtocolFixtures.ts`.
+App, mock, and user guide now use the **official** GRBL 1.1 meanings: **ALARM:4** = probe not in the expected initial state (already touching, or `$6` inverted); **ALARM:5** = no contact within the seek distance. Confirm on the Demon Shield during the first real connection (see [first real connection](user-guide/14-first-real-connection.md)).
 
 ## Critical controls checklist (covered by smoke-real-grbl)
 

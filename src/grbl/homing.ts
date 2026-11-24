@@ -1,4 +1,4 @@
-import type { GrblMachineState } from "./types";
+import { ESTOP_LATCHED_REASON, type GrblMachineState } from "./types";
 
 /** GRBL cycle home — requires `$22=1` and limit switches on the home side. */
 export const HOME_COMMAND = "$H";
@@ -45,6 +45,7 @@ export function canHome(
   streaming: boolean,
 ): { ok: boolean; reason?: string } {
   if (!connected) return { ok: false, reason: "Connect first." };
+  if (state === "EStopLatched") return { ok: false, reason: ESTOP_LATCHED_REASON };
   if (streaming) return { ok: false, reason: "Stop the job first." };
   if (state === "Alarm") {
     return { ok: false, reason: "Alarm lock — unlock ($X) before homing." };
