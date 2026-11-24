@@ -313,7 +313,12 @@ async function main() {
   await withFreshPage(browser, { calibrated: false }, async (page) => {
     await connectVirtual(page);
     await clickPhase(page, "Calibrate");
-    await page.waitForTimeout(500);
+    // Wait for $$ load so meta bar shows "Back up settings"
+    await page
+      .getByRole("button", { name: /Back up settings/i })
+      .waitFor({ timeout: 15000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(400);
     await shot(page, "cal-step1-zero.png");
 
     async function confirmAndNext(confirmId: string) {
@@ -336,6 +341,61 @@ async function main() {
     await confirmAndNext("cal-confirm-steps");
     await page.waitForTimeout(300);
     await shot(page, "cal-step3-travel.png");
+  });
+
+  // 5b) Advanced restore diff (after a Calibrate auto-backup + one manual write)
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    await clickPhase(page, "Calibrate");
+    await page
+      .getByRole("button", { name: /Back up settings/i })
+      .waitFor({ timeout: 15000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(300);
+    await openMenu(page);
+    const advanced = page.getByRole("menuitem", { name: /Advanced/i }).first();
+    const advancedBtn = page.getByRole("button", { name: /Advanced/i }).first();
+    if (await advanced.count()) await advanced.click();
+    else if (await advancedBtn.count()) await advancedBtn.click();
+    else {
+      await page.locator("text=Advanced").first().click().catch(() => undefined);
+    }
+    await page.waitForTimeout(500);
+    // Change one setting so the restore table has a row.
+    const idInput = page.locator(".manual-settings__input").first();
+    const valInput = page.locator(".manual-settings__input").nth(1);
+    if ((await idInput.count()) && (await valInput.count())) {
+      await idInput.fill("100");
+      await valInput.fill("999");
+      const writeBtn = page.getByRole("button", { name: /^Write \$/i }).first();
+      if (await writeBtn.count()) {
+        await writeBtn.click();
+        await page.waitForTimeout(800);
+      }
+    }
+    // Re-read so the restore diff matches live EEPROM.
+    const readBtn = page
+      .locator(".settings-restore")
+      .getByRole("button", { name: /Read \$\$/i })
+      .first();
+    if (await readBtn.count()) {
+      await readBtn.click();
+      await page.waitForTimeout(800);
+    }
+    const restore = page.locator(".settings-restore").first();
+    if (await restore.count()) {
+      await restore.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await restore.screenshot({
+        path: path.join(OUT, "cal-restore-diff.png"),
+      });
+      console.log(
+        "wrote",
+        path.relative(ROOT, path.join(OUT, "cal-restore-diff.png")),
+      );
+    } else {
+      await shot(page, "cal-restore-diff.png");
+    }
   });
 
   // 6) Verify / simulate + job loaded

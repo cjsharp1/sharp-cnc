@@ -2,12 +2,12 @@
 
 **For:** Cursor (implementation)
 **App:** SharpCNC (Tauri + React, `src/`), one machine only (Demon Shield + GRBL 1.1h)
-**Status:** PR 0 done on branch `fix/virtual-cnc-readiness` (except the X/Y check, which waits on hardware). PR 2 partly done. PRs 1, 3, 4, 5 ready to build.
+**Status:** PR 0 and PR 1 done on branch `fix/virtual-cnc-readiness` (except the X/Y check, which waits on hardware). PR 2 partly done. PRs 3, 4, 5 ready to build.
 
 | PR | Status |
 |---|---|
 | 0 — Z envelope | **Done.** Z range `[−$132, 0]`, clamp never reverses, Z Use MPos positive, travel input errors, smoke `smoke-safety-fixes.mts`. **Still open:** X/Y sign follow-up if hardware check HW-02a / HW-07a shows negative X/Y (see the review's Remaining work #2). |
-| 1 — Backup / undo | Open |
+| 1 — Backup / undo | **Done.** Auto-backup on first Calibrate `$$` load (`sharpcnc.settingsBackup.v1`, last 5); meta-bar **Back up settings**; Advanced restore with changed-only diff; session Undo next to result. Smoke: `smoke-calibration.mts`. |
 | 2 — Direction + steps | **Partly done:** Z steps/mm moves **down** 10/20/25 mm; clearer measurement label and Z copy. **Still open:** expected-direction wording + Yes/No after each test, Z row first, `$3`↔`$23` note, ±20% warning, re-test prompt, starting-value helper |
 | 3 — Speed & accel | Open |
 | 4 — Homing setup | Open. The live **Inputs** row under Position (limit/probe/button pins) already exists; reuse its parsing (`status.pins.raw`) for the switch lights |

@@ -1,6 +1,14 @@
-import type { GcodeMacro, GrblSetting, Position3, SavedWorkOffset, WcsId } from "../grbl";
+import type {
+  GcodeMacro,
+  GrblSetting,
+  Position3,
+  SavedWorkOffset,
+  SettingsSnapshot,
+  WcsId,
+} from "../grbl";
 import { ConsolePanel } from "./ConsolePanel";
 import { ManualSettingsPanel } from "./ManualSettingsPanel";
+import { SettingsRestorePanel } from "./SettingsRestorePanel";
 import { WorkOffsetsPanel } from "./WorkOffsetsPanel";
 
 interface AdvancedPanelProps {
@@ -27,6 +35,10 @@ interface AdvancedPanelProps {
   settingsMessage?: string | null;
   onRefreshSettings: () => void;
   onWriteManual: (id: number, value: number) => void;
+  /** Persisted Calibrate/session $$ snapshots (last 5). */
+  settingsSnapshots?: SettingsSnapshot[];
+  onRestoreSettingsSnapshot?: (snapshot: SettingsSnapshot) => void;
+  restoreMessage?: string | null;
 }
 
 /**
@@ -57,6 +69,9 @@ export function AdvancedPanel({
   settingsMessage = null,
   onRefreshSettings,
   onWriteManual,
+  settingsSnapshots = [],
+  onRestoreSettingsSnapshot,
+  restoreMessage = null,
 }: AdvancedPanelProps) {
   return (
     <div className="advanced" aria-label="Advanced controls">
@@ -86,6 +101,19 @@ export function AdvancedPanel({
         onSave={onSaveOffset}
         onRecall={onRecallOffset}
       />
+
+      {onRestoreSettingsSnapshot ? (
+        <SettingsRestorePanel
+          enabled={settingsEnabled}
+          blockedReason={settingsBlockedReason}
+          busy={settingsBusy}
+          message={restoreMessage}
+          settings={settings}
+          snapshots={settingsSnapshots}
+          onRefreshSettings={onRefreshSettings}
+          onRestore={onRestoreSettingsSnapshot}
+        />
+      ) : null}
 
       <ManualSettingsPanel
         enabled={settingsEnabled}
