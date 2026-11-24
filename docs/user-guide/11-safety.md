@@ -2,6 +2,8 @@
 
 SharpCNC helps you see position and refuse some bad moves, but **you** are still the safety system.
 
+> **The on-screen E-Stop is software.** It's a command sent over USB. It does nothing if the app freezes, the cable drops, the PC sleeps, or the controller locks up. Keep a **physical power cutoff** for the spindle and the steppers within arm's reach, and test it before the first real move. The enclosure Abort button is also a GRBL soft reset, not a power cut.
+
 The **safety strip** stays visible in every phase — including before connect (Connect is the only enabled action then).
 
 ![Alarm lock banner](assets/alarm-lock.webp)
@@ -12,13 +14,17 @@ The **safety strip** stays visible in every phase — including before connect (
 
 | Control | Use when |
 |---------|----------|
-| **E-Stop** | Anything unexpected — feed hold + soft reset / cancel job |
+| **E-Stop** | Anything unexpected — feed hold, cancel the job and any test moves (bed travel, stock trace), soft reset, then **lock motion** until you click **Clear E-Stop** |
 | **Hold** | Pause motion without full abort (`!`) |
 | **Resume** | Continue from Hold (`~`) only if the path is still safe |
-| **Reset** | Soft reset GRBL (Ctrl-X) |
+| **Reset** | Soft reset GRBL (Ctrl-X) and cancel the job — no lock afterwards |
 | **Unlock** | After Alarm, once the physical cause is cleared (`$X`) |
 
 Alarm banner: **Alarm lock** — jog and job Start stay refused until unlocked.
+
+**E-Stop latch:** after E-Stop, the Safety panel shows *E-Stop pressed — motion locked*. Jog, Home, probe, calibration moves, test loops, and Start are all refused until you check the machine and click **Clear E-Stop**. This matters because GRBL is often **Idle, not Alarm,** after a soft reset at rest, so GRBL alone wouldn't stop the next command. If the machine was moving when you hit E-Stop, home again before trusting coordinates.
+
+The dashed **Virtual CNC only · practice** buttons under the strip simulate faults on the Virtual CNC. They never appear on a real connection.
 
 ### Guided unlock
 

@@ -2,6 +2,8 @@
 
 Before cutting wood, run the **hardware soak** once on the real machine (and again after wiring or travel changes).
 
+**Very first connection?** Do [First real connection](14-first-real-connection.md) before this; it records results in the [hardware checklist](../hardware-checklist.md).
+
 Full checklist (home, `$3`, soft limits, Z probe, Abort/Hold/Resume, PWM):
 
 → **[Demon Shield soak playbook](../demon-shield-soak-playbook.md)**

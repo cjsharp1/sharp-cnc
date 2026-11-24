@@ -6,6 +6,44 @@
 
 Related spec: [`calibration-steps-1-5.md`](calibration-steps-1-5.md). It covers calibration work, including the Z soft-limit bug (R2 below), so those items aren't repeated in full here.
 
+## Status (updated after branch `fix/virtual-cnc-readiness`)
+
+Most of this review was fixed and verified against the Virtual CNC on branch `fix/virtual-cnc-readiness`. **Cursor: work only the items marked OPEN** (collected under [Remaining work](#remaining-work-for-cursor) at the end). FIXED items are kept below for context; don't redo them.
+
+| ID | Item | Status |
+|---|---|---|
+| R1 | E-Stop doesn't stop test loops | **FIXED** — latch + shared abort; feed hold first. Hardware check HW-10 |
+| R2 | Z soft envelope inverted | **FIXED** for Z. X/Y sign **OPEN pending hardware** (HW-02a / HW-07a) |
+| R3 | Start-at-line skips modal state; checkpoint skips lines | **FIXED** — resume preamble + 20-line backoff |
+| R4 | Probe timeout too short | **FIXED** — derived timeout; hold + reset on timeout. Continuity check: **OPEN** (Inputs row now shows the probe pin; a guided check in the Z probe step is still to do) |
+| R5 | Mid-job alarm hang / lost code | **FIXED** |
+| R6 | `error:N` leaves spindle running | **FIXED** (feed hold + message). A "Skip line and continue" option: **OPEN, optional** |
+| R7 | Tool change doesn't make spindle safe | **OPEN** |
+| R8 | Pre-flight ignores Z / arcs / G53 | **FIXED** for bounds and checks. Drawing arcs as arcs in the visualizer: **OPEN, optional** |
+| R9 | Probe ALARM 4/5 swapped | **FIXED** in app, mock, docs |
+| T1 | Full suite can't pass | **FIXED** — 33/33 with per-script timeout runner |
+| T2 | Strict GRBL mock mode | **OPEN** |
+| M1 | Jog pad in Calibrate | **FIXED** (Soft travel step) |
+| M2 | Z side view | **FIXED** (Z gauge) |
+| M3 | Settings backup / restore | **OPEN** (calibration spec PR 1) |
+| M4 | Keyboard shortcuts for Hold / E-Stop | **OPEN** |
+| M5, M6 | Homing setup, speed & accel steps | **OPEN** (calibration spec PR 3, PR 4) |
+| O1 | Overlapping setup wizards | **FIXED** — First-run is Connect → Home → Calibrate |
+| O2 | "Zero context" step | **FIXED** — renamed **Start**, copy refocused on homing |
+| O3 | Home story inconsistent | **FIXED** (copy). "Not homed" header chip: **OPEN, optional** |
+| O4 | Duplicate controls | **PARTLY** — E-Stop/Reset tooltips explain the difference. Removing duplicate Connect/Reset buttons and the duplicated position readouts: **OPEN** |
+| O5 | Practice faults in the Safety strip | **FIXED** — labeled "Virtual CNC only · practice" |
+| C1 | Back/Next below the fold | **FIXED** — pinned footer, verified at 1366×768 |
+| C2 | Silent failures | **FIXED** for Soft travel. Sweep other panels: **OPEN** |
+| C3 | Jargon in primary copy | **OPEN** |
+| C4 | Raw GRBL text in errors | **FIXED** for job errors/alarms |
+| D1 | Software E-Stop callout | **FIXED** |
+| D2 | UI chapter outdated | **FIXED** |
+| D3 | Docs for behavior changes | **FIXED** (text). Screenshots regenerated. New diagrams/screenshots: **OPEN** (see Remaining work) |
+| D4 | mock-vs-real rows | **PARTLY** — probe row updated; X/Y sign row after hardware check |
+
+Also added on the branch (not in the original review): **dry run lifts Z** so it's actually an air cut (it used to only turn the spindle off), a live **Inputs** row (limit switches, probe, buttons) under Position, Z steps/mm test moving **down**, and the [First real connection](../user-guide/14-first-real-connection.md) guide + [hardware checklist](../hardware-checklist.md).
+
 ## How to use this doc
 
 Work top to bottom. **Section 1 items are safety bugs; fix them before the next real cut.** Each item has: what's wrong, how it was confirmed, and a suggested fix. Every fix ships with a smoke test and with any user-guide, visual-guide, screenshot, or diagram changes its UI changes require (same rule as the calibration spec).
@@ -209,3 +247,41 @@ Pick one rule and say it everywhere. Suggested: "Home once after every power-on 
 4. T2 (strict mock), D1
 5. Calibration spec PRs 1–5, which also resolve M1, M3, M5, M6, O2 and parts of O3
 6. O1, O3, O4, O5, C1–C4, M2, M4
+
+
+---
+
+## Remaining work for Cursor
+
+Same rules as before: every PR ships with smoke coverage and its user-guide / visual-guide / screenshot / diagram updates. Run `npm run smoke` (timed runner) before opening a PR.
+
+### Safety
+1. **R7 Tool change (M6).** When the streamer pauses for M6: wait for Idle, send `M5`, show a full-width tool-change panel ("Spindle stopped ✓ · Change the bit · Re-probe Z · Continue"). Continue stays disabled until Z is re-probed or "Same tool length" is ticked. On Continue, restore spindle state (`M3 S…` from `scanResumeState`) with a dwell before resuming. Careful: anything sent while the streamer is in `tool-change` must not be counted as a job-line ack (`streamer.ts` `onLine` tool-change branch).
+2. **X/Y soft envelope sign (R2 follow-up)** — only if hardware check HW-02a/HW-07a shows X/Y read **negative** after homing. Then derive each axis's range from `$23` and the observed sign in `minForAxis`/`maxForAxis` (`machineConfig.ts`), update `bedTravelTest`, `stockPerimeterTest`, the machine view bed frame, and the mock. If X/Y read positive, just record it in `mock-vs-real-grbl.md`.
+3. **Probe continuity step (R4 follow-up).** In Prepare → Z probe, before the Probe button unlocks: "Touch the clip to the plate — the light should come on" using `status.pins.probe`.
+4. **E-Stop loop abort smoke.** The latch and loop abort are verified by hand in the browser only. Add a Playwright smoke (reuse `scripts/capture-guide-screenshots.mts` setup) that starts the bed travel test on Virtual CNC, presses E-Stop after the first segment, and asserts no further `$J=` is sent and the banner shows.
+
+### Tests
+5. **T2 strict GRBL mock mode** in `mockSerial.ts`, following real 1.1h for every row in `mock-vs-real-grbl.md` (hold during jog → Idle, soft-limit jog → `error:15`, soft reset at rest keeps MPos, `error:N` codes). Run the safety smokes against both modes.
+
+### Features
+6. Calibration spec PR 1 (backup / restore / undo), PR 3 (speed & accel), PR 4 (homing setup), PR 5 (soft travel polish). PR 0 and parts of PR 2 are done; see that spec's status table.
+7. **M4 keyboard shortcuts:** e.g. Space = Hold when focus isn't in a text field or on a button; document them. Don't use Escape for E-Stop.
+8. **Optional:** "Not homed" header chip when `$22=1` and the session isn't homed; draw G2/G3 as arcs in the visualizer and simulation; "Skip line and continue" after a stream error.
+
+### UX cleanup
+9. **O4:** one Connect button (header chip) once linked — hide the rail's and First-run's duplicate after connect; drop **Reset** from either the header chip or the Safety strip; remove the duplicated Material/Machine table inside Calibrate Start and Prepare panels (the Position panel is always visible).
+10. **C2 sweep:** every disabled or refused action shows why inline (check Prepare, Verify, Advanced, bed travel, stock perimeter).
+11. **C3 jargon pass:** plain words first, GRBL codes as secondary text, in primary buttons and step titles.
+
+### Docs, screenshots, diagrams
+12. **Screenshots** (regenerate with `CHROME_PATH=… npx tsx scripts/capture-guide-screenshots.mts`, then extend the script for new ones):
+    - rename `cal-step1-zero.png` → `cal-step1-start.png` (and fix links)
+    - new: E-Stop latch banner, Inputs row with a pin lit, Z gauge with material Z0 and a job range, First-run three steps, Calibrate Soft travel with the jog pad, Verify with dry run + resume note.
+13. **Diagrams** (steel + brass style of the existing SVGs):
+    - revise `docs/user-guide/assets/diagram-soft-limits.svg` to show Z as 0 at the top down to −`$132`
+    - new `diagram-z-machine-coords.svg`: Z home at top, pull-off, negative travel, material Z0 on the stock, the Z gauge
+    - new `diagram-dry-run-lift.svg`: original path vs lifted path, 5 mm above Z0
+    - new `diagram-resume-preamble.svg`: retract → move over → spin up → plunge → continue
+    - revise `docs/setup-visual/assets/cal-01-zero.svg` (rename to `cal-01-start.svg`) for the Start step
+    - delete `fr-04-travel.svg` and `fr-05-stock.svg` (First-run no longer has those steps); revise `order-of-ops.svg` and `overview-flow.svg` if they show five First-run steps

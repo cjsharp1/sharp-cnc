@@ -36,9 +36,10 @@
           <p class="visual-guide__one">
             Brand-new install? This walks you from “plug in” into
             <strong>Calibrate</strong> (Phase 1 — teach the machine once). Prefer
-            <strong>Virtual CNC</strong> for the first pass. Stock at the end is
-            only a starter guess — every later cut uses
-            <a href="prepare.html">Prepare → Verify → Run</a>.
+            <strong>Virtual CNC</strong> for the first pass. Three steps:
+            connect, home, calibrate. Soft travel is part of Calibrate, and
+            stock is set per job in <a href="prepare.html">Prepare → Verify →
+            Run</a>.
           </p>
           <p class="visual-guide__one">
             SharpCNC is a dedicated controller for
@@ -50,8 +51,6 @@
             <a href="#s1">1 Connect</a>
             <a href="#s2">2 Home</a>
             <a href="#s3">3 Calibrate</a>
-            <a href="#s4">4 Travel</a>
-            <a href="#s5">5 Stock seed</a>
           </nav>
         </header>
 
@@ -173,6 +172,12 @@
               </p>
             </li>
           </ol>
+          <p class="step-card__aside">
+            Homing not set up yet (<code>$22=0</code>)? The checkbox reads
+            <strong>Homing isn’t set up on this machine yet — continue without
+            homing</strong>. Tick it to continue, and keep jogs small and
+            centered until homing and soft travel are done.
+          </p>
           <a class="step-card__next" href="#s3">Next: Calibrate →</a>
         </article>
 
@@ -181,8 +186,8 @@
             <span class="step-card__num" aria-hidden="true">3</span>
             <h2>Calibrate (machine)</h2>
             <p class="step-card__action">
-              Tap <strong>Open Calibration…</strong> → finish direction +
-              steps/mm
+              Tap <strong>Open Calibration…</strong> → finish direction,
+              steps/mm, and soft travel
             </p>
             <p class="step-card__eli5">
               Teach the motors which way is forward and how far one millimeter
@@ -204,13 +209,14 @@
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Calibration modal opens (zeros → direction → steps/mm → travel).
+                Calibration opens: Start (home) → Direction → Steps/mm → Soft
+                travel.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Complete Calibration through direction ($3) and steps/mm at
-                least — follow the
+                Complete all four Calibration steps, including soft travel
+                (use the jog pad on that step) — follow the
                 <a href="calibration.html">Calibration visual guide</a>.
               </p>
               <p class="step-card__do-see">
@@ -223,13 +229,14 @@
               <p class="step-card__do-act">
                 Close Calibration, return to First-run, check
                 <strong
-                  >I reviewed calibration (or already tuned) — step
-                  complete</strong
-                >, then <strong>Next</strong>.
+                  >Finished the Calibration wizard (or the machine was already
+                  calibrated)</strong
+                >, then <strong>Finish setup</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Wizard advances to <strong>4 · Soft travel</strong>.
+                First-run closes. Every job from here on starts in
+                <a href="prepare.html">Prepare</a>.
               </p>
             </li>
           </ol>
@@ -237,153 +244,9 @@
             This is the <strong>once-per-machine</strong> phase. Detail:
             <a href="calibration.html">Calibration visual guide</a>
           </p>
-          <a class="step-card__next" href="#s4">Next: Soft travel →</a>
+          <a class="step-card__next" href="prepare.html">Done · Prepare →</a>
         </article>
 
-        <article class="step-card" id="s4">
-          <div class="step-card__meta">
-            <span class="step-card__num" aria-hidden="true">4</span>
-            <h2>Soft travel</h2>
-            <p class="step-card__action">
-              Enter max X / Y / Z mm → <strong>Save travel</strong> · optional
-              bed travel test
-            </p>
-            <p class="step-card__eli5">
-              Soft travel = invisible fences. You only have crash switches on
-              the home side, so these numbers stop the machine before it hits
-              the far edge of the bed.
-            </p>
-          </div>
-          <figure class="step-card__figure">
-            <img
-              src="assets/fr-04-travel.svg"
-              alt="Soft travel envelope and max mm fields for $130–$132"
-              width="960"
-              height="520"
-            />
-          </figure>
-          <ol class="step-card__do">
-            <li>
-              <p class="step-card__do-act">
-                Measure real bed travel (or jog carefully to each far end with a
-                margin). Enter <strong>X max mm</strong>,
-                <strong>Y max mm</strong>, and optional <strong>Z max mm</strong>.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Fields show numbers that match the physical envelope (~1000 ×
-                1000 mm X/Y default for this bed if that is your size).
-              </p>
-            </li>
-            <li>
-              <p class="step-card__do-act">
-                Tap
-                <strong>Save travel (local + GRBL if linked)</strong>.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Soft travel saves; if Linked, GRBL gets $130–$132 (and soft
-                limits when written from Calibration). Visualizer bed size
-                updates.
-              </p>
-            </li>
-            <li>
-              <p class="step-card__do-act">
-                Check
-                <strong
-                  >Measured and set soft travel — I completed this step</strong
-                >, then <strong>Next</strong>. Optional later:
-                <strong>Bed travel test…</strong> from Calibration / Menu.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Wizard moves to <strong>5 · Stock seed</strong>. Soft fences
-                stay until hardware changes.
-              </p>
-            </li>
-          </ol>
-          <p class="step-card__aside">
-            Machine calibration ends here. Soft limits stay until hardware
-            changes.
-          </p>
-          <a class="step-card__next" href="#s5">Next: Stock seed →</a>
-        </article>
-
-        <article class="step-card" id="s5">
-          <div class="step-card__meta">
-            <span class="step-card__num" aria-hidden="true">5</span>
-            <h2>Stock seed (first job only)</h2>
-            <p class="step-card__action">
-              Optional starter sizes → <strong>Finish calibration</strong> ·
-              later jobs use Prepare
-            </p>
-            <p class="step-card__eli5">
-              Stock = your wood (or other material). This first guess just fills
-              in sizes so the picture looks right — re-set it in Prepare for
-              every real job.
-            </p>
-          </div>
-          <figure class="step-card__figure">
-            <img
-              src="assets/fr-05-stock.svg"
-              alt="Stock rectangle on bed with size fields"
-              width="960"
-              height="520"
-            />
-          </figure>
-          <ol class="step-card__do">
-            <li>
-              <p class="step-card__do-act">
-                Enter starter <strong>Width X mm</strong>,
-                <strong>Length Y mm</strong>, and <strong>Thickness mm</strong>
-                for the first blank you plan to cut (rough is fine).
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Stock rectangle on the work-surface view matches those sizes.
-              </p>
-            </li>
-            <li>
-              <p class="step-card__do-act">
-                Check
-                <strong
-                  >Stock size matches the workpiece — I completed this
-                  step</strong
-                >, then tap <strong>Finish calibration</strong>.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                First-run closes. Machine tune is done for this install.
-              </p>
-            </li>
-            <li>
-              <p class="step-card__do-act">
-                For the actual cut:
-                <a href="prepare.html#p1">load G-code or SVG</a> →
-                <a href="prepare.html">Prepare</a> (stock, XY zero, Z probe) →
-                verify path on stock → Simulate → Start.
-              </p>
-              <p class="step-card__do-see">
-                <span class="step-card__do-label">Expect</span>
-                Path appears on the bed after Load; Job shows
-                <strong>Prepared</strong> after Mark ready; Start unlocks.
-              </p>
-            </li>
-          </ol>
-          <p class="step-card__aside">
-            Every new job:
-            <a href="connect.html">Connect</a>
-            →
-            <a href="prepare.html">Prepare</a>
-            (stock · Material XYZ · Z · load) →
-            <a href="verify.html">Verify</a>
-            →
-            <a href="run.html">Run</a>.
-          </p>
-          <a class="step-card__next" href="prepare.html"
-            >Done · Prepare →</a
-          >
-        </article>
       </main>
 
       <footer class="site-footer">

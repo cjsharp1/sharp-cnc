@@ -81,9 +81,19 @@ During play, SharpCNC shows Z cues (Retract / Plunge / Cut / Rapid). Banner: **P
 
 With a job loaded (and not streaming):
 
-- **Start at line** scrubber — next **Start** begins at that line  
+- **Start at line** scrubber — next **Start** begins at that line. Starting mid-file, SharpCNC first runs a **resume setup**: it restores units, work offset, plane, feed, spindle, and coolant from the earlier lines, then retracts to the job's clearance height, moves over the start point, spins up (3 s dwell), and plunges slowly. The exact commands go to the activity log.  
 - Rough **time estimate** from path length  
-- **Spindle-off dry run** — strips `M3`/`M4`/`S` and forces `M5`
+- **Dry run (spindle off, Z lifted)** — turns `M3`/`M4` into `M5`, strips `S`, and lifts every absolute Z so the deepest point of the job stays **5 mm above material Z0**. Use it to watch the whole path in the air. If the lift would push the job above Z home, Start is refused with the reason.
+
+### Before Start: the soft-limit check
+
+Start checks the whole job against soft travel in machine coordinates:
+
+- **X/Y**, including the true extent of arcs (not just their end points)  
+- **Z top**: a clearance/safe height that would go above Z home. Fix by lowering the CAM safe height, or by raising the spindle so material Z0 sits lower in Z travel  
+- **Z bottom**: a cut deeper than Z travel  
+
+`G53`/`G28`/`G30` moves are in machine coordinates, so they're left out of the job outline and the simulation.
 
 ## Run phase — supervise the cut
 
@@ -97,6 +107,9 @@ With a job loaded (and not streaming):
 | **Resume** | Cycle start (`~`) from Hold |
 | **Resume after tool change** | Continues past an `M6` pause |
 | **Stop** | Soft reset / cancel stream — treat as abort |
+
+**If GRBL rejects a line mid-job** (`error:N`), SharpCNC stops sending, sends a **feed hold**, and shows which line failed. The spindle may still be running: press **Stop** to cancel the job and turn it off.  
+**If GRBL raises an alarm mid-job**, the job ends and the alarm panel explains the code. Recovery offers to resume about 20 lines before the last line GRBL accepted, because GRBL accepts lines before it finishes cutting them.
 
 Not in Run: probe, calibrate, job load, Advanced.
 

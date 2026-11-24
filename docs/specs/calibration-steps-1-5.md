@@ -2,7 +2,18 @@
 
 **For:** Cursor (implementation)
 **App:** SharpCNC (Tauri + React, `src/`), one machine only (Demon Shield + GRBL 1.1h)
-**Status:** Ready to build, in the PR order below
+**Status:** PR 0 done on branch `fix/virtual-cnc-readiness` (except the X/Y check, which waits on hardware). PR 2 partly done. PRs 1, 3, 4, 5 ready to build.
+
+| PR | Status |
+|---|---|
+| 0 — Z envelope | **Done.** Z range `[−$132, 0]`, clamp never reverses, Z Use MPos positive, travel input errors, smoke `smoke-safety-fixes.mts`. **Still open:** X/Y sign follow-up if hardware check HW-02a / HW-07a shows negative X/Y (see the review's Remaining work #2). |
+| 1 — Backup / undo | Open |
+| 2 — Direction + steps | **Partly done:** Z steps/mm moves **down** 10/20/25 mm; clearer measurement label and Z copy. **Still open:** expected-direction wording + Yes/No after each test, Z row first, `$3`↔`$23` note, ±20% warning, re-test prompt, starting-value helper |
+| 3 — Speed & accel | Open |
+| 4 — Homing setup | Open. The live **Inputs** row under Position (limit/probe/button pins) already exists; reuse its parsing (`status.pins.raw`) for the switch lights |
+| 5 — Soft travel polish | Partly done: the jog pad is now on this step. Rest open |
+
+Calibrate step 1 is now **Start** (was "Zero context"); use that name below. Steps are `Start → Direction → Steps/mm → Soft travel` today, and become `Start → Direction → Steps/mm → Speed & accel → Homing → Soft travel` after PRs 3–4.
 
 ## Goal
 
@@ -27,7 +38,7 @@ Every new screen must feel like the existing wizard: same `cal__*` styles, same 
 
 ---
 
-## PR 0 — Fix the Z soft-limit envelope (bug, do first)
+## PR 0 — Fix the Z soft-limit envelope — DONE (kept for reference)
 
 ### Problem
 
@@ -106,7 +117,7 @@ Already works. Add:
 Insert after Steps/mm. New wizard order:
 
 ```
-Zero context → Direction → Steps/mm → Speed & accel → Homing → Soft travel
+Start → Direction → Steps/mm → Speed & accel → Homing → Soft travel
 ```
 
 (Update `CALIBRATION_GUIDED_STEPS`, `STEP_CHROME`, and `STEP_CONFIRM_LABELS`.)

@@ -255,7 +255,12 @@ async function withFreshPage(
 
 async function main() {
   await mkdir(OUT, { recursive: true });
-  const browser = await chromium.launch({ headless: true });
+  // CHROME_PATH lets the script use an installed Chrome when Playwright's own
+  // browser isn't downloaded (e.g. CHROME_PATH=/usr/bin/google-chrome).
+  const browser = await chromium.launch({
+    headless: true,
+    ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
+  });
 
   // 1) Connected shell — calibrated → Prepare landing
   await withFreshPage(browser, { calibrated: true }, async (page) => {

@@ -42,7 +42,9 @@ Sticks use a deadzone so rest noise does not creep. Works on **Virtual CNC** and
 
 ### Soft-limit awareness
 
-SharpCNC refuses jogs that would push past known soft travel (when max X/Y/Z are set). You will see a soft-limit hint instead of motion.
+SharpCNC refuses jogs that would push past known soft travel (when max X/Y/Z are set). You will see a soft-limit hint instead of motion. A jog that would overshoot stops at the edge; SharpCNC never sends a jog in the opposite direction to the one you pressed.
+
+**Z is upside down compared to X and Y.** Z homes to the **top** of its travel, so machine Z is **0 at home and negative below it** (e.g. 0 down to −80 with `$132=80`). X and Y count up from their home side. The **Z gauge** at the top-right of the machine view shows where the tool tip is between home and the bottom of travel, plus material Z0, the stock, and the loaded job's Z range (red when the job would leave Z travel).
 
 ![Home switches vs soft limits](assets/diagram-soft-limits.svg)
 
@@ -75,7 +77,9 @@ Typical touch-off (Prepare phase):
 
 ## Homing
 
-**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. Offered primarily in **Calibrate**, and again in **Prepare** if the session needs it. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. **Rule of thumb: home once after every power-on, and again after an E-Stop or reset mid-move.** Everything else (soft limits, saved zeros, the Z gauge) depends on it. Home is offered in First-run, in Calibrate's **Start** step, and in Prepare step 1. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+
+After homing on stock GRBL, Z reads about **−1 mm** (minus the pull-off `$27`), not exactly 0: the switch trigger point is 0.
 
 ## XY probe & tool length
 

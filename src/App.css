@@ -3490,10 +3490,11 @@ button {
   /* The rail body has 0.75rem bottom padding; stick over it so nothing
      scrolls visibly underneath the footer. */
   bottom: -0.75rem;
-  z-index: 2;
+  z-index: 5;
   margin-bottom: -0.75rem;
   padding-bottom: calc(0.35rem + 0.75rem);
-  background: var(--menu-bg);
+  /* Opaque: the tinted panel colour over the solid page colour. */
+  background: linear-gradient(var(--menu-bg), var(--menu-bg)), var(--bg-1);
   box-shadow: 0 -0.6rem 0.8rem -0.6rem rgba(0, 0, 0, 0.45);
 }
 
@@ -5667,4 +5668,37 @@ button {
   max-width: 4.5rem;
   font-size: var(--text-2xs);
   color: var(--warn-text);
+}
+
+/* --- Live input pins under Position ------------------------------------- */
+.coords__inputs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  margin-top: 0.45rem;
+  padding-top: 0.4rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.coords__inputs-label {
+  margin-right: 0.2rem;
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--steel-dim);
+}
+
+.coords__pin {
+  padding: 0.05rem 0.3rem;
+  border: 1px solid var(--border-soft);
+  font-family: var(--font-mono);
+  font-size: var(--text-2xs);
+  color: var(--steel-dim);
+}
+
+.coords__pin.is-on {
+  border-color: var(--warn-border);
+  color: var(--warn-text);
+  background: var(--brass-fill);
 }

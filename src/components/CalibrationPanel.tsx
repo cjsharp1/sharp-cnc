@@ -101,6 +101,16 @@ function formatMm(value: number): string {
   return value.toFixed(3);
 }
 
+/** Z homes to the top, so Z test moves go down and stay short. */
+const Z_CALIBRATION_DISTANCE_OPTIONS_MM = [10, 20, 25] as const;
+const DEFAULT_Z_CALIBRATION_DISTANCE_MM = 20;
+
+function distanceOptionsFor(axis: Axis): readonly number[] {
+  return axis === "Z"
+    ? Z_CALIBRATION_DISTANCE_OPTIONS_MM
+    : CALIBRATION_DISTANCE_OPTIONS_MM;
+}
+
 const ZERO_BUTTONS: { id: ZeroAxisSelection; label: string }[] = [
   { id: "X", label: "Zero X" },
   { id: "Y", label: "Zero Y" },
@@ -517,8 +527,11 @@ export function CalibrationPanel({
             Steps per mm
           </h3>
           <p className="cal__hint">
-            Command a known move, measure with a ruler, write steps/mm
-            ($100–$102).
+            Command a known move, measure how far it really went, write
+            steps/mm ($100–$102). For Z the move goes <strong>down</strong>
+            (Z homes to the top); measure it with calipers or a dial indicator
+            against the spindle body — a small Z error makes every cut the
+            wrong depth.
           </p>
 
           <div className="cal__row">
@@ -530,7 +543,13 @@ export function CalibrationPanel({
                 disabled={!canAct}
                 onChange={(e) => {
                   clearConfirm();
-                  setAxis(e.target.value as Axis);
+                  const nextAxis = e.target.value as Axis;
+                  setAxis(nextAxis);
+                  setCommandedMm(
+                    nextAxis === "Z"
+                      ? DEFAULT_Z_CALIBRATION_DISTANCE_MM
+                      : DEFAULT_CALIBRATION_DISTANCE_MM,
+                  );
                   setMoved(false);
                   setMeasuredMm("");
                 }}
@@ -552,7 +571,7 @@ export function CalibrationPanel({
                   setMoved(false);
                 }}
               >
-                {CALIBRATION_DISTANCE_OPTIONS_MM.map((d) => (
+                {distanceOptionsFor(axis).map((d) => (
                   <option key={d} value={d}>
                     {d} mm
                   </option>
@@ -575,7 +594,7 @@ export function CalibrationPanel({
               className="cal__btn"
               disabled={!canAct || currentSteps === null}
               onClick={() => {
-                onCalibrateMove(axis, commandedMm);
+                onCalibrateMove(axis, axis === "Z" ? -commandedMm : commandedMm);
                 setMoved(true);
               }}
               title={buildJogCommand(
@@ -583,16 +602,18 @@ export function CalibrationPanel({
                   ? { x: commandedMm }
                   : axis === "Y"
                     ? { y: commandedMm }
-                    : { z: commandedMm },
+                    : { z: -commandedMm },
                 DEFAULT_JOG_FEED_MM_MIN,
               )}
             >
-              Move +{commandedMm} {axis}
+              {axis === "Z"
+                ? `Move Z down ${commandedMm} mm`
+                : `Move +${commandedMm} ${axis}`}
             </button>
           </div>
 
           <label className="cal__field">
-            <span className="cal__field-label">Measured mm (ruler)</span>
+            <span className="cal__field-label">How far it actually moved (mm)</span>
             <input
               className="cal__input"
               type="number"

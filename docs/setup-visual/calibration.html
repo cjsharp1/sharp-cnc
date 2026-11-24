@@ -44,7 +44,7 @@
             E-Stop ready.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
-            <a href="#c1">1 Zero</a>
+            <a href="#c1">1 Start</a>
             <a href="#c2">2 Direction</a>
             <a href="#c3">3 Steps/mm</a>
             <a href="#c4">4 Travel</a>
@@ -54,15 +54,15 @@
         <article class="step-card" id="c1">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">1</span>
-            <h2>Zero context</h2>
+            <h2>Start</h2>
             <p class="step-card__action">
-              Confirm Material / Machine → Zero if needed → confirm →
+              Clear the bed → <strong>Home ($H)</strong> → confirm →
               <strong>Next</strong>
             </p>
             <p class="step-card__eli5">
-              Glance at the numbers first. Material XYZ = “start of this blank.”
-              Machine XYZ = “home corner of the bed.” Make sure they make sense
-              before you measure anything.
+              Home first so the machine knows where it is. Machine XYZ =
+              “distance from home.” Z reads about −1 mm after homing and goes
+              more negative as it moves down. Material zero isn’t needed here.
             </p>
           </div>
           <figure class="step-card__figure">
@@ -82,15 +82,14 @@
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Calibrate opens on <strong>Confirm zero context</strong> with
+                Calibrate opens on <strong>Before you start</strong> with
                 Material and Machine X/Y/Z and State.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Optional: <strong>Home ($H)</strong> if the session needs it.
-                Use the compact jog in this step if the tip is not at a useful
-                reference.
+                <strong>Home ($H)</strong> — once after each power-on, if homing
+                is set up. Keep a hand near E-Stop.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -99,10 +98,9 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                If needed, use <strong>Zero X</strong> /
-                <strong>Zero Y</strong> / <strong>Zero Z</strong> /
-                <strong>Zero XYZ</strong> so material origin matches where the
-                tip sits (zeroing does not move the machine).
+                Optional: <strong>Zero X</strong> / <strong>Zero Y</strong> /
+                <strong>Zero Z</strong> / <strong>Zero XYZ</strong> if you want
+                to measure from a mark (zeroing does not move the machine).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -113,7 +111,8 @@
               <p class="step-card__do-act">
                 Check
                 <strong
-                  >Material zero looks right — I completed this step</strong
+                  >Machine homed (or no switches) and positions look right — I
+                  completed this step</strong
                 >, then tap <strong>Next</strong>.
               </p>
               <p class="step-card__do-see">
@@ -236,9 +235,10 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Move +…</strong> for that axis. Measure the real
-                travel with a ruler; type it in
-                <strong>Measured mm (ruler)</strong>.
+                Tap <strong>Move +…</strong> for X/Y, or
+                <strong>Move Z down …</strong> for Z (10–25 mm — Z homes to the
+                top). Measure the real travel (calipers or a dial indicator for
+                Z); type it in <strong>How far it actually moved (mm)</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -302,8 +302,9 @@
           <ol class="step-card__do">
             <li>
               <p class="step-card__do-act">
-                With Z high, carefully jog each axis toward the far rail and
-                stop with a safety margin (or enter known bed size).
+                Home first. With Z high, use the jog pad on this step to move
+                each axis toward the far rail and stop with a safety margin.
+                For Z, jog <strong>down</strong> to the lowest safe point.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -314,7 +315,8 @@
             <li>
               <p class="step-card__do-act">
                 For each axis, tap <strong>Use MPos</strong> (or type Max X/Y/Z
-                mm). Enable <strong>Enable soft limits ($20=1)</strong>.
+                mm). Z fills in as a positive travel length even though machine
+                Z is negative. Enable <strong>Enable soft limits ($20=1)</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>

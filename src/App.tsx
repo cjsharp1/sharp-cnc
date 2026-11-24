@@ -3313,7 +3313,7 @@ export default function App() {
         <div className="shell__main">
           <section className="shell__chrome" aria-label="Position and safety">
             <div className="shell__chrome-row">
-              <CoordinateReadout status={status} />
+              <CoordinateReadout status={status} showInputs={connected} />
               <SafetyControls
                 connected={connected}
                 machineState={status.state}

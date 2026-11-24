@@ -42,6 +42,7 @@ Shows:
 - Toolhead (bit Ø sized) with a short motion trail while jogging / running
 - **Dual origin** markers — **Material 0** at the job origin and **Machine 0** from WCO
 - Optional **Simulate** overlay when a path is loaded — preview only, not serial motion
+- **Z gauge** (top-right, while connected) — a side view of Z: home at the top (0), the bottom of travel (−`$132`), material Z0 (brass line), the stock below it, the loaded job's Z range (red if it leaves travel), and the tool tip. The number underneath is Z from material zero, or machine Z if no zero is set
 
 Axis convention (matches the guides): **+X** right, **+Y** back = up on screen, **+Z** up. Bed corners use map layout: **NW NE** on the top row, **SW SE** on the bottom.
 
@@ -52,12 +53,12 @@ A persistent stepper: **Connect · Calibrate · Prepare · Verify · Run**. Inco
 | Phase | What the pane shows |
 |-------|---------------------|
 | **Connect** | Ports, baud note, Connect, Virtual CNC |
-| **Calibrate** | Four dense guided steps (one screen each) |
+| **Calibrate** | Four guided steps: Start (home) · Direction · Steps/mm · Soft travel (with a jog pad) |
 | **Prepare** | Stepped wizard: stock+tool → Material XY → Z → load → Mark ready |
 | **Verify** | Soft-limit summary, Simulate, checklist, **Start** |
 | **Run** | Progress + overrides + Pause / Resume / Stop |
 
-**No scroll for primary phase controls** — each step fits on one screen. The visualizer and safety strip stay fixed; only the phase body swaps.
+**Back / Next stay on screen.** Each wizard's footer is pinned to the bottom of the rail; on smaller screens (e.g. 1366×768) the step body scrolls underneath it. The visualizer and safety strip stay fixed; only the phase body swaps.
 
 **Not phases:** Log / Debug (Menu · Debug) and **Advanced…** (Menu). Those are intentional hides and may scroll.
 
