@@ -24,6 +24,10 @@ jobs:
       - name: Install
         run: npm ci
 
+      # E-Stop loop-abort smoke launches Chromium via Playwright.
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
       - name: Critical smokes
         run: npm run smoke:critical
 
@@ -44,6 +48,9 @@ jobs:
 
       - name: Install
         run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Full smoke suite
         run: npm run smoke
