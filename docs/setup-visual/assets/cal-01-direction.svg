@@ -47,8 +47,8 @@
   <text class="lab" x="710" y="185" text-anchor="middle" font-weight="700">Expect</text>
   <!-- Top-down bed view: work +Y (back) points up on screen — same as MachineView (#62) -->
   <path class="arrow" d="M600 360 H800"/>
-  <text class="lab" x="700" y="345" text-anchor="middle" dominant-baseline="central" font-weight="700">+X right</text>
+  <text class="lab" x="700" y="345" text-anchor="middle" dominant-baseline="central" font-weight="700">X+1 → right</text>
   <path class="arrow" d="M620 380 V220"/>
-  <text class="lab" x="640" y="250" dominant-baseline="central" font-weight="700">+Y back</text>
-  <text class="tiny" x="710" y="420" text-anchor="middle">+Z up · wrong way → flip bit</text>
+  <text class="lab" x="640" y="250" dominant-baseline="central" font-weight="700">Y+1 → back</text>
+  <text class="tiny" x="710" y="420" text-anchor="middle">Z−1 → down (+Z up) · wrong → flip</text>
 </svg>

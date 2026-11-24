@@ -132,7 +132,7 @@ export function AppMenu({
             Calibration…
           </button>
           <p className="appmenu__hint">
-            Guided wizard: zero, axis direction, steps/mm, soft travel.
+            Guided wizard: direction, steps/mm, soft travel, Home / Machine XYZ.
           </p>
           {onOpenBedTravelTest ? (
             <>

@@ -31,7 +31,7 @@
   <text class="tiny" x="44" y="148">Invert wrong axes</text>
   <text class="tiny" x="44" y="168">Write $3</text>
   <text class="tiny" x="44" y="198">Test ±5 mm</text>
-  <text class="tiny" x="44" y="230">+X right · +Y up</text>
+  <text class="tiny" x="44" y="230">X+1 right · Y+1 back</text>
 
   <path class="arrow" d="M188 170 H210"/>
 

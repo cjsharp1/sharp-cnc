@@ -354,9 +354,24 @@ export function CalibrationPanel({
             Axis direction
           </h3>
           <p className="cal__hint">
-            Match jog +X / +Y / +Z to the machine (<code>$3</code>). Toggle,
-            write, then short test jogs before steps/mm.
+            Looking down on the bed (same as the visualizer):{" "}
+            <strong>X+1 → right</strong>, <strong>Y+1 → back</strong> (up on
+            screen), <strong>Z−1 → down</strong> (+Z up). Test a short jog; if
+            it goes the wrong way, invert that axis and write <code>$3</code>.
+            Next: steps/mm.
           </p>
+
+          <ul className="cal__dir-expect" aria-label="Expected travel">
+            <li>
+              <strong>X+1</strong> goes <strong>right</strong>
+            </li>
+            <li>
+              <strong>Y+1</strong> goes <strong>back</strong> (up on screen)
+            </li>
+            <li>
+              <strong>Z−1</strong> goes <strong>down</strong> (+Z up)
+            </li>
+          </ul>
 
           <p className="cal__current">
             Current ${SETTING_DIR_PORT_INVERT} ={" "}
@@ -378,11 +393,11 @@ export function CalibrationPanel({
           <div className="cal__dir" role="group" aria-label="Invert axes">
             {(
               [
-                ["X", "x"],
-                ["Y", "y"],
-                ["Z", "z"],
+                ["X", "x", "X+1 → right", "right", "left"],
+                ["Y", "y", "Y+1 → back (up on screen)", "back", "forward"],
+                ["Z", "z", "Z−1 → down (+Z up)", "up", "down"],
               ] as const
-            ).map(([ax, key]) => (
+            ).map(([ax, key, expect, plusWay, minusWay]) => (
               <div key={ax} className="cal__dir-row">
                 <label className="cal__check cal__dir-toggle">
                   <input
@@ -399,6 +414,7 @@ export function CalibrationPanel({
                   />
                   <span>Invert {ax}</span>
                 </label>
+                <span className="cal__dir-expect-inline">{expect}</span>
                 <div
                   className="cal__dir-tests"
                   role="group"
@@ -409,7 +425,7 @@ export function CalibrationPanel({
                     className="cal__btn cal__btn--ghost"
                     disabled={!canAct}
                     onClick={() => onCalibrateMove(ax, DIR_TEST_JOG_MM)}
-                    title={`Jog +${DIR_TEST_JOG_MM} mm on ${ax}`}
+                    title={`Jog +${DIR_TEST_JOG_MM} mm on ${ax} — expect ${plusWay}`}
                   >
                     Test +{ax}
                   </button>
@@ -418,7 +434,7 @@ export function CalibrationPanel({
                     className="cal__btn cal__btn--ghost"
                     disabled={!canAct}
                     onClick={() => onCalibrateMove(ax, -DIR_TEST_JOG_MM)}
-                    title={`Jog −${DIR_TEST_JOG_MM} mm on ${ax}`}
+                    title={`Jog −${DIR_TEST_JOG_MM} mm on ${ax} — expect ${minusWay}`}
                   >
                     Test −{ax}
                   </button>

@@ -3695,6 +3695,20 @@ button {
   accent-color: var(--brass);
 }
 
+.cal__dir-expect {
+  margin: 0;
+  padding: 0.55rem 0.75rem 0.55rem 1.35rem;
+  border: 1px solid var(--border-soft);
+  background: var(--panel-deep);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+}
+
+.cal__dir-expect li + li {
+  margin-top: 0.2rem;
+}
+
 .cal__dir {
   display: flex;
   flex-direction: column;
@@ -3703,7 +3717,7 @@ button {
 
 .cal__dir-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(6.5rem, auto) minmax(0, 1fr) auto;
   gap: 0.55rem;
   align-items: center;
   padding: 0.55rem 0.65rem;
@@ -3717,12 +3731,29 @@ button {
   font-weight: 600;
 }
 
+.cal__dir-expect-inline {
+  min-width: 0;
+  color: var(--steel);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
 .cal__dir-tests {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+@media (max-width: 720px) {
+  .cal__dir-row {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .cal__dir-expect-inline {
+    grid-column: 1 / -1;
+  }
 }
 
 .cal__table-wrap {
