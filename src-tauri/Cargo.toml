@@ -1,6 +1,6 @@
 [package]
 name = "sharpnc"
-version = "0.6.2"
+version = "0.6.3"
 description = "SharpCNC — personal GRBL controller"
 authors = ["Chris Sharp"]
 edition = "2021"
