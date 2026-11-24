@@ -1,5 +1,6 @@
 /**
- * Smoke: steps/mm math, $$ / $n= IO on mock, soft-travel + $3 direction helpers.
+ * Smoke: steps/mm math, $$ / $n= IO on mock, soft-travel + $3 direction helpers,
+ * settings backup round-trip / diff / Calibrate undo (PR 1).
  * Run: npx --yes tsx scripts/smoke-calibration.mts
  */
 import { createGrblClient } from "../src/grbl/client.ts";
@@ -23,10 +24,44 @@ import {
   softTravelWriteCommands,
 } from "../src/grbl/settings.ts";
 import {
+  SETTINGS_BACKUP_MAX,
+  SETTINGS_BACKUP_STORAGE_KEY,
+  diffSettings,
+  formatCalibrateUndoLabel,
+  formatSettingsDumpText,
+  loadSettingsBackups,
+  popCalibrateUndo,
+  pushCalibrateUndo,
+  pushSettingsBackup,
+  restoreWriteEntries,
+  settingsMapToRecord,
+  settingsRecordToMap,
+} from "../src/grbl/settingsBackup.ts";
+import {
   fetchGrblSettings,
   writeGrblSetting,
   writeGrblSettings,
 } from "../src/grbl/settingsIo.ts";
+
+/** Minimal localStorage for Node smoke (settings backup helpers). */
+const memStore = new Map<string, string>();
+(
+  globalThis as { localStorage?: Storage }
+).localStorage = {
+  getItem: (k: string) => memStore.get(k) ?? null,
+  setItem: (k: string, v: string) => {
+    memStore.set(k, String(v));
+  },
+  removeItem: (k: string) => {
+    memStore.delete(k);
+  },
+  clear: () => memStore.clear(),
+  key: () => null,
+  get length() {
+    return memStore.size;
+  },
+} as Storage;
+memStore.clear();
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
@@ -133,6 +168,98 @@ assert(softLimitsEnabled(finalMap) === true, "$20 on");
 
 const travel = softTravelFromSettings(finalMap, DEFAULT_SOFT_TRAVEL);
 assert(travel.maxX === 975 && travel.maxY === 990, "soft travel from settings");
+
+// --- Settings backup / diff / undo (PR 1) ------------------------------------
+
+memStore.clear();
+const snap1 = pushSettingsBackup(finalMap, 1_700_000_000_000);
+assert(snap1.snapshots.length === 1, "one snapshot stored");
+assert(
+  Object.keys(snap1.snapshots[0]!.settings).length === finalMap.size,
+  "snapshot has full map",
+);
+assert(
+  memStore.has(SETTINGS_BACKUP_STORAGE_KEY),
+  "persisted under sharpcnc.settingsBackup.v1",
+);
+
+// Round-trip: dump text → parse → same values for key ids.
+const dumpText = formatSettingsDumpText(finalMap);
+assert(dumpText.includes("$100=262.5"), `dump has $100, got:\n${dumpText}`);
+assert(dumpText.includes("$3=5"), "dump has $3");
+const reparsed = parseSettingsDump(dumpText.split("\n"));
+assert(reparsed.get(100)?.value === 262.5, "round-trip $100");
+assert(reparsed.get(SETTING_DIR_PORT_INVERT)?.value === 5, "round-trip $3");
+
+// Keep last 5 (newest first). Values 200..205 → keep 201..205.
+for (let i = 0; i < 6; i++) {
+  const m = new Map(finalMap);
+  m.set(100, { id: 100, value: 200 + i });
+  pushSettingsBackup(m, 1_700_000_000_000 + i + 1);
+}
+const kept = loadSettingsBackups();
+assert(
+  kept.snapshots.length === SETTINGS_BACKUP_MAX,
+  `keep last ${SETTINGS_BACKUP_MAX}, got ${kept.snapshots.length}`,
+);
+assert(
+  kept.snapshots[0]!.settings["100"] === 205,
+  "newest snapshot first",
+);
+assert(
+  kept.snapshots[SETTINGS_BACKUP_MAX - 1]!.settings["100"] === 201,
+  "oldest kept is 201",
+);
+
+// Diff: only changed settings (snapshot → current; restore writes `from`).
+const baseline = settingsRecordToMap(kept.snapshots[0]!.settings); // $100=205
+const currentish = new Map(baseline);
+currentish.set(100, { id: 100, value: 999 });
+currentish.set(112, { id: 112, value: 375 });
+const diff = diffSettings(baseline, currentish);
+assert(diff.length === 2, `expected 2 changed, got ${diff.length}`);
+assert(
+  diff.some((d) => d.id === 100 && d.from === 205 && d.to === 999),
+  "$100 in diff",
+);
+assert(
+  diff.some((d) => d.id === 112 && d.from !== null && d.to === 375),
+  "$112 in diff",
+);
+const writes = restoreWriteEntries(diff);
+assert(
+  writes.every((w) => Number.isFinite(w.value)),
+  "restore writes have values",
+);
+assert(
+  writes.find((w) => w.id === 100)?.value === 205,
+  "restore writes snapshot (from) value",
+);
+
+// Empty diff when equal.
+assert(diffSettings(baseline, baseline).length === 0, "identical → empty diff");
+
+// Session undo stack.
+let stack = pushCalibrateUndo([], { id: 112, before: 500, after: 375 });
+stack = pushCalibrateUndo(stack, { id: 100, before: 250, after: 262.5 });
+assert(
+  formatCalibrateUndoLabel(stack[stack.length - 1]!) ===
+    "Undo $100 (262.5 → 250)",
+  `undo label got ${formatCalibrateUndoLabel(stack[stack.length - 1]!)}`,
+);
+const popped = popCalibrateUndo(stack);
+assert(popped.entry?.id === 100, "pop newest");
+assert(popped.next.length === 1 && popped.next[0]!.id === 112, "stack left");
+
+// Undo write against mock: restore $100 to 250.
+await writeGrblSetting(client, SETTING_STEPS_X, 250, { timeoutMs: 1500 });
+const afterUndo = await fetchGrblSettings(client, { timeoutMs: 2000 });
+assert(afterUndo.get(SETTING_STEPS_X)?.value === 250, "undo write $100");
+
+// Record → map helpers.
+const rec = settingsMapToRecord(afterUndo);
+assert(rec["100"] === 250, "map→record");
+assert(settingsRecordToMap(rec).get(100)?.value === 250, "record→map");
 
 await client.disconnect();
 

@@ -4611,6 +4611,128 @@ button {
   color: var(--brass-hot, #d4a84b);
 }
 
+.settings-restore {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem 0.9rem;
+  border: 1px solid rgba(212, 168, 75, 0.18);
+  background: var(--panel-bg, transparent);
+}
+
+.settings-restore__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.settings-restore__title {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.settings-restore__meta {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.settings-restore__hint,
+.settings-restore__warn,
+.settings-restore__message,
+.settings-restore__count,
+.settings-restore__empty {
+  margin: 0;
+  font-size: 0.8rem;
+  line-height: 1.4;
+  color: var(--muted);
+}
+
+.settings-restore__warn {
+  color: var(--warn, #d4a84b);
+}
+
+.settings-restore__toolbar,
+.settings-restore__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.55rem;
+}
+
+.settings-restore__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.settings-restore__field-label {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+.settings-restore__select {
+  max-width: 100%;
+  padding: 0.35rem 0.45rem;
+  border: 1px solid rgba(212, 168, 75, 0.28);
+  background: var(--input-bg, rgba(0, 0, 0, 0.25));
+  color: inherit;
+  font: inherit;
+}
+
+.settings-restore__btn {
+  padding: 0.4rem 0.7rem;
+  border: 1px solid rgba(212, 168, 75, 0.4);
+  background: var(--brass-fill, rgba(212, 168, 75, 0.12));
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-restore__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.settings-restore__btn--ghost {
+  background: transparent;
+}
+
+.settings-restore__table-wrap {
+  max-height: 12rem;
+  overflow: auto;
+  border: 1px solid rgba(212, 168, 75, 0.16);
+}
+
+.settings-restore__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.8rem;
+}
+
+.settings-restore__table th,
+.settings-restore__table td {
+  padding: 0.3rem 0.45rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(212, 168, 75, 0.1);
+}
+
+.settings-restore__table th {
+  position: sticky;
+  top: 0;
+  background: var(--menu-bg);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
 @keyframes fade-in {
   from {
     opacity: 0;

@@ -105,7 +105,17 @@ Chris should not need this for daily cutting. One door only: **Menu → Advanced
 | **Console** + send line | Raw GRBL; easy to break a session |
 | **Macros** | Same surface as console |
 | **G54–G59 work offsets** | Multi-fixture WCS; this machine uses Material XYZ / G10 for the blank |
+| **Restore settings** | Re-apply a Calibrate auto-backup: changed-only diff, write one-by-one, re-read `$$` |
 | **Manual `$$` / `$x=value`** | Free-form EEPROM; Calibrate already covers `$3`, steps/mm, soft travel |
+
+### Restore a settings backup
+
+1. Connect, then **Menu → Advanced…**.
+2. Under **Restore settings**, pick a snapshot (auto-saved when Calibrate first loaded `$$`, or when you used **Back up settings**).
+3. **Read $$** if the live list looks stale. The table shows only settings that differ (live → backup).
+4. Click **Restore N settings**. SharpCNC writes those values one at a time, then re-reads `$$` to confirm.
+
+Everyday Calibrate writes still have a session **Undo** next to the result message — prefer that for a single mistaken write. Use Restore when you want the whole pre-calibration dump back.
 
 Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54). Dangerous lines like `$H` / `$RST=` are refused in the console — use Homing / Calibration instead.
 

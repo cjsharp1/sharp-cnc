@@ -47,8 +47,8 @@ After this guide: [First-test stages](13-first-test-stages.md) from Stage 3 (job
 You'll change settings today. Save the starting point first so you can always go back.
 
 **Do**
-1. **Menu → Advanced…** → console. Send `$$`, then `$I`. (The console only confirms "Sent"; GRBL's replies land in the activity log.)
-2. **Menu → Activity log…** → filter **TX/RX**. Copy every `$n=value` line into a text file named `sharpcnc-settings-original-YYYY-MM-DD.txt`, outside the repo. (Turn on **Debug mode** if you want **Copy last 100** or **Export**.) The raw settings list in **Advanced** shows the same values.
+1. Connect, open **Calibrate** once so settings load (auto-backup), then click **Back up settings** in the meta bar and save `sharpcnc-settings-original-YYYY-MM-DD.txt` outside the repo. Or: **Menu → Advanced…** → console → send `$$`, then `$I` (replies land in the activity log) and export from **Activity log…**.
+2. Keep that file. Later restores use **Menu → Advanced… → Restore settings** (changed-only diff) or Calibrate’s session **Undo** for a single write.
 3. Copy the two `$I` reply lines into the same file.
 
 **Expect:** `$$` prints about 30 settings. `$I` prints two lines like:

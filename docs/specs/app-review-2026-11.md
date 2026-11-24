@@ -25,7 +25,7 @@ Most of this review was fixed and verified against the Virtual CNC on branch `fi
 | T2 | Strict GRBL mock mode | **FIXED** |
 | M1 | Jog pad in Calibrate | **FIXED** (Soft travel step) |
 | M2 | Z side view | **FIXED** (Z gauge) |
-| M3 | Settings backup / restore | **OPEN** (calibration spec PR 1) |
+| M3 | Settings backup / restore | **FIXED** (calibration spec PR 1) |
 | M4 | Keyboard shortcuts for Hold / E-Stop | **OPEN** |
 | M5, M6 | Homing setup, speed & accel steps | **OPEN** (calibration spec PR 3, PR 4) |
 | O1 | Overlapping setup wizards | **FIXED** — First-run is Connect → Home → Calibrate |
@@ -154,7 +154,7 @@ Was: pause before `M6` with no spindle stop, no Idle wait, no Z re-probe gate.
 |---|---|---|
 | M1 | **Jog pad in Calibrate.** The Soft travel step says "Jog far → Use MPos", but the jog pad only exists in Prepare (`PrepareRunPanel.tsx`). Calibrate has only ±5 mm test buttons, so you can't reach the far end without a gamepad or leaving the step. | Blocks the step it's needed for. |
 | M2 | **Z side view.** The visualizer is top-down only. Z shows up only as numbers. | Most crashes are Z mistakes. A slim vertical gauge next to the bed (Z travel 0 → −$132, stock top, Material Z0, tool tip now, job's min/max Z after R8) would make wrong touch-offs obvious. |
-| M3 | **Settings backup / restore.** No way to save or restore the full `$$` dump. | Covered in calibration spec PR 1. |
+| M3 | **Settings backup / restore.** ~~No way to save or restore the full `$$` dump.~~ | **FIXED** — auto-backup on Calibrate, download link, Advanced restore + session Undo (calibration PR 1). |
 | M4 | **Keyboard shortcuts for Hold and E-Stop.** The only global key handlers are Escape-to-close. | Common in senders (Space = Hold). Faster than finding the button with sawdust on your hands. Don't use Escape for E-Stop; it already closes dialogs. |
 | M5 | **Homing / limit-switch setup.** Covered in calibration spec PR 4. | — |
 | M6 | **Speed & acceleration tuning.** Covered in calibration spec PR 3. | — |
@@ -259,7 +259,7 @@ Same rules as before: every PR ships with smoke coverage and its user-guide / vi
 5. ~~**T2 strict GRBL mock mode**~~ **DONE** — `createMockTransport({ strict: true })` / `sharpcnc.mock.strictGrbl.v1` follows real 1.1h for every known-diff row in `mock-vs-real-grbl.md` (`error:9`/`error:20`/`error:15`, Idle soft-reset keeps MPos, hold@jog→Idle, hold@Idle→Hold). `smoke-real-grbl` runs default + strict; E-Stop smoke uses strict.
 
 ### Features
-6. Calibration spec PR 1 (backup / restore / undo), PR 3 (speed & accel), PR 4 (homing setup), PR 5 (soft travel polish). PR 0 and parts of PR 2 are done; see that spec's status table.
+6. ~~Calibration spec PR 1 (backup / restore / undo)~~ **DONE**, PR 3 (speed & accel), PR 4 (homing setup), PR 5 (soft travel polish). PR 0, PR 1, and parts of PR 2 are done; see that spec's status table.
 7. **M4 keyboard shortcuts:** e.g. Space = Hold when focus isn't in a text field or on a button; document them. Don't use Escape for E-Stop.
 8. **Optional:** "Not homed" header chip when `$22=1` and the session isn't homed; draw G2/G3 as arcs in the visualizer and simulation; "Skip line and continue" after a stream error.
 

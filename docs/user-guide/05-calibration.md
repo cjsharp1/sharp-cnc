@@ -23,6 +23,17 @@ Finishing Soft travel (all four steps confirmed) — or explicitly confirming �
 
 > **Safety:** Clear bed. Keep Z high for XY. E-Stop ready. Prefer Virtual CNC for the first pass.
 
+## Backup, restore, and undo
+
+Calibrate never writes without a click, and every write can be undone in the same session.
+
+1. **Auto-backup** — the first time Calibrate loads settings after you connect, SharpCNC stores a full `$$` snapshot (`sharpcnc.settingsBackup.v1`, last 5 kept). You do not have to remember to save before the first write.
+2. **Back up settings** — in the wizard meta bar (next to **Reload**), download a `.txt` of `$n=value` lines. Desktop uses the save dialog; Virtual CNC / browser downloads the file.
+3. **Undo** — after a successful write, the result line shows **Undo $n (new → old)**. That writes the previous value back and logs to the activity log. The undo stack is session-only (cleared on disconnect).
+4. **Restore** — **Menu → Advanced… → Restore settings** lists saved snapshots, shows only settings that differ from the live controller (live → backup), then writes those one at a time and re-reads `$$` to confirm.
+
+Screenshots: [meta bar with Back up settings](assets/cal-step1-zero.png) · [restore diff in Advanced](assets/cal-restore-diff.png)
+
 ## Quick reference
 
 - `$3` bits: X=1, Y=2, Z=4 (sum to invert). Expect +X right, +Y back (up on the visualizer), +Z up.
@@ -30,6 +41,7 @@ Finishing Soft travel (all four steps confirmed) — or explicitly confirming �
 - Soft travel: `$130`–`$132` + `$20=1`. Far rails are software on this machine.
 - **Z is negative below home.** Z homes to the top, so with `$132=80` the allowed range is 0 down to −80. Enter `$132` as a positive travel length; **Use MPos** on Z converts it for you.
 - Invalid travel values (zero, negative, text) show an error under **Write travel + $20** instead of silently doing nothing.
+- Back up / restore / Undo — see above; Advanced restore is for bringing an earlier snapshot back after many changes.
 
 ## Verify with a cut-size sample
 

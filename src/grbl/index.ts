@@ -111,6 +111,30 @@ export {
   writeGrblSettings,
 } from "./settingsIo";
 
+export type {
+  CalibrateWriteEntry,
+  SettingsBackupStore,
+  SettingsDiffEntry,
+  SettingsSnapshot,
+} from "./settingsBackup";
+export {
+  DEFAULT_SETTINGS_BACKUP,
+  SETTINGS_BACKUP_MAX,
+  SETTINGS_BACKUP_STORAGE_KEY,
+  diffSettings,
+  formatCalibrateUndoLabel,
+  formatSettingsDumpText,
+  formatSnapshotLabel,
+  loadSettingsBackups,
+  popCalibrateUndo,
+  pushCalibrateUndo,
+  pushSettingsBackup,
+  restoreWriteEntries,
+  saveSettingsBackupFile,
+  settingsMapToRecord,
+  settingsRecordToMap,
+} from "./settingsBackup";
+
 export type { JogDelta, JogMode, SoftLimitCheck, SoftLimitClamp } from "./jog";
 export {
   DEFAULT_JOG_FEED_MM_MIN,

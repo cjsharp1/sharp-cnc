@@ -68,6 +68,28 @@ pub fn pick_jobs_folder() -> Result<Option<String>, String> {
     Ok(folder.map(|p| p.to_string_lossy().into_owned()))
 }
 
+/// Native save dialog for a plain-text file (e.g. GRBL `$$` backup).
+/// Returns `None` if the user cancels.
+#[tauri::command]
+pub fn save_text_file(
+    default_name: String,
+    contents: String,
+    title: Option<String>,
+) -> Result<Option<String>, String> {
+    let dialog_title = title.unwrap_or_else(|| "Save text file".into());
+    let path = rfd::FileDialog::new()
+        .set_title(&dialog_title)
+        .set_file_name(&default_name)
+        .add_filter("Text", &["txt"])
+        .save_file();
+    let Some(path) = path else {
+        return Ok(None);
+    };
+    fs::write(&path, contents.as_bytes())
+        .map_err(|e| format!("Cannot write {}: {e}", path.display()))?;
+    Ok(Some(path.to_string_lossy().into_owned()))
+}
+
 /// List `.nc` / `.gcode` / `.svg` (and related) files in a directory (non-recursive).
 #[tauri::command]
 pub fn list_job_files(folder: String) -> Result<Vec<JobFileEntry>, String> {

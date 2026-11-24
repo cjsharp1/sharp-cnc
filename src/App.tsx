@@ -187,7 +187,17 @@ import {
   writeGrblSetting,
   writeGrblSettings,
   buildDebugSnapshot,
+  diffSettings,
+  formatCalibrateUndoLabel,
+  loadSettingsBackups,
+  popCalibrateUndo,
+  pushCalibrateUndo,
+  pushSettingsBackup,
+  restoreWriteEntries,
+  saveSettingsBackupFile,
   type Axis,
+  type CalibrateWriteEntry,
+  type SettingsSnapshot,
   type DebugBridgeStatus,
   type DesktopPortInfo,
   type DriveConfig,
@@ -383,6 +393,15 @@ export default function App() {
   > | null>(null);
   const [calMessage, setCalMessage] = useState<string | null>(null);
   const [calBusy, setCalBusy] = useState(false);
+  /** Session-only Calibrate write undo stack (newest at end). */
+  const [calUndoStack, setCalUndoStack] = useState<CalibrateWriteEntry[]>([]);
+  /** Persisted $$ snapshots (auto-backup + download). */
+  const [settingsBackups, setSettingsBackups] = useState(() =>
+    loadSettingsBackups(),
+  );
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  /** One auto-backup per connection session on first successful $$ load. */
+  const sessionSettingsBackupTakenRef = useRef(false);
   const [taskPhase, setTaskPhase] = useState<TaskPhaseId>("connect");
   const [calibrationCompleted, setCalibrationCompleted] = useState(
     () => loadCalibrationState().calibrationCompleted,
@@ -1342,6 +1361,9 @@ export default function App() {
       setGrblSettings(null);
       setCalMessage(null);
       setCalBusy(false);
+      setCalUndoStack([]);
+      setRestoreMessage(null);
+      sessionSettingsBackupTakenRef.current = false;
       setHomed(false);
       setHomeMessage(null);
       setEstopLatched(false);
@@ -1908,11 +1930,156 @@ export default function App() {
       setGrblSettings(map);
       const fromGrbl = softTravelFromSettings(map, softTravel);
       updateSoftTravel(fromGrbl);
+      // Auto-backup once per session on first successful $$ load (Calibrate entry).
+      if (!sessionSettingsBackupTakenRef.current && map.size > 0) {
+        const store = pushSettingsBackup(map);
+        setSettingsBackups(store);
+        sessionSettingsBackupTakenRef.current = true;
+        activityLog.append(
+          "event",
+          `Settings backup saved (${map.size} settings, ${store.snapshots.length} kept)`,
+        );
+      }
       activityLog.append("event", `Read $$ (${map.size} settings)`);
       setCalMessage(`Loaded ${map.size} settings from $$`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleBackupSettingsDownload = async () => {
+    if (!grblSettings || grblSettings.size === 0) {
+      setCalMessage("Load settings first (Reload), then back up.");
+      return;
+    }
+    try {
+      const saved = await saveSettingsBackupFile(grblSettings);
+      if (saved === null) {
+        setCalMessage("Backup cancelled.");
+        return;
+      }
+      // Also keep a snapshot in the restore list when the operator explicitly backs up.
+      const store = pushSettingsBackup(grblSettings);
+      setSettingsBackups(store);
+      activityLog.append("event", `Settings backup downloaded (${saved})`);
+      setCalMessage(`Backed up settings → ${saved}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    }
+  };
+
+  const recordCalibrateWrites = (
+    entries: Array<{ id: number; before: number; after: number }>,
+  ) => {
+    if (entries.length === 0) return;
+    setCalUndoStack((prev) => {
+      let next = prev;
+      for (const e of entries) {
+        next = pushCalibrateUndo(next, e);
+      }
+      return next;
+    });
+  };
+
+  const handleUndoCalibrateWrite = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    const { entry, next } = popCalibrateUndo(calUndoStack);
+    if (!entry) {
+      setCalMessage("Nothing to undo.");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    setCalUndoStack(next);
+    try {
+      await writeGrblSetting(client, entry.id, entry.before, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const map = new Map(prev ?? []);
+        map.set(entry.id, { id: entry.id, value: entry.before });
+        return map;
+      });
+      if (entry.id === 130 || entry.id === 131 || entry.id === 132) {
+        const patched = { ...softTravel, min: { ...softTravel.min } };
+        if (entry.id === 130) patched.maxX = entry.before;
+        if (entry.id === 131) patched.maxY = entry.before;
+        if (entry.id === 132) patched.maxZ = entry.before;
+        updateSoftTravel(patched);
+      }
+      activityLog.append(
+        "event",
+        `Undo $${entry.id}: ${entry.after} → ${entry.before}`,
+      );
+      setCalMessage(`Undid $${entry.id}: ${entry.after} → ${entry.before}`);
+    } catch (err) {
+      setCalUndoStack((prev) => pushCalibrateUndo(prev, entry));
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleRestoreSettingsSnapshot = async (snapshot: SettingsSnapshot) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setRestoreMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    setCalBusy(true);
+    setRestoreMessage(null);
+    try {
+      let live = grblSettings;
+      if (!live || live.size === 0) {
+        live = await fetchGrblSettings(client, {
+          timeoutMs: usingMock ? 1500 : 5000,
+        });
+        setGrblSettings(live);
+      }
+      const diff = diffSettings(snapshot.settings, live);
+      const entries = restoreWriteEntries(diff);
+      if (entries.length === 0) {
+        setRestoreMessage("Nothing to restore — live settings match.");
+        return;
+      }
+      await writeGrblSettings(client, entries, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      const confirmed = await fetchGrblSettings(client, {
+        timeoutMs: usingMock ? 1500 : 5000,
+      });
+      setGrblSettings(confirmed);
+      const fromGrbl = softTravelFromSettings(confirmed, softTravel);
+      updateSoftTravel(fromGrbl);
+      activityLog.append(
+        "event",
+        `Restored ${entries.length} setting${entries.length === 1 ? "" : "s"} from backup`,
+      );
+      setRestoreMessage(
+        `Restored ${entries.length} setting${entries.length === 1 ? "" : "s"}; re-read $$ (${confirmed.size}).`,
+      );
+      setCalMessage(
+        `Restored ${entries.length} setting${entries.length === 1 ? "" : "s"} from backup.`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRestoreMessage(message);
       setErrorMessage(message);
     } finally {
       setCalBusy(false);
@@ -1988,6 +2155,7 @@ export default function App() {
         next.set(id, { id, value: after });
         return next;
       });
+      recordCalibrateWrites([{ id, before, after }]);
       activityLog.append(
         "event",
         `Wrote $${id}=${after} (was ${before}) steps/mm ${axis}`,
@@ -2013,6 +2181,9 @@ export default function App() {
       return;
     }
     const value = Math.trunc(mask) & 0b111;
+    const before =
+      grblSettings?.get(SETTING_DIR_PORT_INVERT)?.value ??
+      0;
     setCalBusy(true);
     setCalMessage(null);
     try {
@@ -2027,6 +2198,9 @@ export default function App() {
         });
         return next;
       });
+      recordCalibrateWrites([
+        { id: SETTING_DIR_PORT_INVERT, before, after: value },
+      ]);
       const summary = describeDirInvertMask(value);
       activityLog.append(
         "event",
@@ -2068,6 +2242,14 @@ export default function App() {
       if (limits.maxZ !== null) entries.push({ id: 132, value: limits.maxZ });
       if (enableSoft) entries.push({ id: SETTING_SOFT_LIMITS, value: 1 });
 
+      const undoEntries = entries
+        .map((e) => {
+          const before = grblSettings?.get(e.id)?.value;
+          if (before === undefined || !Number.isFinite(before)) return null;
+          return { id: e.id, before, after: e.value };
+        })
+        .filter((e): e is CalibrateWriteEntry => e !== null);
+
       await writeGrblSettings(client, entries, {
         timeoutMs: usingMock ? 1500 : 4000,
       });
@@ -2085,6 +2267,7 @@ export default function App() {
         for (const e of entries) next.set(e.id, { id: e.id, value: e.value });
         return next;
       });
+      recordCalibrateWrites(undoEntries);
 
       activityLog.append(
         "event",
@@ -3797,6 +3980,19 @@ export default function App() {
                     onRefreshSettings={() => {
                       void handleRefreshSettings();
                     }}
+                    onBackupSettings={() => {
+                      void handleBackupSettingsDownload();
+                    }}
+                    undoLabel={
+                      calUndoStack.length > 0
+                        ? formatCalibrateUndoLabel(
+                            calUndoStack[calUndoStack.length - 1]!,
+                          )
+                        : null
+                    }
+                    onUndoCalibrateWrite={() => {
+                      void handleUndoCalibrateWrite();
+                    }}
                     onCalibrateMove={(axis, distanceMm) => {
                       void handleCalibrateMove(axis, distanceMm);
                     }}
@@ -4336,6 +4532,19 @@ export default function App() {
                 onRefreshSettings={() => {
                   void handleRefreshSettings();
                 }}
+                onBackupSettings={() => {
+                  void handleBackupSettingsDownload();
+                }}
+                undoLabel={
+                  calUndoStack.length > 0
+                    ? formatCalibrateUndoLabel(
+                        calUndoStack[calUndoStack.length - 1]!,
+                      )
+                    : null
+                }
+                onUndoCalibrateWrite={() => {
+                  void handleUndoCalibrateWrite();
+                }}
                 onCalibrateMove={(axis, distanceMm) => {
                   void handleCalibrateMove(axis, distanceMm);
                 }}
@@ -4477,6 +4686,11 @@ export default function App() {
                 }}
                 onWriteManual={(id, value) => {
                   void handleWriteManual(id, value);
+                }}
+                settingsSnapshots={settingsBackups.snapshots}
+                restoreMessage={restoreMessage}
+                onRestoreSettingsSnapshot={(snapshot) => {
+                  void handleRestoreSettingsSnapshot(snapshot);
                 }}
               />
             </div>

@@ -87,6 +87,11 @@ interface CalibrationPanelProps {
   dense?: boolean;
   /** Jog pad shown where a step needs the operator to move the machine. */
   jogPad?: ReactNode;
+  /** Download / save a `$n=value` dump of the loaded settings. */
+  onBackupSettings?: () => void;
+  /** Top of the session Calibrate undo stack (null = nothing to undo). */
+  undoLabel?: string | null;
+  onUndoCalibrateWrite?: () => void;
 }
 
 function settingValue(
@@ -141,6 +146,9 @@ export function CalibrationPanel({
   homing = null,
   dense = false,
   jogPad = null,
+  onBackupSettings,
+  undoLabel = null,
+  onUndoCalibrateWrite,
 }: CalibrationPanelProps) {
   const {
     stepIndex,
@@ -297,6 +305,19 @@ export function CalibrationPanel({
             >
               Reload
             </button>
+            {onBackupSettings ? (
+              <>
+                {" · "}
+                <button
+                  type="button"
+                  className="cal__link"
+                  onClick={onBackupSettings}
+                  title="Save a $n=value text file of the loaded settings"
+                >
+                  Back up settings
+                </button>
+              </>
+            ) : null}
           </>
         ) : null}
       </p>
@@ -807,9 +828,23 @@ export function CalibrationPanel({
         </div>
       )}
 
-      {message ? (
+      {message || undoLabel ? (
         <p className="cal__message" role="status">
-          {message}
+          {message ? <span>{message}</span> : null}
+          {undoLabel && onUndoCalibrateWrite ? (
+            <>
+              {message ? " · " : null}
+              <button
+                type="button"
+                className="cal__link"
+                disabled={!canAct || busy}
+                onClick={onUndoCalibrateWrite}
+                title="Write the previous value back (session undo)"
+              >
+                {undoLabel}
+              </button>
+            </>
+          ) : null}
         </p>
       ) : null}
 
