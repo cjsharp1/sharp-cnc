@@ -42,9 +42,13 @@ Sticks use a deadzone so rest noise does not creep. Works on **Virtual CNC** and
 
 ### Soft-limit awareness
 
-SharpCNC refuses jogs that would push past known soft travel (when max X/Y/Z are set). You will see a soft-limit hint instead of motion.
+SharpCNC refuses jogs that would push past known soft travel (when max X/Y/Z are set). You will see a soft-limit hint instead of motion. A jog that would overshoot stops at the edge; SharpCNC never sends a jog in the opposite direction to the one you pressed.
+
+**Z is upside down compared to X and Y.** Z homes to the **top** of its travel, so machine Z is **0 at home and negative below it** (e.g. 0 down to −80 with `$132=80`). X and Y count up from their home side. The **Z gauge** at the top-right of the machine view shows where the tool tip is between home and the bottom of travel, plus material Z0, the stock, and the loaded job's Z range (red when the job would leave Z travel).
 
 ![Home switches vs soft limits](assets/diagram-soft-limits.svg)
+
+![Z machine coordinates and the Z gauge](assets/diagram-z-machine-coords.svg)
 
 Your machine has **physical switches only on the zero side**. The far end of each axis is protected by **software** soft limits (`$130`–`$132` + `$20`). Calibrate those — do not rely on crashing into the far rail.
 
@@ -75,7 +79,11 @@ Typical touch-off (Prepare phase):
 
 ## Homing
 
-**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. Offered primarily in **Calibrate**, and again in **Prepare** if the session needs it. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. **Rule of thumb: home once after every power-on, and again after an E-Stop or reset mid-move.** Everything else (soft limits, saved zeros, the Z gauge) depends on it. Home is offered in First-run, in Calibrate's **Start** and **Homing** steps, and in Prepare step 1. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+
+**First-time setup** lives in Calibrate → **Homing**: check each switch by hand (Position **Inputs** lights / same `Pn:` letters), pick the XY corner where the switches sit, set seek/feed/pull-off, enable `$22`, then run a first home with your hand on E-Stop. See [Calibration — Homing setup](05-calibration.md#homing-setup-step-5).
+
+After homing on stock GRBL, Z reads about **−1 mm** (minus the pull-off `$27`), not exactly 0: the switch trigger point is 0.
 
 ## XY probe & tool length
 
@@ -101,7 +109,17 @@ Chris should not need this for daily cutting. One door only: **Menu → Advanced
 | **Console** + send line | Raw GRBL; easy to break a session |
 | **Macros** | Same surface as console |
 | **G54–G59 work offsets** | Multi-fixture WCS; this machine uses Material XYZ / G10 for the blank |
+| **Restore settings** | Re-apply a Calibrate auto-backup: changed-only diff, write one-by-one, re-read `$$` |
 | **Manual `$$` / `$x=value`** | Free-form EEPROM; Calibrate already covers `$3`, steps/mm, soft travel |
+
+### Restore a settings backup
+
+1. Connect, then **Menu → Advanced…**.
+2. Under **Restore settings**, pick a snapshot (auto-saved when Calibrate first loaded `$$`, or when you used **Back up settings**).
+3. **Read $$** if the live list looks stale. The table shows only settings that differ (live → backup).
+4. Click **Restore N settings**. SharpCNC writes those values one at a time, then re-reads `$$` to confirm.
+
+Everyday Calibrate writes still have a session **Undo** next to the result message — prefer that for a single mistaken write. Use Restore when you want the whole pre-calibration dump back.
 
 Day-to-day **Zero X/Y/Z** still uses `G10 L20` on the active system (usually G54). Dangerous lines like `$H` / `$RST=` are refused in the console — use Homing / Calibration instead.
 

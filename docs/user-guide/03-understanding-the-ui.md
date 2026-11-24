@@ -10,7 +10,7 @@ The window always shows **connection**, **Material / Machine position**, and **s
 
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
-- **Connection chip** — compact Linked / Offline / Virtual status, port, Connect / Disconnect / Reset
+- **Connection chip** — compact Linked / Offline / Virtual status, port, Connect / Disconnect. After you link, this is the only Connect/Disconnect control (the Connect rail and First-run hide their duplicates). **Reset** lives on the Safety strip only.
 - **Version chip** — opens **About & updates**; Update badge when a newer GitHub Release exists
 - **Menu** — Material & tool, External jobs, Calibrate, Bed travel test, Trace stock perimeter, Prepare, **Advanced…**, **Appearance**, **Debug mode**, **About & updates…**
 
@@ -26,7 +26,7 @@ Above the visualizer (every phase, including before connect):
 | **Machine XYZ** | MPos — bed / soft-travel frame |
 | **Material XYZ** | Job origin on the blank (WPos under the hood). Label **Material**, never “Work” |
 | **State** | Idle / Jog / Run / Hold / Alarm |
-| **Stop / Hold / Resume / Unlock** | E-Stop primary; Unlock after alarm |
+| **Stop / Hold / Resume / Reset / Unlock** | E-Stop primary; Hold also via **Space**; Reset only here; Unlock after alarm |
 | **Live overrides** | Feed % / spindle % — emphasized in Run / Hold |
 
 **Machine XYZ** = where the machine thinks the tool is on the bed.  
@@ -42,6 +42,13 @@ Shows:
 - Toolhead (bit Ø sized) with a short motion trail while jogging / running
 - **Dual origin** markers — **Material 0** at the job origin and **Machine 0** from WCO
 - Optional **Simulate** overlay when a path is loaded — preview only, not serial motion
+- **Z gauge** (top-right, while connected) — a side view of Z: home at the top (0), the bottom of travel (−`$132`), material Z0 (brass line), the stock below it, the loaded job's Z range (red if it leaves travel), and the tool tip. The number underneath is Z from material zero, or machine Z if no zero is set
+
+![Z gauge with material Z0 and job range](assets/z-gauge-material.png)
+
+- **Inputs** (Position panel, while connected) — live pin lights (X/Y/Z lim, Probe, Hold, Start, Reset, Door). Same `Pn:` letters GRBL reports.
+
+![Inputs row with a pin lit](assets/inputs-pin-lit.png)
 
 Axis convention (matches the guides): **+X** right, **+Y** back = up on screen, **+Z** up. Bed corners use map layout: **NW NE** on the top row, **SW SE** on the bottom.
 
@@ -52,12 +59,12 @@ A persistent stepper: **Connect · Calibrate · Prepare · Verify · Run**. Inco
 | Phase | What the pane shows |
 |-------|---------------------|
 | **Connect** | Ports, baud note, Connect, Virtual CNC |
-| **Calibrate** | Four dense guided steps (one screen each) |
+| **Calibrate** | Five guided steps: Start (home) · Direction · Steps/mm · Speed & accel · Soft travel (with a jog pad) |
 | **Prepare** | Stepped wizard: stock+tool → Material XY → Z → load → Mark ready |
 | **Verify** | Soft-limit summary, Simulate, checklist, **Start** |
 | **Run** | Progress + overrides + Pause / Resume / Stop |
 
-**No scroll for primary phase controls** — each step fits on one screen. The visualizer and safety strip stay fixed; only the phase body swaps.
+**Back / Next stay on screen.** Each wizard's footer is pinned to the bottom of the rail; on smaller screens (e.g. 1366×768) the step body scrolls underneath it. The visualizer and safety strip stay fixed; only the phase body swaps.
 
 **Not phases:** Log / Debug (Menu · Debug) and **Advanced…** (Menu). Those are intentional hides and may scroll.
 

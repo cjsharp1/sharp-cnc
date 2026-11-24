@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
   <title id="t">Calibration 3 — Steps per mm</title>
-  <desc id="d">Command move, measure with ruler, write new steps/mm</desc>
+  <desc id="d">Command move (Z down 10/20/25), measure with ruler or calipers/indicator, write steps/mm; ±20% warn; re-test ±0.1 mm</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -30,8 +30,8 @@
   <circle class="num" cx="155" cy="185" r="22"/>
   <text class="w" x="155" y="185" text-anchor="middle" dominant-baseline="central" font-size="18">A</text>
   <text class="lab" x="155" y="240" text-anchor="middle" font-weight="700">Command</text>
-  <text class="tiny" x="155" y="270" text-anchor="middle">Move +100 X</text>
-  <text class="tiny" x="155" y="295" text-anchor="middle">(50 / 100 / 200)</text>
+  <text class="tiny" x="155" y="270" text-anchor="middle">X/Y +50–200</text>
+  <text class="tiny" x="155" y="295" text-anchor="middle">Z down 10/20/25</text>
 
   <path class="arrow" d="M260 280 H300"/>
 
@@ -41,7 +41,7 @@
   <text class="lab" x="405" y="240" text-anchor="middle" font-weight="700">Measure</text>
   <line x1="340" y1="280" x2="470" y2="280" stroke="#b8862d" stroke-width="4"/>
   <text class="lab" x="405" y="320" text-anchor="middle" font-weight="700">98.5 mm</text>
-  <text class="tiny" x="405" y="350" text-anchor="middle">ruler / dial</text>
+  <text class="tiny" x="405" y="350" text-anchor="middle">ruler · Z: calipers</text>
 
   <path class="arrow" d="M510 280 H550"/>
 

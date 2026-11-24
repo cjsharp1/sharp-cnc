@@ -44,6 +44,18 @@ async function seedStorage(
         JSON.stringify(debug),
       );
       localStorage.setItem("sharpcnc.uiTheme.v1", JSON.stringify("dark"));
+      // Calibrated machines have soft travel; seed Z so the Z gauge shows 0→−$132.
+      if (calibrated) {
+        localStorage.setItem(
+          "sharpcnc.softTravel.v1",
+          JSON.stringify({
+            maxX: 1000,
+            maxY: 1000,
+            maxZ: 200,
+            min: { x: 0, y: 0, z: 0 },
+          }),
+        );
+      }
     },
     { firstRun, calibrated, debug },
   );
@@ -255,7 +267,12 @@ async function withFreshPage(
 
 async function main() {
   await mkdir(OUT, { recursive: true });
-  const browser = await chromium.launch({ headless: true });
+  // CHROME_PATH lets the script use an installed Chrome when Playwright's own
+  // browser isn't downloaded (e.g. CHROME_PATH=/usr/bin/google-chrome).
+  const browser = await chromium.launch({
+    headless: true,
+    ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}),
+  });
 
   // 1) Connected shell — calibrated → Prepare landing
   await withFreshPage(browser, { calibrated: true }, async (page) => {
@@ -308,29 +325,169 @@ async function main() {
   await withFreshPage(browser, { calibrated: false }, async (page) => {
     await connectVirtual(page);
     await clickPhase(page, "Calibrate");
-    await page.waitForTimeout(500);
-    await shot(page, "cal-step1-zero.png");
+    // Wait for $$ load so meta bar shows "Back up settings"
+    await page
+      .getByRole("button", { name: /Back up settings/i })
+      .waitFor({ timeout: 15000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(400);
+    await shot(page, "cal-step1-start.png");
 
     async function confirmAndNext(confirmId: string) {
-      const box = page.locator(`#${confirmId}`);
-      await box.check({ force: true });
-      await page.waitForTimeout(200);
+      await page.waitForSelector(`#${confirmId}`, { timeout: 20000 });
+      // Controlled React checkbox — enable + click via DOM (Playwright check()
+      // can hang when the input is disabled briefly during settings load).
+      await page.evaluate((id) => {
+        const el = document.getElementById(id) as HTMLInputElement | null;
+        if (!el) throw new Error(`missing #${id}`);
+        el.disabled = false;
+        el.click();
+      }, confirmId);
+      await page.waitForTimeout(300);
       const next = page
         .locator("footer.cal__nav button.cal__btn:not(.cal__btn--ghost)")
         .first();
-      await next.click();
-      await page.waitForTimeout(500);
+      await next.click({ force: true });
+      await page.waitForTimeout(600);
     }
 
-    // zero → direction → steps/mm (guide asset: cal-step2-steps) → soft travel
+    // zero → direction → steps/mm → speed & accel → homing → soft travel
     await confirmAndNext("cal-confirm-zero");
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step-direction.png");
     await confirmAndNext("cal-confirm-direction");
     await page.waitForTimeout(300);
     await shot(page, "cal-step2-steps.png");
 
     await confirmAndNext("cal-confirm-steps");
     await page.waitForTimeout(300);
-    await shot(page, "cal-step3-travel.png");
+    await shot(page, "cal-step-rates.png");
+    // Z tab for the gravity callout
+    const zTab = page.getByRole("tab", { name: /^Z$/i }).first();
+    if (await zTab.count()) {
+      await zTab.click();
+      await page.waitForTimeout(200);
+      await shot(page, "cal-step-rates-z.png");
+    }
+
+    await confirmAndNext("cal-confirm-rates");
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step-homing-switches.png");
+
+    // Virtual CNC: toggle each limit on then off so switch-check gets ✓
+    for (const ax of ["X", "Y", "Z"] as const) {
+      const btn = page.getByRole("button", {
+        name: new RegExp(`^${ax} limit$`, "i"),
+      });
+      if (await btn.count()) {
+        await btn.click();
+        await page.waitForTimeout(350);
+        // Capture Inputs with X lim lit while the pin is still on.
+        if (ax === "X") {
+          const inputs = page.locator(".coords__inputs").first();
+          if (await inputs.count()) {
+            const box = await inputs.boundingBox();
+            if (box) {
+              await page.screenshot({
+                path: path.join(OUT, "inputs-pin-lit.png"),
+                type: "png",
+                clip: {
+                  x: Math.max(0, box.x - 8),
+                  y: Math.max(0, box.y - 8),
+                  width: Math.min(
+                    VIEWPORT.width - box.x + 8,
+                    box.width + 16,
+                  ),
+                  height: Math.min(
+                    VIEWPORT.height - box.y + 8,
+                    box.height + 16,
+                  ),
+                },
+              });
+              console.log(
+                "wrote",
+                path.relative(ROOT, path.join(OUT, "inputs-pin-lit.png")),
+              );
+            }
+          }
+        }
+        await btn.click();
+        await page.waitForTimeout(350);
+      }
+    }
+    await page
+      .getByText(/All three switches checked/i)
+      .waitFor({ timeout: 10000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step-homing-direction.png");
+
+    const firstHome = page.getByRole("heading", { name: /First home/i }).first();
+    if (await firstHome.count()) {
+      await firstHome.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+    }
+    await shot(page, "cal-step-homing-first-home.png");
+
+    await confirmAndNext("cal-confirm-homing");
+    await page.waitForTimeout(300);
+    // Soft travel includes the jog pad for measuring far ends.
+    await shot(page, "cal-step6-travel.png");
+  });
+
+  // 5b) Advanced restore diff (after a Calibrate auto-backup + one manual write)
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    await clickPhase(page, "Calibrate");
+    await page
+      .getByRole("button", { name: /Back up settings/i })
+      .waitFor({ timeout: 15000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(300);
+    await openMenu(page);
+    const advanced = page.getByRole("menuitem", { name: /Advanced/i }).first();
+    const advancedBtn = page.getByRole("button", { name: /Advanced/i }).first();
+    if (await advanced.count()) await advanced.click();
+    else if (await advancedBtn.count()) await advancedBtn.click();
+    else {
+      await page.locator("text=Advanced").first().click().catch(() => undefined);
+    }
+    await page.waitForTimeout(500);
+    // Change one setting so the restore table has a row.
+    const idInput = page.locator(".manual-settings__input").first();
+    const valInput = page.locator(".manual-settings__input").nth(1);
+    if ((await idInput.count()) && (await valInput.count())) {
+      await idInput.fill("100");
+      await valInput.fill("999");
+      const writeBtn = page.getByRole("button", { name: /^Write \$/i }).first();
+      if (await writeBtn.count()) {
+        await writeBtn.click();
+        await page.waitForTimeout(800);
+      }
+    }
+    // Re-read so the restore diff matches live EEPROM.
+    const readBtn = page
+      .locator(".settings-restore")
+      .getByRole("button", { name: /Read \$\$/i })
+      .first();
+    if (await readBtn.count()) {
+      await readBtn.click();
+      await page.waitForTimeout(800);
+    }
+    const restore = page.locator(".settings-restore").first();
+    if (await restore.count()) {
+      await restore.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(300);
+      await restore.screenshot({
+        path: path.join(OUT, "cal-restore-diff.png"),
+      });
+      console.log(
+        "wrote",
+        path.relative(ROOT, path.join(OUT, "cal-restore-diff.png")),
+      );
+    } else {
+      await shot(page, "cal-restore-diff.png");
+    }
   });
 
   // 6) Verify / simulate + job loaded
@@ -382,6 +539,187 @@ async function main() {
     await clickPhase(page, "Prepare");
     await page.waitForTimeout(400);
     await shotWebp(page, "estop.webp");
+  });
+
+  // 9b) E-Stop latch banner (motion locked until Clear E-Stop)
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    await clickPhase(page, "Prepare");
+    await page.waitForTimeout(300);
+    // Accessible name is aria-label "Emergency stop" (visible text is E-Stop).
+    const estopClicked = await page.evaluate(() => {
+      const btn = document.querySelector<HTMLButtonElement>(
+        'button.safety__estop, button[aria-label="Emergency stop"]',
+      );
+      if (!btn || btn.disabled) return false;
+      btn.click();
+      return true;
+    });
+    if (!estopClicked) throw new Error("E-Stop button was not clickable");
+    await page.waitForFunction(
+      () =>
+        !!document.querySelector(".safety__banner") &&
+        /E-Stop pressed — motion locked/i.test(
+          document.querySelector(".safety__banner")?.textContent ?? "",
+        ),
+      { timeout: 10000 },
+    );
+    await page.waitForTimeout(400);
+    const banner = page.locator(".safety__banner").first();
+    if (await banner.count()) {
+      await banner.scrollIntoViewIfNeeded();
+      const box = await banner.boundingBox();
+      if (box) {
+        await page.screenshot({
+          path: path.join(OUT, "estop-latch.png"),
+          type: "png",
+          clip: {
+            x: Math.max(0, box.x - 12),
+            y: Math.max(0, box.y - 40),
+            width: Math.min(VIEWPORT.width - box.x + 12, box.width + 24),
+            height: Math.min(VIEWPORT.height - box.y + 40, box.height + 56),
+          },
+        });
+        console.log(
+          "wrote",
+          path.relative(ROOT, path.join(OUT, "estop-latch.png")),
+        );
+      } else {
+        await shot(page, "estop-latch.png");
+      }
+    } else {
+      await shot(page, "estop-latch.png");
+    }
+  });
+
+  // 9c) First-run three steps (Connect → Home → Calibrate)
+  await withFreshPage(
+    browser,
+    { firstRun: false, calibrated: false },
+    async (page) => {
+      await page.waitForSelector(".firstrun", { timeout: 15000 });
+      await page.waitForTimeout(400);
+      await shot(page, "first-run-three-steps.png");
+    },
+  );
+
+  // 9d+9e) Z gauge (material Z0 + job range) and Verify dry run + resume note
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    // Lower Z before Prepare zeros so material Z0 sits below home (realistic gauge).
+    await clickPhase(page, "Prepare");
+    await page.waitForTimeout(300);
+    const zDown = page.getByRole("button", { name: /^Z−$|^Z-$/i }).first();
+    for (let i = 0; i < 8 && (await zDown.count()); i++) {
+      await zDown.click();
+      await page.waitForTimeout(120);
+    }
+    await prepareThroughReady(page);
+    await page.waitForTimeout(600);
+    const gauge = page.locator(".zgauge").first();
+    if (await gauge.count()) {
+      await gauge.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+      const box = await gauge.boundingBox();
+      if (box) {
+        await page.screenshot({
+          path: path.join(OUT, "z-gauge-material.png"),
+          type: "png",
+          clip: {
+            x: Math.max(0, box.x - 12),
+            y: Math.max(0, box.y - 12),
+            width: Math.min(VIEWPORT.width - box.x + 12, box.width + 24),
+            height: Math.min(VIEWPORT.height - box.y + 12, box.height + 24),
+          },
+        });
+        console.log(
+          "wrote",
+          path.relative(ROOT, path.join(OUT, "z-gauge-material.png")),
+        );
+      } else {
+        await shot(page, "z-gauge-material.png");
+      }
+    } else {
+      console.warn("skip z-gauge-material.png — Z gauge not found");
+    }
+
+    await clickPhase(page, "Verify");
+    await page.waitForTimeout(500);
+    const dry = page.locator(".job__dryrun input[type='checkbox']").first();
+    if (await dry.count()) {
+      await dry.check({ force: true }).catch(() => undefined);
+    }
+    const scrub = page.locator("#job-scrub").first();
+    if (await scrub.count()) {
+      const max = Number(await scrub.getAttribute("max")) || 10;
+      const mid = Math.max(1, Math.floor(max / 3));
+      await scrub.evaluate((el, value) => {
+        const input = el as HTMLInputElement;
+        const setter = Object.getOwnPropertyDescriptor(
+          HTMLInputElement.prototype,
+          "value",
+        )?.set;
+        setter?.call(input, String(value));
+        input.dispatchEvent(new Event("input", { bubbles: true }));
+        input.dispatchEvent(new Event("change", { bubbles: true }));
+      }, mid);
+      await page.waitForTimeout(300);
+    }
+    await page
+      .getByText(/Starting mid-file/i)
+      .waitFor({ timeout: 5000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(400);
+    await shot(page, "verify-dry-run.png");
+  });
+
+  // 10) M6 tool-change panel (Idle → M5 strip with Re-probe Z / Continue)
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    await prepareThroughReady(page);
+    await clickPhase(page, "Verify");
+    await page.waitForTimeout(400);
+    // Replace the prepared job with a short M6 sample via the hidden file input.
+    const m6Nc = `G21
+G90
+G0 Z-1
+G0 X1 Y1
+M3 S10000
+G1 X5 F800
+M6
+G1 X10 F800
+M5
+G0 Z-1
+`;
+    const tmp = path.join(OUT, "_capture-tool-change.nc");
+    await writeFile(tmp, m6Nc, "utf8");
+    const fileInput = page.locator('input[type="file"]').first();
+    if (await fileInput.count()) {
+      await fileInput.setInputFiles(tmp);
+      await page.waitForTimeout(600);
+    }
+    // Clear-path checklist + Start
+    const checks = page.locator('.job__checklist input[type="checkbox"]');
+    const n = await checks.count();
+    for (let i = 0; i < n; i++) {
+      const box = checks.nth(i);
+      if (!(await box.isChecked())) {
+        await box.check({ force: true }).catch(() => undefined);
+      }
+    }
+    const start = page.getByRole("button", { name: /^Start/i }).first();
+    if (await start.count() && (await start.isEnabled())) {
+      await start.click();
+      await page.waitForTimeout(1500);
+      await clickPhase(page, "Run");
+      await page.waitForSelector(".job__toolchange-panel", { timeout: 15000 });
+      await page.waitForTimeout(800);
+      await shotWebp(page, "tool-change.webp");
+    } else {
+      console.warn("skip tool-change.webp — Start not available");
+    }
+    const { unlink } = await import("node:fs/promises");
+    await unlink(tmp).catch(() => undefined);
   });
 
   await browser.close();

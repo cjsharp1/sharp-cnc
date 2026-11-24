@@ -41,6 +41,7 @@ pub fn run() {
             jobs_folder::list_job_files,
             jobs_folder::read_job_file,
             jobs_folder::jobs_folder_exists,
+            jobs_folder::save_text_file,
         ])
         .run(tauri::generate_context!())
         .expect("error while running SharpCNC");

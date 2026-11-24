@@ -70,6 +70,53 @@ function seedVirtualCncSettings(target: Map<number, number>): void {
 }
 
 /**
+ * localStorage key: set to `"1"` before connect to enable **strict GRBL 1.1h**
+ * mode on Virtual CNC (see docs/mock-vs-real-grbl.md). Implies hold-during-jog
+ * cancel. Prefer this over the legacy hold-only key below.
+ */
+export const MOCK_STRICT_GRBL_KEY = "sharpcnc.mock.strictGrbl.v1";
+
+/**
+ * localStorage key: set to `"1"` before connect so Virtual CNC feed-hold during
+ * `$J=` cancels the jog → Idle (real GRBL 1.1). Subset of strict mode; kept for
+ * older Playwright seeds. Prefer {@link MOCK_STRICT_GRBL_KEY}.
+ */
+export const MOCK_HOLD_DURING_JOG_CANCELS_KEY =
+  "sharpcnc.mock.holdDuringJogCancels.v1";
+
+export interface MockTransportOptions {
+  /**
+   * When true, follow real GRBL 1.1h for every documented Virtual CNC delta in
+   * docs/mock-vs-real-grbl.md (numeric `error:N`, soft-limit jog → `error:15`,
+   * Idle soft-reset keeps MPos, hold during jog → Idle, hold while Idle → Hold).
+   * Implies {@link holdDuringJogCancels}. Default false = legacy Virtual CNC.
+   */
+  strict?: boolean;
+  /**
+   * When true, feed hold (`!` / `$ExtHold`) during Jog cancels the jog and
+   * returns Idle — matching real GRBL 1.1. Implied by {@link strict}. Default
+   * false keeps legacy Virtual CNC Hold-during-jog behavior.
+   */
+  holdDuringJogCancels?: boolean;
+}
+
+/** Read mock option overrides from localStorage (browser / Playwright seeds). */
+export function mockTransportOptionsFromStorage(): MockTransportOptions {
+  try {
+    if (typeof localStorage === "undefined") return {};
+    if (localStorage.getItem(MOCK_STRICT_GRBL_KEY) === "1") {
+      return { strict: true };
+    }
+    if (localStorage.getItem(MOCK_HOLD_DURING_JOG_CANCELS_KEY) === "1") {
+      return { holdDuringJogCancels: true };
+    }
+  } catch {
+    /* ignore — Node smokes / restricted storage */
+  }
+  return {};
+}
+
+/**
  * Virtual CNC — in-app GRBL simulator (no Demon Shield USB). Selected from the
  * Connect port list like a COM port. Simulates status (MPos/WPos via WCO),
  * jog (`$J=`), work zero (`G10 L20`), job motion (G0/G1), soft-reset, homing
@@ -82,7 +129,13 @@ function seedVirtualCncSettings(target: Map<number, number>): void {
  * Program lines are queued and acknowledged in order so the character-counting
  * streamer behaves like GRBL's RX buffer.
  */
-export function createMockTransport(): SerialTransport {
+export function createMockTransport(
+  options: MockTransportOptions = {},
+): SerialTransport {
+  const strict = options.strict === true;
+  /** Strict mode implies real hold-during-jog; legacy opt-in still works alone. */
+  const holdDuringJogCancels =
+    strict || options.holdDuringJogCancels === true;
   let open = false;
   let baud = DEFAULT_BAUD;
   const lineHandlers = new Set<(line: string) => void>();
@@ -110,21 +163,39 @@ export function createMockTransport(): SerialTransport {
   const wcsOffsets = new Map<number, Position3>([
     [1, { ...VIRTUAL_ORIGIN }],
   ]);
-  /** Active control pins for `Pn:` (Demon Shield button simulation). */
-  let activePins = "";
+  /**
+   * Sticky limit pins (`X`/`Y`/`Z`) toggled by `$ExtLimit*` — survive until
+   * toggled off. Momentary control/probe letters are layered on top via pulse.
+   */
+  let stickyLimitPins = "";
+  let pulsePins = "";
   let pinClearTimer: ReturnType<typeof setTimeout> | null = null;
   const queue: string[] = [];
   /** Mutable GRBL EEPROM settings for `$$` / `$n=` calibration smoke tests. */
   const settings = new Map<number, number>();
   seedVirtualCncSettings(settings);
 
+  const composeActivePins = (): string => {
+    const letters = new Set<string>();
+    for (const ch of stickyLimitPins + pulsePins) letters.add(ch);
+    return [...letters].join("");
+  };
+
   const pulsePin = (letter: string, holdMs = 120) => {
-    if (!activePins.includes(letter)) activePins += letter;
+    if (!pulsePins.includes(letter)) pulsePins += letter;
     if (pinClearTimer !== null) clearTimeout(pinClearTimer);
     pinClearTimer = setTimeout(() => {
-      activePins = "";
+      pulsePins = "";
       pinClearTimer = null;
     }, holdMs);
+  };
+
+  const toggleStickyLimit = (letter: "X" | "Y" | "Z") => {
+    if (stickyLimitPins.includes(letter)) {
+      stickyLimitPins = stickyLimitPins.replace(letter, "");
+    } else {
+      stickyLimitPins += letter;
+    }
   };
 
   const emit = (event: TransportEvent) => {
@@ -161,6 +232,7 @@ export function createMockTransport(): SerialTransport {
       body += `|Ov:${feedOverridePct},${rapidOverridePct},${spindleOverridePct}`;
     }
     // Match GRBL: only include Pn: while pins are active.
+    const activePins = composeActivePins();
     if (activePins) body += `|Pn:${activePins}`;
     emitLine(`${body}>`);
   };
@@ -318,6 +390,11 @@ export function createMockTransport(): SerialTransport {
     }
 
     if (violatesSoftLimits(target)) {
+      if (strict) {
+        // Real GRBL 1.1: soft-limit jog → error:15, ignored, stays Idle.
+        emitLine("error:15");
+        return;
+      }
       raiseSoftLimitAlarm();
       return;
     }
@@ -447,7 +524,7 @@ export function createMockTransport(): SerialTransport {
     }
 
     // Mock-only: force Alarm so unlock / refuse-motion UX can be exercised.
-    // `$Alarm` / `$Alarm1` hard limit; `$Alarm2` soft limit; `$Alarm4` probe fail.
+    // `$Alarm` / `$Alarm1` hard limit; `$Alarm2` soft limit; `$Alarm5` probe no-contact.
     const mockAlarm = /^\$Alarm(\d+)?$/i.exec(trimmed);
     if (mockAlarm) {
       clearMotion();
@@ -461,7 +538,7 @@ export function createMockTransport(): SerialTransport {
     }
 
     if (state === "Alarm") {
-      emitLine("error:Alarm lock");
+      emitLine(strict ? "error:9" : "error:Alarm lock");
       return;
     }
 
@@ -473,6 +550,15 @@ export function createMockTransport(): SerialTransport {
 
     const settingWrite = parseSettingLine(trimmed);
     if (settingWrite) {
+      // Real GRBL 1.1: `$20=1` without `$22=1` → error:10.
+      if (
+        settingWrite.id === 20 &&
+        settingWrite.value >= 1 &&
+        (settings.get(22) ?? 0) === 0
+      ) {
+        emitLine("error:10");
+        return;
+      }
       settings.set(settingWrite.id, settingWrite.value);
       emitLine("ok");
       return;
@@ -489,7 +575,12 @@ export function createMockTransport(): SerialTransport {
     }
 
     // Homing cycle ($H) — Virtual CNC lands at Machine 0 / Work 0.
+    // Real GRBL 1.1: `$H` with `$22=0` → error:5 (setting disabled).
     if (/^\$H$/i.test(trimmed)) {
+      if ((settings.get(22) ?? 0) === 0) {
+        emitLine("error:5");
+        return;
+      }
       busy = true;
       state = "Home";
       animateTo({ ...VIRTUAL_ORIGIN }, 2000, "Home", () => {
@@ -516,7 +607,7 @@ export function createMockTransport(): SerialTransport {
               : null;
 
       if (axis === null) {
-        emitLine("error:Invalid gcode");
+        emitLine(strict ? "error:20" : "error:Invalid gcode");
         return;
       }
 
@@ -532,18 +623,18 @@ export function createMockTransport(): SerialTransport {
         clearMotion();
         busy = false;
         state = "Alarm";
-        emitLine("ALARM:5");
+        emitLine("ALARM:4"); // official: probe not in expected initial state
         return;
       }
       if (dir < 0 && seekAbsolute >= machine[axis] - 1e-6) {
         clearMotion();
         busy = false;
         state = "Alarm";
-        emitLine("ALARM:5");
+        emitLine("ALARM:4"); // official: probe not in expected initial state
         return;
       }
 
-      // Seek does not reach contact → Alarm 4.
+      // Seek does not reach contact → Alarm 5 (official: no contact).
       const reaches =
         dir > 0 ? seekAbsolute >= contact - 1e-6 : seekAbsolute <= contact + 1e-6;
       if (!reaches) {
@@ -552,7 +643,7 @@ export function createMockTransport(): SerialTransport {
         animateTo(failTarget, feed, "Run", () => {
           busy = false;
           state = "Alarm";
-          emitLine("ALARM:4");
+          emitLine("ALARM:5");
         });
         return;
       }
@@ -638,11 +729,17 @@ export function createMockTransport(): SerialTransport {
 
   const softReset = () => {
     const wasAlarm = state === "Alarm";
+    // Real GRBL 1.1: soft-reset while Idle/Hold retains MPos (+ WCO). Default
+    // Virtual CNC still zeros to origin for a "perfect" practice reset.
+    const retainMachine =
+      strict && !wasAlarm && (state === "Idle" || state === "Hold");
     clearMotion();
     queue.length = 0;
     busy = false;
-    machine = { ...VIRTUAL_ORIGIN };
-    clearWorkOffsets();
+    if (!retainMachine) {
+      machine = { ...VIRTUAL_ORIGIN };
+      clearWorkOffsets();
+    }
     absolute = true;
     spindleOn = false;
     feedOverridePct = 100;
@@ -650,6 +747,7 @@ export function createMockTransport(): SerialTransport {
     spindleOverridePct = 100;
     // Soft reset from Alarm stays locked until `$X` (matches GRBL alarm lock UX).
     state = wasAlarm ? "Alarm" : "Idle";
+    heldFrom = "Idle";
     emitLine("Grbl 1.1h ['$' for help]");
     if (wasAlarm) {
       emitLine("ALARM:3");
@@ -705,15 +803,29 @@ export function createMockTransport(): SerialTransport {
 
     // Real-time single-character commands (no newline).
     if (data === "!") {
+      if (state === "Jog" && holdDuringJogCancels) {
+        // Real GRBL 1.1: feed hold during jog cancels the jog → Idle.
+        clearMotion();
+        busy = false;
+        state = "Idle";
+        heldFrom = "Idle";
+        return;
+      }
       if (state === "Run" || state === "Jog") {
         heldFrom = state;
+        state = "Hold";
+        return;
+      }
+      // Real GRBL accepts feed hold while Idle; default Virtual CNC ignores it.
+      if (strict && state === "Idle") {
+        heldFrom = "Idle";
         state = "Hold";
       }
       return;
     }
     if (data === "~") {
       if (state === "Hold") {
-        state = heldFrom === "Jog" ? "Jog" : "Run";
+        state = heldFrom === "Jog" ? "Jog" : heldFrom === "Idle" ? "Idle" : "Run";
         pump();
       }
       return;
@@ -733,8 +845,16 @@ export function createMockTransport(): SerialTransport {
     // Demon Shield button sim — apply immediately (like real-time pins), not via RX queue.
     if (/^\$ExtHold$/i.test(trimmed)) {
       pulsePin("H");
-      if (state === "Run" || state === "Jog") {
+      if (state === "Jog" && holdDuringJogCancels) {
+        clearMotion();
+        busy = false;
+        state = "Idle";
+        heldFrom = "Idle";
+      } else if (state === "Run" || state === "Jog") {
         heldFrom = state;
+        state = "Hold";
+      } else if (strict && state === "Idle") {
+        heldFrom = "Idle";
         state = "Hold";
       }
       emitLine("ok");
@@ -743,7 +863,8 @@ export function createMockTransport(): SerialTransport {
     if (/^\$ExtResume$/i.test(trimmed)) {
       pulsePin("S");
       if (state === "Hold") {
-        state = heldFrom === "Jog" ? "Jog" : "Run";
+        state =
+          heldFrom === "Jog" ? "Jog" : heldFrom === "Idle" ? "Idle" : "Run";
         pump();
       }
       emitLine("ok");
@@ -752,6 +873,29 @@ export function createMockTransport(): SerialTransport {
     if (/^\$ExtAbort$/i.test(trimmed)) {
       pulsePin("R");
       softReset();
+      return;
+    }
+    // Virtual CNC: pulse probe pin so Prepare continuity can be practiced.
+    // Hold long enough for the 250 ms status poll to observe Pn:P.
+    if (/^\$ExtProbe$/i.test(trimmed)) {
+      pulsePin("P", 900);
+      emitLine("ok");
+      return;
+    }
+    // Virtual CNC: toggle sticky limit pins for Homing setup switch lights.
+    if (/^\$ExtLimitX$/i.test(trimmed)) {
+      toggleStickyLimit("X");
+      emitLine("ok");
+      return;
+    }
+    if (/^\$ExtLimitY$/i.test(trimmed)) {
+      toggleStickyLimit("Y");
+      emitLine("ok");
+      return;
+    }
+    if (/^\$ExtLimitZ$/i.test(trimmed)) {
+      toggleStickyLimit("Z");
+      emitLine("ok");
       return;
     }
 
@@ -787,6 +931,12 @@ export function createMockTransport(): SerialTransport {
       rapidOverridePct = 100;
       spindleOverridePct = 100;
       seedVirtualCncSettings(settings);
+      stickyLimitPins = "";
+      pulsePins = "";
+      if (pinClearTimer !== null) {
+        clearTimeout(pinClearTimer);
+        pinClearTimer = null;
+      }
       emit({ type: "open" });
       emitLine("Grbl 1.1h ['$' for help]");
     },
@@ -794,6 +944,12 @@ export function createMockTransport(): SerialTransport {
       clearMotion();
       queue.length = 0;
       busy = false;
+      stickyLimitPins = "";
+      pulsePins = "";
+      if (pinClearTimer !== null) {
+        clearTimeout(pinClearTimer);
+        pinClearTimer = null;
+      }
       open = false;
       emit({ type: "close", reason: "mock" });
     },

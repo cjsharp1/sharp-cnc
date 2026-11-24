@@ -1,5 +1,5 @@
 import type { SoftTravelLimits } from "./machineConfig";
-import { maxForAxis, minForAxis } from "./machineConfig";
+import { describeSoftEdge, maxForAxis, minForAxis } from "./machineConfig";
 import type { Axis, Position3 } from "./types";
 
 /** Real-time jog cancel byte (GRBL 1.1). */
@@ -96,17 +96,19 @@ export function checkSoftLimits(
     const max = maxForAxis(limits, axis);
     const next = target[key];
 
-    if (next < min - 1e-6) {
+    // Only refuse moves that head further out of range. A move back toward
+    // the allowed range is always allowed (e.g. lifting Z after a bad state).
+    if (next < min - 1e-6 && d < 0) {
       return {
         ok: false,
-        reason: `${axis} would go below soft min (${min} mm)`,
+        reason: `Would go ${describeSoftEdge(axis, "min", min)}`,
         targetMachine: target,
       };
     }
-    if (max !== null && next > max + 1e-6) {
+    if (max !== null && next > max + 1e-6 && d > 0) {
       return {
         ok: false,
-        reason: `${axis} would exceed soft max (${max} mm)`,
+        reason: `Would go ${describeSoftEdge(axis, "max", max)}`,
         targetMachine: target,
       };
     }
@@ -161,18 +163,27 @@ export function clampJogDelta(
     const start = machine[key];
     let next = start + d;
 
-    if (next < min - 1e-9) {
+    if (d < 0 && next < min - 1e-9) {
       next = min;
       clamped = true;
-      reason = `${axis} soft min (${min} mm)`;
+      reason = `Stopped at ${describeSoftEdge(axis, "min", min)}`;
     }
-    if (max !== null && next > max + 1e-9) {
+    if (d > 0 && max !== null && next > max + 1e-9) {
       next = max;
       clamped = true;
-      reason = `${axis} soft max (${max} mm)`;
+      reason = `Stopped at ${describeSoftEdge(axis, "max", max)}`;
     }
 
-    const clampedD = next - start;
+    let clampedD = next - start;
+    // Never send a move in the opposite direction to what was asked. If the
+    // machine is already outside the range, drop that axis instead.
+    if (clampedD !== 0 && Math.sign(clampedD) !== Math.sign(d)) {
+      clampedD = 0;
+      clamped = true;
+      reason = `${axis} is already outside soft travel — home first`;
+    }
+    next = start + clampedD;
+
     if (Math.abs(clampedD) > 1e-6) {
       out[key] = clampedD;
     } else if (Math.abs(d) > 1e-6) {

@@ -23,7 +23,9 @@ import {
   type ToolConfig,
 } from "../grbl";
 import { JogPanel, type JogAxisMap } from "./JogPanel";
+import { ProbePinLight } from "./CoordinateReadout";
 import { useWizardStepGate, WizardStepConfirm } from "./wizardStepGate";
+import { PROBE_CONTINUITY_HINT } from "../grbl";
 
 export type PrepareStepId = PrepareGuidedStepId;
 
@@ -63,6 +65,13 @@ interface PrepareRunPanelProps {
   jogEnabled: boolean;
   probeEnabled: boolean;
   probeBlockedReason?: string | null;
+  /**
+   * True after `status.pins.probe` has lit at least once this Prepare session
+   * (guided continuity check before Run Z probe unlocks).
+   */
+  probeContinuityOk?: boolean;
+  /** Virtual CNC only: pulse `Pn:P` so the continuity light can be practiced. */
+  onSimulateProbeTouch?: (() => void) | null;
   busy?: boolean;
   message?: string | null;
   /** True after a successful probe (or manual Z zero) this session. */
@@ -124,10 +133,6 @@ interface PrepareRunPanelProps {
   onClose?: () => void;
 }
 
-function formatMm(value: number): string {
-  return value.toFixed(3);
-}
-
 function parsePositive(raw: string, fallback: number): number {
   const n = Number(raw);
   return Number.isFinite(n) && n > 0 ? n : fallback;
@@ -150,6 +155,8 @@ export function PrepareRunPanel({
   jogEnabled,
   probeEnabled,
   probeBlockedReason,
+  probeContinuityOk = false,
+  onSimulateProbeTouch = null,
   busy = false,
   message,
   zProbed,
@@ -303,6 +310,29 @@ export function PrepareRunPanel({
     !jobLoaded ||
     busy;
 
+  const markReadyReason = busy
+    ? "Busy — wait for the machine"
+    : !stockConfirmed
+      ? "Confirm stock + tool first"
+      : !xyZeroed
+        ? "Set material XY zero first"
+        : !zProbed
+          ? "Probe or zero Z first"
+          : !safeZConfirmed
+            ? "Confirm plate removed / clear first"
+            : !jobLoaded
+              ? "Load a path first"
+              : null;
+
+  const retractDisabled = !jogEnabled || busy || !zProbed;
+  const retractReason = busy
+    ? "Busy — wait for the machine"
+    : !jogEnabled
+      ? (blockedReason ?? "Motion locked")
+      : !zProbed
+        ? "Probe or zero Z before retracting"
+        : null;
+
   return (
     <section
       className={`cal prep${dense ? " cal--dense prep--dense" : ""}`}
@@ -337,32 +367,6 @@ export function PrepareRunPanel({
           {blockedReason}
         </p>
       ) : null}
-
-      <div className="cal__pos" aria-label="Current position">
-        <div className="cal__pos-legend" aria-hidden>
-          <span />
-          <span>Material</span>
-          <span>Machine</span>
-        </div>
-        {(["X", "Y", "Z"] as const).map((ax) => {
-          const key = ax.toLowerCase() as "x" | "y" | "z";
-          return (
-            <div key={ax} className="cal__pos-row">
-              <span className="cal__pos-axis">{ax}</span>
-              <span className="cal__pos-val">{formatMm(status.work[key])}</span>
-              <span className="cal__pos-val cal__pos-val--muted">
-                {formatMm(status.machine[key])}
-              </span>
-            </div>
-          );
-        })}
-        <p className="cal__pos-state">
-          State <strong>{status.state}</strong>
-          {status.pins?.probe ? (
-            <span className="prep__pin"> · Probe pin ON</span>
-          ) : null}
-        </p>
-      </div>
 
       {step.id === "stock" && (
         <div className="cal__body" role="group" aria-labelledby="prep-stock">
@@ -518,12 +522,23 @@ export function PrepareRunPanel({
                 type="button"
                 className="cal__btn cal__btn--ghost"
                 disabled={!homing.enabled || !!homing.busy}
-                title={homing.blockedReason ?? "Home ($H)"}
+                title={
+                  !homing.enabled
+                    ? (homing.blockedReason ?? "Homing unavailable")
+                    : (homing.blockedReason ?? "Cycle home ($H)")
+                }
                 onClick={homing.onHome}
               >
-                {homing.homed ? "Re-home ($H)" : "Home ($H)"}
+                {homing.busy ? (
+                  "Homing…"
+                ) : (
+                  <>
+                    {homing.homed ? "Re-home" : "Home"}{" "}
+                    <span className="cal__btn-code">$H</span>
+                  </>
+                )}
               </button>
-              <span className="cal__meta">Optional — when switches need it</span>
+              <span className="cal__meta">Home once after each power-on, before setting zeros</span>
             </div>
           ) : null}
           <WizardStepConfirm
@@ -708,9 +723,47 @@ export function PrepareRunPanel({
             Z probe + clear plate
           </h3>
           <p className="cal__hint">
-            Plate on <strong>stock top</strong> · enter thickness · probe (or
-            manual Zero Z) · retract · remove plate before Mark ready.
+            Plate on <strong>stock top</strong> · check continuity · enter
+            thickness · probe (or manual Zero Z) · retract · remove plate before
+            Mark ready.
           </p>
+          <div
+            className={`prep__continuity${probeContinuityOk ? " is-ok" : ""}`}
+            role="group"
+            aria-labelledby="prep-continuity"
+          >
+            <p id="prep-continuity" className="prep__continuity-title">
+              {PROBE_CONTINUITY_HINT}
+            </p>
+            <div className="prep__continuity-row">
+              <span className="cal__meta">Probe light</span>
+              <ProbePinLight active={!!status.pins?.probe} />
+              {probeContinuityOk ? (
+                <span className="cal__meta prep__ok">Continuity OK</span>
+              ) : (
+                <span className="cal__meta">Waiting for light…</span>
+              )}
+            </div>
+            {onSimulateProbeTouch ? (
+              <div className="cal__actions">
+                <button
+                  type="button"
+                  className="cal__btn cal__btn--ghost"
+                  disabled={!canAct || busy}
+                  onClick={onSimulateProbeTouch}
+                  title="Virtual CNC only — pulses Pn:P (never sent to USB)"
+                >
+                  Simulate clip touch (Virtual CNC)
+                </button>
+              </div>
+            ) : null}
+            {probeContinuityOk && status.pins?.probe ? (
+              <p className="cal__meta" role="status">
+                Separate the clip from the plate so the light goes off, then
+                Run Z probe.
+              </p>
+            ) : null}
+          </div>
           <div className="cal__row">
             <label className="cal__field">
               <span className="cal__field-label">Plate mm</span>
@@ -795,6 +848,11 @@ export function PrepareRunPanel({
               className="cal__btn"
               disabled={!probeEnabled || busy}
               onClick={onRunProbe}
+              title={
+                probeContinuityOk
+                  ? "Seek Z with G38.2 after continuity check"
+                  : PROBE_CONTINUITY_HINT
+              }
             >
               Run Z probe
             </button>
@@ -810,7 +868,8 @@ export function PrepareRunPanel({
             <button
               type="button"
               className="cal__btn cal__btn--ghost"
-              disabled={!jogEnabled || busy || !zProbed}
+              disabled={retractDisabled}
+              title={retractReason ?? undefined}
               onClick={onRetract}
             >
               Retract Z{probe.retractWorkZMm}
@@ -878,6 +937,7 @@ export function PrepareRunPanel({
               type="button"
               className="cal__btn"
               disabled={markReadyDisabled}
+              title={markReadyReason ?? undefined}
               onClick={() => {
                 onConfirmReady();
                 onClose?.();
@@ -886,6 +946,11 @@ export function PrepareRunPanel({
               {prepareReady ? "Continue to Verify" : "Mark ready → Verify"}
             </button>
           </div>
+          {markReadyDisabled && markReadyReason ? (
+            <p className="cal__warn" role="status">
+              {markReadyReason}
+            </p>
+          ) : null}
         </div>
       )}
 
@@ -912,6 +977,7 @@ export function PrepareRunPanel({
             type="button"
             className="cal__btn"
             disabled={markReadyDisabled}
+            title={markReadyReason ?? undefined}
             onClick={() => {
               onConfirmReady();
               onClose?.();

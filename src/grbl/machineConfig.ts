@@ -6,13 +6,20 @@ import type { Axis, Position3 } from "./types";
  * Until calibration lands, defaults match the project plan (X/Y 1000 mm; Z unset).
  */
 export interface SoftTravelLimits {
-  /** Max machine travel from home (mm). Null = unknown — do not soft-block that axis. */
+  /**
+   * Travel length from home (mm), entered as a positive number exactly as in
+   * GRBL `$130`–`$132`. Null = unknown — that side of the axis is not blocked.
+   *
+   * X/Y: home is the low end, so the allowed range is `[min, min + max]`.
+   * Z: home is the TOP of travel, so the allowed range is
+   *    `[min.z − maxZ, min.z]` — every Z below home is negative.
+   */
   maxX: number | null;
   maxY: number | null;
   maxZ: number | null;
   /**
-   * Assumed machine-coordinate minimum after homing (usually 0).
-   * Soft-limit UI checks refuse moves below this when max is known.
+   * Machine coordinate of the home position per axis (usually 0).
+   * For X/Y this is the low end of travel; for Z it is the top.
    */
   min: Position3;
 }
@@ -85,19 +92,39 @@ export function saveSoftTravel(limits: SoftTravelLimits): void {
   }
 }
 
+/**
+ * Highest allowed machine coordinate for an axis (null = unbounded).
+ * Z: the top of travel (home), never above it.
+ */
 export function maxForAxis(
   limits: SoftTravelLimits,
   axis: Axis,
 ): number | null {
   if (axis === "X") return limits.maxX;
   if (axis === "Y") return limits.maxY;
-  return limits.maxZ;
+  return limits.min.z;
 }
 
+/**
+ * Lowest allowed machine coordinate for an axis.
+ * Z: home minus `$132` travel; −Infinity while Z travel is unknown.
+ */
 export function minForAxis(limits: SoftTravelLimits, axis: Axis): number {
   if (axis === "X") return limits.min.x;
   if (axis === "Y") return limits.min.y;
-  return limits.min.z;
+  return limits.maxZ !== null ? limits.min.z - limits.maxZ : -Infinity;
+}
+
+/** Human wording for a soft-limit edge, e.g. "Z above home (top of travel)". */
+export function describeSoftEdge(axis: Axis, edge: "min" | "max", value: number): string {
+  if (axis === "Z") {
+    return edge === "max"
+      ? "Z above home (top of travel)"
+      : `Z below the bottom of travel (${value} mm)`;
+  }
+  return edge === "max"
+    ? `${axis} past far end of travel (${value} mm)`
+    : `${axis} past home side (${value} mm)`;
 }
 
 /** Bed size for the machine view — use known soft max when set, else a small placeholder. */

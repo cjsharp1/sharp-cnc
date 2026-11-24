@@ -16,7 +16,11 @@ Hint in the Connect UI: “Practice here before the real machine.”
 
 ## First-run wizard
 
-Fresh install opens **First-run setup** — bootstrap into **Linked**, home, then **Calibrate** (machine, once). The optional stock step only seeds the first job; later cuts use **Prepare**. Finish or **Skip for now**. Reopen: **Menu → First-run setup…**.
+Fresh install opens **First-run setup**: **Connect → Home → Calibrate**. Calibrate covers direction, steps/mm, and soft travel; stock is set per job in **Prepare**. If homing isn't set up yet, the Home step lets you continue without it. Finish or **Skip for now**. Reopen: **Menu → First-run setup…**.
+
+![First-run three steps](assets/first-run-three-steps.png)
+
+Connecting to the real machine for the first time? Use **[First real connection](14-first-real-connection.md)**.
 
 ## Connect (checklist)
 

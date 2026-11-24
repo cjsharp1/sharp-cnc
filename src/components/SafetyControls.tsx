@@ -3,6 +3,9 @@ import type { AlarmGuide } from "../grbl";
 interface SafetyControlsProps {
   connected: boolean;
   machineState: string;
+  /** App-side E-Stop latch: motion stays locked until cleared. */
+  estopLatched?: boolean;
+  onClearEstop?: () => void;
   alarmMessage: string | null;
   alarmGuide?: AlarmGuide | null;
   usingMock?: boolean;
@@ -19,6 +22,8 @@ interface SafetyControlsProps {
 export function SafetyControls({
   connected,
   machineState,
+  estopLatched = false,
+  onClearEstop,
   alarmMessage,
   alarmGuide = null,
   usingMock = false,
@@ -33,7 +38,7 @@ export function SafetyControls({
 }: SafetyControlsProps) {
   const inAlarm = machineState === "Alarm";
   const inHold = machineState === "Hold";
-  const canMotion = connected && !inAlarm;
+  const canMotion = connected && !inAlarm && !estopLatched;
 
   return (
     <section
@@ -49,7 +54,40 @@ export function SafetyControls({
         </span>
       </header>
 
-      {inAlarm && (
+      {estopLatched && (
+        <div className="safety__banner" role="alert">
+          <p className="safety__banner-title">E-Stop pressed — motion locked</p>
+          <p className="safety__banner-body">
+            The job and any test moves were stopped. SharpCNC won&rsquo;t jog,
+            home, probe, or start anything until you clear this.
+          </p>
+          <ol className="safety__guide">
+            <li>
+              <strong>Check the machine</strong>
+              <span>Spindle stopped, bit clear of the work, nothing loose.</span>
+            </li>
+            <li>
+              <strong>Re-home if it was moving</strong>
+              <span>
+                A stop mid-move can lose position. Home before trusting
+                coordinates again.
+              </span>
+            </li>
+          </ol>
+          {onClearEstop ? (
+            <button
+              type="button"
+              className="safety__btn safety__btn--unlock"
+              onClick={onClearEstop}
+              title="I've checked the machine — allow motion again"
+            >
+              Clear E-Stop
+            </button>
+          ) : null}
+        </div>
+      )}
+
+      {inAlarm && !estopLatched && (
         <div className="safety__banner" role="alert">
           <p className="safety__banner-title">
             {alarmGuide?.headline ?? "Alarm lock"}
@@ -80,7 +118,7 @@ export function SafetyControls({
           className="safety__estop"
           disabled={!connected}
           onClick={onEstop}
-          title="Emergency stop: feed hold, then soft reset / cancel job"
+          title="Stop everything now: feed hold, cancel the job and any test moves, then lock motion until you clear it. This is a software stop over USB — keep a physical power switch within reach."
           aria-label="Emergency stop"
         >
           E-Stop
@@ -90,7 +128,7 @@ export function SafetyControls({
           className="safety__btn safety__btn--hold"
           disabled={!canMotion || inHold}
           onClick={onHold}
-          title="Feed hold (!)"
+          title="Feed hold (!) — Space when focus isn’t in a text field or on a button"
         >
           Hold
         </button>
@@ -108,7 +146,7 @@ export function SafetyControls({
           className="safety__btn safety__btn--ghost"
           disabled={!connected}
           onClick={onReset}
-          title="Soft reset (Ctrl-X)"
+          title="Soft reset (Ctrl-X): restarts the controller and cancels the job, without locking motion afterwards. Use E-Stop in an emergency."
         >
           Reset
         </button>
@@ -124,7 +162,12 @@ export function SafetyControls({
       </div>
 
       {usingMock && (onSimulateAlarm || onSimulateSoftLimit || onSimulateProbeFail) && (
-        <div className="safety__mock-row">
+        <div
+          className="safety__mock-row"
+          role="group"
+          aria-label="Virtual CNC practice faults"
+        >
+          <span className="safety__mock-label">Virtual CNC only · practice:</span>
           {onSimulateAlarm && (
             <button
               type="button"

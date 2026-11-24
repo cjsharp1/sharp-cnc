@@ -81,9 +81,25 @@ During play, SharpCNC shows Z cues (Retract / Plunge / Cut / Rapid). Banner: **P
 
 With a job loaded (and not streaming):
 
-- **Start at line** scrubber — next **Start** begins at that line  
+- **Start at line** scrubber — next **Start** begins at that line. Starting mid-file, SharpCNC first runs a **resume setup**: it restores units, work offset, plane, feed, spindle, and coolant from the earlier lines, then retracts to the job's clearance height, moves over the start point, spins up (3 s dwell), and plunges slowly. The exact commands go to the activity log.  
 - Rough **time estimate** from path length  
-- **Spindle-off dry run** — strips `M3`/`M4`/`S` and forces `M5`
+- **Dry run (spindle off, Z lifted)** — turns `M3`/`M4` into `M5`, strips `S`, and lifts every absolute Z so the deepest point of the job stays **5 mm above material Z0**. Use it to watch the whole path in the air. If the lift would push the job above Z home, Start is refused with the reason.
+
+![Dry run Z lift](assets/diagram-dry-run-lift.svg)
+
+![Resume setup before mid-file Start](assets/diagram-resume-preamble.svg)
+
+Screenshot: [Verify with dry run + resume note](assets/verify-dry-run.png)
+
+### Before Start: the soft-limit check
+
+Start checks the whole job against soft travel in machine coordinates:
+
+- **X/Y**, including the true extent of arcs (not just their end points)  
+- **Z top**: a clearance/safe height that would go above Z home. Fix by lowering the CAM safe height, or by raising the spindle so material Z0 sits lower in Z travel  
+- **Z bottom**: a cut deeper than Z travel  
+
+`G53`/`G28`/`G30` moves are in machine coordinates, so they're left out of the job outline and the simulation.
 
 ## Run phase — supervise the cut
 
@@ -95,12 +111,28 @@ With a job loaded (and not streaming):
 | Feed / spindle overrides | On the safety strip |
 | **Pause** | Feed hold (`!`) |
 | **Resume** | Cycle start (`~`) from Hold |
-| **Resume after tool change** | Continues past an `M6` pause |
+| **Continue** (tool change) | After M6: spindle stop → change bit → re-probe Z (or same length) → restores spindle and continues |
 | **Stop** | Soft reset / cancel stream — treat as abort |
 
-Not in Run: probe, calibrate, job load, Advanced.
+**If GRBL rejects a line mid-job** (`error:N`), SharpCNC stops sending, sends a **feed hold**, and shows which line failed. The spindle may still be running: press **Stop** to cancel the job and turn it off.  
+**If GRBL raises an alarm mid-job**, the job ends and the alarm panel explains the code. Recovery offers to resume about 20 lines before the last line GRBL accepted, because GRBL accepts lines before it finishes cutting them.
 
-When the stream hits **`M6`**, SharpCNC pauses for a tool change. Change the bit, then **Resume after tool change**.
+Not in Run (except during an M6 pause): probe, calibrate, job load, Advanced.
+
+### Tool change (M6)
+
+![Tool-change panel](../setup-visual/assets/run-02-tool-change.svg)
+
+When the stream hits **`M6`**, SharpCNC pauses **before** sending that line, waits until the machine is **Idle**, then sends **`M5`** so the spindle is stopped before you touch the bit.
+
+The Run panel shows a full-width tool-change strip:
+
+1. **Spindle stopped ✓** — automatic after Idle  
+2. **Change the bit**  
+3. **Re-probe Z** — use the button (or tick **Same tool length** if the bit did not change)  
+4. **Continue** — restores `M3 S…` from earlier in the file (with a short dwell), then sends `M6` and resumes
+
+**Continue** stays disabled until Z is re-probed or **Same tool length** is ticked. Jog is allowed only after the spindle has stopped so you can reach the touch plate. Dry-run jobs keep the spindle off after Continue.
 
 Hardware **start / pause / stop** buttons on the Demon Shield stay in sync; Start from hardware respects the same Prepare gate.
 

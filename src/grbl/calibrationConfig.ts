@@ -8,6 +8,8 @@ export const CALIBRATION_GUIDED_STEPS = [
   "zero",
   "direction",
   "steps",
+  "rates",
+  "homing",
   "travel",
 ] as const;
 

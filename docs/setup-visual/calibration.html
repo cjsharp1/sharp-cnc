@@ -7,7 +7,7 @@
     <link rel="icon" type="image/svg+xml" href="../favicon.svg" />
     <meta
       name="description"
-      content="SharpCNC Phase 1 Calibrate once per machine: $3 direction, steps/mm, soft travel, optional bed travel test. Then skip to Prepare."
+      content="SharpCNC Phase 1 Calibrate once per machine: $3 direction, steps/mm, speed & accel, homing, soft travel, optional bed travel test. Then skip to Prepare."
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -36,39 +36,48 @@
           </p>
           <h1>Calibrate</h1>
           <p class="visual-guide__one">
-            Teach SharpCNC how your machine moves — direction, distance, and
-            safe travel. Do this <strong>before</strong> Prepare or cuts.
+            Teach SharpCNC how your machine moves — direction, distance, speed,
+            and safe travel. Do this <strong>before</strong> Prepare or cuts.
             Prefer <strong>Virtual CNC</strong> for the first pass. After Soft
             travel confirm, next sessions skip to Prepare. Repeat only after
             wiring, screws, or bed size change. Clear bed. Keep Z high for XY.
             E-Stop ready.
           </p>
           <nav class="visual-guide__jump" aria-label="Steps">
-            <a href="#c1">1 Zero</a>
+            <a href="#c1">1 Start</a>
             <a href="#c2">2 Direction</a>
             <a href="#c3">3 Steps/mm</a>
-            <a href="#c4">4 Travel</a>
+            <a href="#c4">4 Speed &amp; accel</a>
+            <a href="#c5">5 Homing</a>
+            <a href="#c6">6 Travel</a>
           </nav>
         </header>
 
         <article class="step-card" id="c1">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">1</span>
-            <h2>Zero context</h2>
+            <h2>Start</h2>
             <p class="step-card__action">
-              Confirm Material / Machine → Zero if needed → confirm →
+              Clear the bed → <strong>Home ($H)</strong> → confirm →
               <strong>Next</strong>
             </p>
             <p class="step-card__eli5">
-              Glance at the numbers first. Material XYZ = “start of this blank.”
-              Machine XYZ = “home corner of the bed.” Make sure they make sense
-              before you measure anything.
+              Home first so the machine knows where it is. Machine XYZ =
+              “distance from home.” Z reads about −1 mm after homing and goes
+              more negative as it moves down. Material zero isn’t needed here.
+            </p>
+            <p class="step-card__eli5">
+              <strong>Back up first.</strong> Calibrate auto-saves a
+              <code>$$</code> snapshot when settings first load. Use
+              <strong>Back up settings</strong> in the meta bar for a downloadable
+              <code>.txt</code>. After any write, <strong>Undo $n</strong> appears
+              next to the result; full restore lives under Menu → Advanced….
             </p>
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-01-zero.svg"
-              alt="Material and Machine coordinate panels before calibration"
+              src="assets/cal-01-start.svg"
+              alt="Before you start — Home, confirm positions, then Next"
               width="960"
               height="520"
             />
@@ -82,15 +91,15 @@
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Calibrate opens on <strong>Confirm zero context</strong> with
-                Material and Machine X/Y/Z and State.
+                Calibrate opens on <strong>Before you start</strong> with
+                Material and Machine X/Y/Z and State. Meta bar shows
+                <strong>Reload</strong> · <strong>Back up settings</strong>.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Optional: <strong>Home ($H)</strong> if the session needs it.
-                Use the compact jog in this step if the tip is not at a useful
-                reference.
+                <strong>Home ($H)</strong> — once after each power-on, if homing
+                is set up. Keep a hand near E-Stop.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -99,10 +108,9 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                If needed, use <strong>Zero X</strong> /
-                <strong>Zero Y</strong> / <strong>Zero Z</strong> /
-                <strong>Zero XYZ</strong> so material origin matches where the
-                tip sits (zeroing does not move the machine).
+                Optional: <strong>Zero X</strong> / <strong>Zero Y</strong> /
+                <strong>Zero Z</strong> / <strong>Zero XYZ</strong> if you want
+                to measure from a mark (zeroing does not move the machine).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -113,7 +121,8 @@
               <p class="step-card__do-act">
                 Check
                 <strong
-                  >Material zero looks right — I completed this step</strong
+                  >Machine homed (or no switches) and positions look right — I
+                  completed this step</strong
                 >, then tap <strong>Next</strong>.
               </p>
               <p class="step-card__do-see">
@@ -130,12 +139,14 @@
             <span class="step-card__num" aria-hidden="true">2</span>
             <h2>Direction ($3)</h2>
             <p class="step-card__action">
-              Invert wrong axes → <strong>Write $3</strong> → Test ±
+              Z first → Test → <strong>Yes / No</strong> →
+              <strong>Write $3</strong>
             </p>
             <p class="step-card__eli5">
-              Make left mean left. Looking down on the bed (same as the
-              visualizer): +X right, +Y back = up on screen, +Z up. If a button
-              moves the wrong way, flip that axis. ($3 is just the flip switch.)
+              Make left mean left. Start with Z: +Z must lift the tool off the
+              work. Then +X right, +Y away from you. After each test, answer
+              Yes/No — No ticks Invert; you still click Write. ($3 is the flip
+              switch.)
             </p>
           </div>
           <figure class="step-card__figure">
@@ -149,34 +160,38 @@
           <ol class="step-card__do">
             <li>
               <p class="step-card__do-act">
-                Clear the bed. Keep Z high. For each axis, tap
-                <strong>Test +X</strong> / <strong>Test −X</strong> (and Y/Z).
+                Clear the bed. Start on the <strong>Z</strong> row (listed
+                first). Tap <strong>Test +Z</strong> / <strong>Test −Z</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Short ~5 mm jog. Looking down on the bed (matches the
-                visualizer): +X right, +Y back = up on screen, +Z up. Wrong way =
-                that axis needs invert.
+                Short ~5 mm jog. Expected: <strong>+Z → up (tool lifts off the
+                work)</strong>. If +Z goes down, every “safe” retract would drive
+                into the work — fix Z before X/Y.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Check <strong>Invert X</strong> / Y / Z for any reversed axis.
-                Draft mask updates (bits X=1, Y=2, Z=4).
+                Answer <strong>Did it go the expected way? Yes / No</strong>.
+                <strong>No</strong> auto-ticks Invert for that axis. Repeat for
+                X (+X → right) and Y (+Y → away from you).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Draft mask number changes; Write button enables when dirty.
+                Draft mask updates (bits X=1, Y=2, Z=4). Write enables when
+                dirty. You still click Write — Invert is only a draft.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Write $3=…</strong>, then re-run the Test ± buttons.
+                Tap <strong>Write $3=…</strong>, then re-run Test ±. If homing is
+                on (<code>$22=1</code>), read the note about
+                <code>$23</code> / Homing.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Current $3 matches the draft; + jogs now match the bed. Activity
-                log shows the write.
+                Current $3 matches the draft; + jogs match the bed. Activity log
+                shows the write.
               </p>
             </li>
             <li>
@@ -194,8 +209,8 @@
             </li>
           </ol>
           <p class="step-card__aside">
-            Expect: +X right · +Y back (up on screen) · +Z up (looking down on
-            bed)
+            Expect: +Z up (tool lifts) · +X right · +Y away · Yes/No after each
+            test
           </p>
           <a class="step-card__next" href="#c3">Next: Steps/mm →</a>
         </article>
@@ -236,24 +251,31 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Move +…</strong> for that axis. Measure the real
-                travel with a ruler; type it in
-                <strong>Measured mm (ruler)</strong>.
+                Tap <strong>Move +…</strong> for X/Y, or
+                <strong>Move Z down …</strong> for Z (10 / 20 / 25 mm — Z homes
+                to the top). Optional: open
+                <strong>Don’t know your starting value?</strong> for a
+                steps/rev × microsteps ÷ mm/rev estimate. Measure the real
+                travel (calipers or dial indicator for Z); type it in
+                <strong>How far it actually moved (mm)</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
                 Machine moves the commanded distance (approximately). UI shows
-                Before / After steps/mm (formula: old × commanded ÷ measured).
+                Before / After steps/mm (formula: old × commanded ÷ measured). A
+                change over ±20% shows a warning before Write.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Write $1xx=…</strong>. Repeat for X → Y → Z.
+                Tap <strong>Write $1xx=…</strong>, then
+                <strong>Move again to check</strong>. Pass when measured is
+                within ±0.1 mm (✓). Repeat for X → Y → Z.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Current steps/mm updates to the After value. A second Move +
-                measure should land close to commanded.
+                Current steps/mm updates to the After value. Re-test shows pass
+                when within ±0.1 mm of commanded.
               </p>
             </li>
             <li>
@@ -265,36 +287,222 @@
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Wizard advances to <strong>Soft travel / bed extents</strong>.
+                Wizard advances to <strong>Speed &amp; acceleration</strong>.
               </p>
             </li>
           </ol>
           <p class="step-card__aside">
-            Repeat X → Y → Z. Formula: old × commanded ÷ measured.
+            Z moves down · ±20% warn · re-test ±0.1 mm · formula: old ×
+            commanded ÷ measured.
           </p>
-          <a class="step-card__next" href="#c4">Next: Soft travel →</a>
+          <a class="step-card__next" href="#c4">Next: Speed &amp; accel →</a>
         </article>
 
         <article class="step-card" id="c4">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">4</span>
-            <h2>Soft travel (+ bed test)</h2>
+            <h2>Speed &amp; accel</h2>
             <p class="step-card__action">
-              Jog to far end (margin) → Use MPos →
-              <strong>Write travel + $20</strong> · optional
-              <strong>Bed travel test</strong>
+              Mark → Ready → G1 out-and-back → Yes / off / stall → recommend
+              ×0.75 → <strong>Write</strong> rate then accel
             </p>
             <p class="step-card__eli5">
-              Bed travel = how far the machine can go before it runs out of
-              room. Soft limits are invisible fences on the far side (your home
-              switches only cover the near side). The bed test walks the edges
-              safely to prove the fences.
+              GRBL can’t feel a skipped step. Move fast out and back, check the
+              mark, then back off a bit so everyday cuts stay reliable. Z is
+              slower — it fights gravity and usually skips going up.
             </p>
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-04-travel.svg"
-              alt="Soft-limit envelope on bed and write travel button"
+              src="assets/cal-04-rates.svg"
+              alt="Out-and-back rates test with indicator and Yes/off/stall"
+              width="960"
+              height="520"
+            />
+            <figcaption class="step-card__cap">
+              Screenshot:
+              <a href="../user-guide/assets/cal-step-rates.png"
+                >cal-step-rates.png</a
+              >
+            </figcaption>
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Pick axis tab <strong>X / Y / Z</strong> (Z last). Choose
+                <strong>Max speed</strong> first. Confirm test distance (X/Y 50
+                mm, Z 15 mm) and cycles. Put a dial indicator or pencil mark at
+                the carriage → <strong>Ready</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Current max rate and accel show in plain words (GRBL codes
+                secondary). Soft-travel guard refuses an unsafe distance.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Tap <strong>Run … out-and-back</strong>. Watch the mark. Answer
+                <strong>Yes, same spot</strong> / <strong>It’s off</strong> /
+                <strong>Stalled / grinding</strong>. Yes offers +20% (ceiling
+                2× start). On stop/fail, set the 0.7–0.8 slider and
+                <strong>Write</strong> the recommended value.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Trial writes a temporary max rate so the feed can reach it;
+                cancel / leave / reconnect restores the original. Activity log
+                records each trial.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Switch to <strong>Acceleration</strong> and repeat. On Z, the
+                move starts <strong>down</strong>; check after the final
+                <strong>up</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Before → After preview on every Write. Undo still available in
+                the result bar.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Max speed and acceleration checked — I completed this
+                  step</strong
+                >, then <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Homing setup</strong>.
+              </p>
+            </li>
+          </ol>
+          <p class="step-card__aside">
+            $110–$112 · $120–$122 · recommend ×0.75 · Z down-first
+          </p>
+          <a class="step-card__next" href="#c5">Next: Homing →</a>
+        </article>
+
+        <article class="step-card" id="c5">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">5</span>
+            <h2>Homing</h2>
+            <p class="step-card__action">
+              Switch lights → XY corner → speeds/pull-off → enable $22 → arm
+              E-Stop → <strong>Home ($H)</strong> → Z ×3
+            </p>
+            <p class="step-card__eli5">
+              Zero-side switches only. Press each by hand until the light goes
+              on then off. Pick the corner where X/Y switches sit. Z is at the
+              top. First home with your hand on E-Stop — GRBL lifts Z before
+              X/Y move.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-05-homing.svg"
+              alt="Homing setup: switch lights, corner picker, Z first, E-Stop arm"
+              width="960"
+              height="520"
+            />
+            <figcaption class="step-card__cap">
+              Screenshots:
+              <a href="../user-guide/assets/cal-step-homing-switches.png"
+                >switches</a
+              >
+              ·
+              <a href="../user-guide/assets/cal-step-homing-direction.png"
+                >direction</a
+              >
+              ·
+              <a href="../user-guide/assets/cal-step-homing-first-home.png"
+                >first home</a
+              >
+            </figcaption>
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Press each limit switch by hand. Light on → release → light off.
+                All three need ✓. On Virtual CNC, use the limit toggles.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                X / Y / Z lim lights match your presses. If a light is on with
+                nothing pressed, flip <code>$5</code> (Before → After).
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Click the bed corner where the X/Y switches are (NW NE / SW SE).
+                Confirm Z at the top. Write <code>$23</code>, then seek / feed /
+                pull-off.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Before → After on every Write. Suggest seek ≤ 50% of slowest max
+                rate; feed 25–50 mm/min; pull-off 1–2 mm.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Write <code>$22=1</code>, tick “hand on E-Stop”, then
+                <strong>Home ($H)</strong>. Home three times and Yes/No for Z
+                repeatability.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Homed session. Real Z ≈ −1 mm (pull-off). Drift → slower
+                <code>$24</code>.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Check
+                <strong
+                  >Switches checked, first home done, Z repeatable — I completed
+                  this step</strong
+                >, then <strong>Next</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Wizard advances to <strong>Soft travel / bed extents</strong>.
+              </p>
+            </li>
+          </ol>
+          <p class="step-card__aside">
+            $22 · $23 · $24 · $25 · $27 · $5 · Z homes first
+          </p>
+          <a class="step-card__next" href="#c6">Next: Soft travel →</a>
+        </article>
+
+        <article class="step-card" id="c6">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">6</span>
+            <h2>Soft travel (+ bed test)</h2>
+            <p class="step-card__action">
+              Homing on ($22) → Jog to far end → Use machine pos →
+              <strong>Save bed travel & soft limits</strong> →
+              <strong>Test the limit</strong> · optional hard limits ($21) ·
+              optional <strong>Bed travel test</strong>
+            </p>
+            <p class="step-card__eli5">
+              Bed travel = how far the machine can go before it runs out of
+              room. Soft limits are invisible fences on the far side (your home
+              switches only cover the near side). They protect the
+              <strong>machine</strong>, not your stock — Z probe in Prepare
+              protects the work. The bed test walks the edges safely to prove
+              the fences.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/cal-06-travel.svg"
+              alt="Soft-limit envelope on bed, write travel, and test the limit"
               width="960"
               height="520"
             />
@@ -302,8 +510,20 @@
           <ol class="step-card__do">
             <li>
               <p class="step-card__do-act">
-                With Z high, carefully jog each axis toward the far rail and
-                stop with a safety margin (or enter known bed size).
+                Soft limits need homing on (<code>$22=1</code>). If the step
+                shows the prerequisite banner, finish Homing first.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Homing enabled. Writing <code>$20=1</code> without it returns
+                <code>error:10</code> (plain English in the wizard).
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Home first. With Z high, use the jog pad on this step to move
+                each axis toward the far rail and stop with a safety margin.
+                For Z, jog <strong>down</strong> to the lowest safe point.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
@@ -313,23 +533,27 @@
             </li>
             <li>
               <p class="step-card__do-act">
-                For each axis, tap <strong>Use MPos</strong> (or type Max X/Y/Z
-                mm). Enable <strong>Enable soft limits ($20=1)</strong>.
+                For each axis, tap <strong>Use machine pos</strong> (or type Max X/Y/Z
+                mm). Enter Z as a <strong>positive</strong> travel length (e.g.
+                80 → GRBL allows 0 down to −80). Enable
+                <strong>Enable soft limits ($20=1)</strong>. Optional: hard
+                limits (<code>$21</code>) as an extra home-side backstop.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
                 Max fields fill from machine position; soft-limits checkbox is
-                on.
+                on; hard limits stay off unless you opt in.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Write travel + $20</strong>.
+                Tap <strong>Save bed travel & soft limits</strong>, then
+                <strong>Test the limit</strong> for Z / X / Y (expects
+                <code>error:15</code>, stays Idle).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                $130–$132 and $20 write to GRBL; visualizer bed matches; soft
-                limits show ON after Read $$.
+                $130–$132 and $20 write; “Soft limits working ✓”.
               </p>
             </li>
             <li>

@@ -3,13 +3,32 @@ import type { Axis, GrblMachineState } from "./types";
 
 /** GRBL setting IDs used by SharpCNC calibration / soft travel. */
 export const SETTING_DIR_PORT_INVERT = 3;
+export const SETTING_LIMIT_INVERT = 5;
+export const SETTING_SOFT_LIMITS = 20;
+export const SETTING_HARD_LIMITS = 21;
+export const SETTING_HOMING_CYCLE = 22;
+export const SETTING_HOMING_DIR_MASK = 23;
+export const SETTING_HOMING_FEED = 24;
+export const SETTING_HOMING_SEEK = 25;
+export const SETTING_HOMING_PULLOFF = 27;
 export const SETTING_STEPS_X = 100;
 export const SETTING_STEPS_Y = 101;
 export const SETTING_STEPS_Z = 102;
+export const SETTING_MAX_RATE_X = 110;
+export const SETTING_MAX_RATE_Y = 111;
+export const SETTING_MAX_RATE_Z = 112;
+export const SETTING_ACCEL_X = 120;
+export const SETTING_ACCEL_Y = 121;
+export const SETTING_ACCEL_Z = 122;
 export const SETTING_MAX_TRAVEL_X = 130;
 export const SETTING_MAX_TRAVEL_Y = 131;
 export const SETTING_MAX_TRAVEL_Z = 132;
-export const SETTING_SOFT_LIMITS = 20;
+
+/** Warn before Write when steps/mm would change by more than this fraction. */
+export const STEPS_MM_LARGE_CHANGE_FRACTION = 0.2;
+
+/** Re-test after a steps/mm write passes when |measured − commanded| ≤ this (mm). */
+export const STEPS_RETEST_TOLERANCE_MM = 0.1;
 
 /** Default GRBL 1.1-ish values used by the mock and as UI placeholders. */
 export const DEFAULT_GRBL_SETTINGS: Record<number, number> = {
@@ -17,6 +36,7 @@ export const DEFAULT_GRBL_SETTINGS: Record<number, number> = {
   1: 25,
   2: 0,
   3: 0, // direction port invert mask (bit0=X, bit1=Y, bit2=Z)
+  5: 0, // limit pins invert (boolean)
   10: 1,
   11: 0.01,
   12: 0.002,
@@ -52,6 +72,18 @@ export const STEPS_SETTING_FOR_AXIS: Record<Axis, number> = {
   Z: SETTING_STEPS_Z,
 };
 
+export const RATE_SETTING_FOR_AXIS: Record<Axis, number> = {
+  X: SETTING_MAX_RATE_X,
+  Y: SETTING_MAX_RATE_Y,
+  Z: SETTING_MAX_RATE_Z,
+};
+
+export const ACCEL_SETTING_FOR_AXIS: Record<Axis, number> = {
+  X: SETTING_ACCEL_X,
+  Y: SETTING_ACCEL_Y,
+  Z: SETTING_ACCEL_Z,
+};
+
 export const MAX_TRAVEL_SETTING_FOR_AXIS: Record<Axis, number> = {
   X: SETTING_MAX_TRAVEL_X,
   Y: SETTING_MAX_TRAVEL_Y,
@@ -61,9 +93,14 @@ export const MAX_TRAVEL_SETTING_FOR_AXIS: Record<Axis, number> = {
 /** Short labels for common settings shown in the editor. */
 export const SETTING_LABELS: Record<number, string> = {
   3: "Direction invert mask",
+  5: "Limit pins invert",
   20: "Soft limits enable",
   21: "Hard limits enable",
   22: "Homing cycle enable",
+  23: "Homing direction invert mask",
+  24: "Homing feed (mm/min)",
+  25: "Homing seek (mm/min)",
+  27: "Homing pull-off (mm)",
   100: "X steps/mm",
   101: "Y steps/mm",
   102: "Z steps/mm",
@@ -170,6 +207,8 @@ export function formatSettingWrite(id: number, value: number): string {
  * Recompute steps/mm after a calibration move.
  * If the controller commanded `commandedMm` but the ruler reads `measuredMm`,
  * newSteps = oldSteps × (commanded / measured).
+ * Distances use absolute value so a negative Z move (down) still yields a
+ * positive steps/mm when the operator enters a positive measured length.
  */
 export function computeStepsPerMm(
   oldSteps: number,
@@ -185,7 +224,7 @@ export function computeStepsPerMm(
   if (!Number.isFinite(measuredMm) || measuredMm === 0) {
     throw new Error("Measured distance must be non-zero.");
   }
-  return oldSteps * (commandedMm / measuredMm);
+  return oldSteps * (Math.abs(commandedMm) / Math.abs(measuredMm));
 }
 
 export function roundStepsPerMm(value: number, decimals = 3): number {
@@ -193,9 +232,49 @@ export function roundStepsPerMm(value: number, decimals = 3): number {
   return Math.round(value * f) / f;
 }
 
+/** Absolute fractional change |after − before| / before (0 when before ≤ 0). */
+export function stepsPerMmChangeFraction(before: number, after: number): number {
+  if (!Number.isFinite(before) || !Number.isFinite(after) || before <= 0) {
+    return 0;
+  }
+  return Math.abs(after - before) / before;
+}
+
+/**
+ * Estimate steps/mm from drivetrain: (motor steps/rev × microsteps) ÷ mm/rev.
+ * mm/rev is lead-screw lead, or pulley teeth × belt pitch.
+ */
+export function estimateStepsPerMm(
+  motorStepsPerRev: number,
+  microsteps: number,
+  mmPerRev: number,
+): number {
+  if (
+    !Number.isFinite(motorStepsPerRev) ||
+    motorStepsPerRev <= 0 ||
+    !Number.isFinite(microsteps) ||
+    microsteps <= 0 ||
+    !Number.isFinite(mmPerRev) ||
+    mmPerRev <= 0
+  ) {
+    throw new Error("Steps estimate inputs must be positive numbers.");
+  }
+  return (motorStepsPerRev * microsteps) / mmPerRev;
+}
+
+/** True when homing cycle is enabled (`$22=1`). */
+export function homingEnabled(settings: Map<number, GrblSetting>): boolean {
+  return (settings.get(SETTING_HOMING_CYCLE)?.value ?? 0) !== 0;
+}
+
 /** Soft-limits enable value: 1 = on, 0 = off. */
 export function softLimitsEnabled(settings: Map<number, GrblSetting>): boolean {
   return (settings.get(SETTING_SOFT_LIMITS)?.value ?? 0) !== 0;
+}
+
+/** Hard-limits enable value: 1 = on, 0 = off (`$21`). */
+export function hardLimitsEnabled(settings: Map<number, GrblSetting>): boolean {
+  return (settings.get(SETTING_HARD_LIMITS)?.value ?? 0) !== 0;
 }
 
 /** Build soft-travel app state from GRBL $130–$132 (null when unset / zero). */
@@ -216,10 +295,11 @@ export function softTravelFromSettings(
   };
 }
 
-/** Writes needed to push soft travel + enable $20 into GRBL. */
+/** Writes needed to push soft travel + enable $20 (and optional $21) into GRBL. */
 export function softTravelWriteCommands(
   limits: SoftTravelLimits,
   enableSoftLimits = true,
+  enableHardLimits = false,
 ): string[] {
   const cmds: string[] = [];
   if (limits.maxX !== null && limits.maxX > 0) {
@@ -233,6 +313,9 @@ export function softTravelWriteCommands(
   }
   if (enableSoftLimits) {
     cmds.push(formatSettingWrite(SETTING_SOFT_LIMITS, 1));
+  }
+  if (enableHardLimits) {
+    cmds.push(formatSettingWrite(SETTING_HARD_LIMITS, 1));
   }
   return cmds;
 }

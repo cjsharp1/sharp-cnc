@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
-  <title id="t">Calibration 4 — Soft travel</title>
-  <desc id="d">Jog to far end, Use MPos or type max, enable $20</desc>
+  <title id="t">Calibration 6 — Soft travel</title>
+  <desc id="d">Jog to far end, Use MPos or type max, enable $20, test the limit</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -23,9 +23,9 @@
   </defs>
   <rect class="bg" width="960" height="520" rx="12"/>
   <circle class="num" cx="56" cy="56" r="28"/>
-  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">4</text>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">6</text>
   <text class="lab big" x="100" y="50">Soft travel</text>
-  <text class="lab act" x="100" y="84">Jog far → Use MPos → Write travel + $20</text>
+  <text class="lab act" x="100" y="84">Jog far → Use MPos → Write → Test the limit</text>
 
   <rect class="bed" x="80" y="140" width="360" height="300" rx="10"/>
   <rect class="soft" x="110" y="170" width="280" height="230" rx="6"/>
@@ -40,7 +40,8 @@
   <text class="lab" x="690" y="190" text-anchor="middle" font-weight="700">Max travel</text>
   <text class="lab mono" x="540" y="240" font-size="16">$130 X · $131 Y · $132 Z</text>
   <text class="tiny" x="690" y="280" text-anchor="middle">Use MPos or type measured size</text>
-  <text class="tiny" x="690" y="310" text-anchor="middle">Enable soft limits ($20=1)</text>
+  <text class="tiny" x="690" y="300" text-anchor="middle">Enable soft limits ($20=1)</text>
+  <text class="tiny" x="690" y="322" text-anchor="middle">Protects the machine, not the work</text>
   <rect class="btn" x="560" y="350" width="260" height="48" rx="10"/>
   <text class="w" x="690" y="374" text-anchor="middle" dominant-baseline="central" font-size="16">Write travel + $20</text>
 </svg>

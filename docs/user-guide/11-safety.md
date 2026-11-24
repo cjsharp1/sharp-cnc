@@ -2,23 +2,40 @@
 
 SharpCNC helps you see position and refuse some bad moves, but **you** are still the safety system.
 
+> **The on-screen E-Stop is software.** It's a command sent over USB. It does nothing if the app freezes, the cable drops, the PC sleeps, or the controller locks up. Keep a **physical power cutoff** for the spindle and the steppers within arm's reach, and test it before the first real move. The enclosure Abort button is also a GRBL soft reset, not a power cut.
+
 The **safety strip** stays visible in every phase — including before connect (Connect is the only enabled action then).
 
 ![Alarm lock banner](assets/alarm-lock.webp)
 
 ![Safety strip with E-Stop (every phase)](assets/estop.webp)
 
+![E-Stop latch banner](assets/estop-latch.png)
+
 ## Controls on the safety strip
 
 | Control | Use when |
 |---------|----------|
-| **E-Stop** | Anything unexpected — feed hold + soft reset / cancel job |
-| **Hold** | Pause motion without full abort (`!`) |
+| **E-Stop** | Anything unexpected — feed hold, cancel the job and any test moves (bed travel, stock trace), soft reset, then **lock motion** until you click **Clear E-Stop** |
+| **Hold** | Pause motion without full abort (`!`). Shortcut: **Space** (see below) |
 | **Resume** | Continue from Hold (`~`) only if the path is still safe |
-| **Reset** | Soft reset GRBL (Ctrl-X) |
+| **Reset** | Soft reset GRBL (Ctrl-X) and cancel the job — no lock afterwards. Lives only on this Safety strip (not in the header chip) |
 | **Unlock** | After Alarm, once the physical cause is cleared (`$X`) |
 
+### Keyboard shortcuts
+
+| Key | Action |
+|-----|--------|
+| **Space** | **Hold** — same as the Hold button. Ignored while focus is in a text field, number input, select, or on a button / link / menu item |
+| **Escape** | Closes open dialogs (Calibrate, Advanced, About, bed travel, stock perimeter, Menu). **Not** E-Stop |
+
+There is no keyboard binding for E-Stop on purpose — Escape already dismisses dialogs, and an accidental keypress must not soft-reset the machine. Use the red **E-Stop** control (or a physical power cutoff).
+
 Alarm banner: **Alarm lock** — jog and job Start stay refused until unlocked.
+
+**E-Stop latch:** after E-Stop, the Safety panel shows *E-Stop pressed — motion locked*. Jog, Home, probe, calibration moves, test loops, and Start are all refused until you check the machine and click **Clear E-Stop**. This matters because GRBL is often **Idle, not Alarm,** after a soft reset at rest, so GRBL alone wouldn't stop the next command. If the machine was moving when you hit E-Stop, home again before trusting coordinates.
+
+The dashed **Virtual CNC only · practice** buttons under the strip simulate faults on the Virtual CNC. They never appear on a real connection.
 
 ### Guided unlock
 

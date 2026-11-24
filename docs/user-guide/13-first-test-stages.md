@@ -4,6 +4,8 @@
 **Goal:** Prove the link and motion in small safe steps before any finished part.  
 **Do not skip stages.** Each stage must **Pass** before the next. Stay at the machine. Keep one hand near **Abort** and know how to kill **spindle power**.
 
+**Start with [First real connection](14-first-real-connection.md).** It covers Stages 1–2 in more detail (settings backup, directions, switches, homing, steps/mm, soft travel, probe, dry run) and records results in the [hardware checklist](../hardware-checklist.md). After it, pick up here at **Stage 3**.
+
 Longer checklists: [Hardware soak](12-hardware-soak.md) · [Safety](11-safety.md) · [Soak playbook](../demon-shield-soak-playbook.md).  
 Phase pictures: [Connect](../setup-visual/connect.html) · [Calibrate](../setup-visual/calibration.html) · [Prepare](../setup-visual/prepare.html) · [Verify](../setup-visual/verify.html) · [Run](../setup-visual/run.html).
 

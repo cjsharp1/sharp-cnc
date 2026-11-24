@@ -178,7 +178,8 @@
             <span class="step-card__num" aria-hidden="true">3</span>
             <h2>Z probe</h2>
             <p class="step-card__action">
-              Plate on <strong>stock top</strong> · enter thickness →
+              Continuity check (clip → plate lights Probe) · plate on
+              <strong>stock top</strong> · enter thickness →
               <strong>Run Z probe</strong> → retract · remove plate →
               <strong>Next</strong>
             </p>
@@ -202,25 +203,30 @@
               <p class="step-card__do-act">
                 Clip the probe lead on the bit. Place the conductive plate on
                 the <strong>stock top</strong> under the tip (not the bare bed).
-                Enter <strong>Plate thickness mm</strong> (~15–20 mm for
-                Chris’s plate).
+                <strong>Touch the clip to the plate</strong> until the
+                <strong>Probe</strong> light comes on (same Inputs pin).
+                Separate so the light goes off. Enter
+                <strong>Plate thickness mm</strong> (~15–20 mm for Chris’s
+                plate).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Idle, not Alarm; probe pin not already ON. Soft limits allow the
-                downward seek.
+                Continuity OK; Idle, not Alarm; probe pin off before seek.
+                Soft limits allow the downward seek. Virtual CNC:
+                <strong>Simulate clip touch</strong> pulses the light.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
                 Tap <strong>Run Z probe</strong> (or
-                <strong>Manual Zero Z</strong> paper-feel fallback).
+                <strong>Manual Zero Z</strong> paper-feel fallback — skips the
+                continuity gate).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
                 G38.2 seeks down, contacts, then Material Z0 = stock face
-                (plate thickness offset). Alarm 4 = no contact; Alarm 5 =
-                already contacting.
+                (plate thickness offset). Alarm 4 = already contacting;
+                Alarm 5 = no contact.
               </p>
             </li>
             <li>

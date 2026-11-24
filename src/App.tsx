@@ -32,7 +32,8 @@ import {
   type ExternalJobKind,
 } from "./components/ExternalJobsPanel";
 import { JobLoad } from "./components/JobLoad";
-import { type JogAxisMap } from "./components/JogPanel";
+import { JogPanel, type JogAxisMap } from "./components/JogPanel";
+import { ZGauge } from "./components/ZGauge";
 import { MachineView, type TrailPoint } from "./components/MachineView";
 import { OverridesStrip } from "./components/OverridesStrip";
 import {
@@ -48,8 +49,27 @@ import {
   DEFAULT_JOG_FEED_MM_MIN,
   JOG_STEP_OPTIONS_MM,
   SETTING_DIR_PORT_INVERT,
+  SETTING_HARD_LIMITS,
   SETTING_SOFT_LIMITS,
+  SOFT_LIMITS_WORKING_COPY,
   STEPS_SETTING_FOR_AXIS,
+  buildJogCommand,
+  plainSoftLimitsNeedHoming,
+  runSoftLimitVerifyJog,
+  softLimitVerifyDelta,
+  buildRatesTrialLines,
+  canFitRatesTest,
+  clearPendingRatesRestore,
+  extLimitCommandForAxis,
+  homingAlarmPlainDetail,
+  homingSettingPlainLabel,
+  homingSettingUnit,
+  loadPendingRatesRestore,
+  mergePendingRatesRestore,
+  ratesSettingId,
+  ratesSettingPlainLabel,
+  ratesSettingUnit,
+  savePendingRatesRestore,
   describeDirInvertMask,
   HOME_COMMAND,
   UNLOCK_COMMAND,
@@ -58,9 +78,15 @@ import {
   applyRapidOverrideStep,
   bedSizeFromLimits,
   bitRadiusMm,
-  buildDryRunLines,
+  buildResumePreamble,
+  buildToolChangeSpindleRestore,
+  buildToolChangeSpindleStop,
+  canContinueToolChange,
+  RESUME_BACKOFF_LINES,
+  dryRunJobLines,
+  dryRunLiftMm,
+  scanResumeState,
   buildJobFromSvg,
-  buildJogCommand,
   buildProbeRetractCommand,
   buildRecallOffsetCommands,
   buildSelectWcsCommand,
@@ -69,6 +95,7 @@ import {
   canHome,
   canJogOrZero,
   canProbe,
+  canRunPrepareZProbe,
   canSendConsole,
   canStartJob,
   canWriteSettings,
@@ -178,7 +205,18 @@ import {
   writeGrblSetting,
   writeGrblSettings,
   buildDebugSnapshot,
+  diffSettings,
+  formatCalibrateUndoLabel,
+  loadSettingsBackups,
+  popCalibrateUndo,
+  pushCalibrateUndo,
+  pushSettingsBackup,
+  restoreWriteEntries,
+  saveSettingsBackupFile,
   type Axis,
+  type CalibrateWriteEntry,
+  type LimitAxis,
+  type SettingsSnapshot,
   type DebugBridgeStatus,
   type DesktopPortInfo,
   type DriveConfig,
@@ -197,6 +235,7 @@ import {
   type OverrideStep,
   type PathSimSnapshot,
   type ProbeConfig,
+  type RatesKind,
   type RapidOverrideStep,
   type RecentJobEntry,
   type SimSpeedRate,
@@ -270,6 +309,16 @@ export default function App() {
   const [streamProgress, setStreamProgress] = useState<StreamProgress | null>(
     null,
   );
+  /** Spindle-safe M6 UI: Idle → M5 → re-probe / same-length → restore → resume. */
+  const [toolChangeUi, setToolChangeUi] = useState<{
+    waitingForIdle: boolean;
+    spindleStopped: boolean;
+    zReprobed: boolean;
+    sameToolLength: boolean;
+    busy: boolean;
+    statusNote: string | null;
+  } | null>(null);
+  const toolChangeArmRef = useRef(0);
   const [svgDraft, setSvgDraft] = useState<SvgImportResult | null>(null);
   const [sim, setSim] = useState<PathSimSnapshot>(() => createIdleSim([]));
   const [simSpeed, setSimSpeed] = useState<SimSpeedRate>(DEFAULT_SIM_SPEED);
@@ -304,6 +353,25 @@ export default function App() {
     () => loadOverridePercents().spindle,
   );
   const [homed, setHomed] = useState(false);
+  /**
+   * Set by E-Stop. Blocks every motion gate (jog, home, probe, start, test
+   * loops) until the operator explicitly clears it. GRBL may be Idle after a
+   * soft reset at rest, so we cannot rely on its Alarm state alone.
+   */
+  const [estopLatched, setEstopLatchedState] = useState(false);
+  const estopLatchedRef = useRef(false);
+  /** Latest Hold handler for the Space shortcut (M4) without re-binding keys. */
+  const handleHoldRef = useRef<() => Promise<void>>(async () => {});
+  const setEstopLatched = (value: boolean) => {
+    estopLatchedRef.current = value;
+    setEstopLatchedState(value);
+  };
+  /** Machine state as seen by motion gates — E-Stop latch reads as a lock. */
+  const gateStateLive = (): GrblStatus["state"] =>
+    estopLatchedRef.current ? "EStopLatched" : statusRef.current.state;
+  const gateState: GrblStatus["state"] = estopLatched
+    ? "EStopLatched"
+    : status.state;
   const [homeBusy, setHomeBusy] = useState(false);
   const [homeMessage, setHomeMessage] = useState<string | null>(null);
   const [workOffsets, setWorkOffsets] = useState<WorkOffsetsStore>(() =>
@@ -347,6 +415,22 @@ export default function App() {
   > | null>(null);
   const [calMessage, setCalMessage] = useState<string | null>(null);
   const [calBusy, setCalBusy] = useState(false);
+  /** Session-only Calibrate write undo stack (newest at end). */
+  const [calUndoStack, setCalUndoStack] = useState<CalibrateWriteEntry[]>([]);
+  /** Rates/accel out-and-back trial in progress. */
+  const [ratesTrialRunning, setRatesTrialRunning] = useState(false);
+  const ratesTrialAbortRef = useRef(false);
+  const ratesTrialRunningRef = useRef(false);
+  /** True while Calibrate holds temporary rate/accel trial writes this session. */
+  const ratesTempActiveRef = useRef(false);
+  const wasConnectedRef = useRef(false);
+  /** Persisted $$ snapshots (auto-backup + download). */
+  const [settingsBackups, setSettingsBackups] = useState(() =>
+    loadSettingsBackups(),
+  );
+  const [restoreMessage, setRestoreMessage] = useState<string | null>(null);
+  /** One auto-backup per connection session on first successful $$ load. */
+  const sessionSettingsBackupTakenRef = useRef(false);
   const [taskPhase, setTaskPhase] = useState<TaskPhaseId>("connect");
   const [calibrationCompleted, setCalibrationCompleted] = useState(
     () => loadCalibrationState().calibrationCompleted,
@@ -398,6 +482,9 @@ export default function App() {
   /** Session flags from Prepare wizard (reset on disconnect / new job). */
   const [prepareXyZeroed, setPrepareXyZeroed] = useState(false);
   const [prepareZProbed, setPrepareZProbed] = useState(false);
+  /** Latch when Inputs probe pin (`Pn:P`) lights during Prepare continuity check. */
+  const [prepareProbeContinuityOk, setPrepareProbeContinuityOk] =
+    useState(false);
   const [prepareReady, setPrepareReady] = useState(false);
   const [prepareMessage, setPrepareMessage] = useState<string | null>(null);
   const [prepareBusy, setPrepareBusy] = useState(false);
@@ -519,6 +606,12 @@ export default function App() {
     streamProgress?.phase === "paused" ||
     streamProgress?.phase === "tool-change" ||
     streamProgress?.phase === "stopping";
+  /** Jog/probe allowed after M5 while paused for a tool change. */
+  const toolChangeMotionOk =
+    streamProgress?.phase === "tool-change" &&
+    !!toolChangeUi?.spindleStopped &&
+    !toolChangeUi.busy;
+  const streamingBlocksMotion = streaming && !toolChangeMotionOk;
 
   const phaseCtx = useMemo(
     () => ({
@@ -576,11 +669,12 @@ export default function App() {
             z: status.machine.z - status.work.z,
           },
           softTravel,
+          job.zRange,
         )
       : null;
 
   const checklistOk = verifyChecklistComplete(verifyChecklist);
-  const startGate = canStartJob(status.state, connected);
+  const startGate = canStartJob(gateState, connected);
   const startBlockedReason = !job
     ? null
     : !startGate.ok
@@ -639,6 +733,100 @@ export default function App() {
     streamPhaseRef.current = streamProgress?.phase ?? "idle";
   }, [streamProgress]);
 
+  // Abandoned rate/accel trial writes after disconnect — restore once Idle.
+  useEffect(() => {
+    const justConnected = connected && !wasConnectedRef.current;
+    wasConnectedRef.current = connected;
+    if (!justConnected) return;
+    if (!loadPendingRatesRestore()) return;
+    ratesTempActiveRef.current = false;
+    const tryRestore = () => {
+      if (!clientRef.current?.transport.isOpen) return;
+      const st = statusRef.current.state;
+      if (st !== "Idle" && st !== "Check") {
+        window.setTimeout(tryRestore, 200);
+        return;
+      }
+      void handleRestoreRatesPending("reconnect");
+    };
+    tryRestore();
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- rising-edge connect only
+  }, [connected]);
+
+  // M6: wait for Idle (buffered motion done), then send M5 before the panel unlocks.
+  useEffect(() => {
+    if (streamProgress?.phase !== "tool-change") {
+      setToolChangeUi(null);
+      return;
+    }
+    const arm = ++toolChangeArmRef.current;
+    setToolChangeUi({
+      waitingForIdle: true,
+      spindleStopped: false,
+      zReprobed: false,
+      sameToolLength: false,
+      busy: true,
+      statusNote: "Waiting for the machine to finish moving…",
+    });
+    let cancelled = false;
+    const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+    void (async () => {
+      try {
+        const started = Date.now();
+        while (!cancelled && toolChangeArmRef.current === arm) {
+          const pending = streamerRef.current?.getProgress().pendingLines ?? 0;
+          const idle = statusRef.current.state === "Idle";
+          if (pending === 0 && idle) break;
+          if (Date.now() - started > 120_000) {
+            throw new Error("Timed out waiting for Idle before spindle stop");
+          }
+          await wait(100);
+        }
+        if (cancelled || toolChangeArmRef.current !== arm) return;
+        setToolChangeUi((prev) =>
+          prev
+            ? {
+                ...prev,
+                statusNote: "Stopping the spindle…",
+              }
+            : prev,
+        );
+        await streamerRef.current?.sendDuringToolChange(
+          buildToolChangeSpindleStop(),
+        );
+        if (cancelled || toolChangeArmRef.current !== arm) return;
+        setToolChangeUi({
+          waitingForIdle: false,
+          spindleStopped: true,
+          zReprobed: false,
+          sameToolLength: false,
+          busy: false,
+          statusNote: null,
+        });
+        activityLog.append("event", "Tool change: spindle stopped (M5)");
+      } catch (err) {
+        if (cancelled || toolChangeArmRef.current !== arm) return;
+        const message = err instanceof Error ? err.message : String(err);
+        setToolChangeUi((prev) =>
+          prev
+            ? { ...prev, busy: false, statusNote: message }
+            : {
+                waitingForIdle: false,
+                spindleStopped: false,
+                zReprobed: false,
+                sameToolLength: false,
+                busy: false,
+                statusNote: message,
+              },
+        );
+        setErrorMessage(message);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [streamProgress?.phase, activityLog]);
+
   useEffect(() => {
     jobRef.current = job;
   }, [job]);
@@ -646,6 +834,13 @@ export default function App() {
   useEffect(() => {
     dryRunRef.current = dryRun;
   }, [dryRun]);
+
+  /** Latch Prepare continuity once the probe pin lights (`status.pins.probe`). */
+  useEffect(() => {
+    if (status.pins?.probe) {
+      setPrepareProbeContinuityOk(true);
+    }
+  }, [status.pins?.probe]);
 
   /** First real-machine Start defaults dry-run on; Virtual CNC uses last preference. */
   useEffect(() => {
@@ -871,16 +1066,18 @@ export default function App() {
           p.phase === "stopping" ||
           p.phase === "error"
         ) {
-          const nextLine =
-            typeof p.absoluteLine === "number"
-              ? p.absoluteLine
+          // Resume from before the last acknowledged line: GRBL acks lines
+          // when it plans them, not when it finishes cutting them.
+          const acked =
+            typeof p.ackedAbsoluteLine === "number"
+              ? p.ackedAbsoluteLine
               : p.ackedLines;
+          const nextLine = Math.max(0, acked - RESUME_BACKOFF_LINES);
           const checkpoint = {
             jobName: currentJob.name,
             totalLines: currentJob.lines.length,
             nextLine: Math.min(nextLine, currentJob.lines.length),
-            absoluteLine:
-              typeof p.absoluteLine === "number" ? p.absoluteLine : null,
+            absoluteLine: nextLine,
             work: { ...statusRef.current.work },
             machine: { ...statusRef.current.machine },
             phase: p.phase,
@@ -938,6 +1135,40 @@ export default function App() {
       cancelled = true;
     };
   }, []);
+
+  // M4: Space = Hold when focus isn't in a text field or on a button.
+  // Escape stays dialog-close only — never E-Stop.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== " " && event.code !== "Space") return;
+      if (event.repeat || event.altKey || event.ctrlKey || event.metaKey) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof Element)) return;
+      if (
+        target.closest(
+          "input, textarea, select, [contenteditable='true'], [contenteditable='']",
+        )
+      ) {
+        return;
+      }
+      if (
+        target.closest(
+          "button, a, [role='button'], [role='menuitem'], [role='tab']",
+        )
+      ) {
+        return;
+      }
+      if (!connected || estopLatchedRef.current) return;
+      if (statusRef.current.state === "Hold") return;
+      if (statusRef.current.state === "Alarm") return;
+      event.preventDefault();
+      void handleHoldRef.current();
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [connected]);
 
   useEffect(() => {
     if (!calOpen) return;
@@ -1213,16 +1444,22 @@ export default function App() {
       setGrblSettings(null);
       setCalMessage(null);
       setCalBusy(false);
+      setCalUndoStack([]);
+      setRatesTrialRunning(false);
+      ratesTrialRunningRef.current = false;
+      ratesTempActiveRef.current = false;
+      setRestoreMessage(null);
+      sessionSettingsBackupTakenRef.current = false;
       setHomed(false);
       setHomeMessage(null);
+      setEstopLatched(false);
       resetPrepareSession();
       setTaskPhase("connect");
     }
   };
 
   const handleSoftReset = async () => {
-    bedTravelAbortRef.current = true;
-    stockPerimeterAbortRef.current = true;
+    abortAppMotionLoops("soft reset");
     await stopContinuousJog();
     externalControlsRef.current.noteSoftwareAction("abort");
     if (streaming) {
@@ -1238,16 +1475,6 @@ export default function App() {
       setHomed(false);
       setErrorMessage(null);
       setSoftLimitHint(null);
-      if (bedTravelRunningRef.current) {
-        bedTravelRunningRef.current = false;
-        setBedTravelPhase("aborted");
-        setBedTravelMessage("Aborted by soft reset / E-Stop.");
-      }
-      if (stockPerimeterRunningRef.current) {
-        stockPerimeterRunningRef.current = false;
-        setStockPerimeterPhase("aborted");
-        setStockPerimeterMessage("Aborted by soft reset / E-Stop.");
-      }
       activityLog.append("event", "Soft reset");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1255,17 +1482,47 @@ export default function App() {
     }
   };
 
+  /**
+   * Stop every app-driven motion loop (bed travel, stock perimeter, continuous
+   * jog) and reset session flags. Shared by E-Stop and Reset so neither can
+   * leave a loop running that sends the next move after the controller stops.
+   */
+  const abortAppMotionLoops = (reasonLabel: string) => {
+    bedTravelAbortRef.current = true;
+    stockPerimeterAbortRef.current = true;
+    ratesTrialAbortRef.current = true;
+    if (bedTravelRunningRef.current) {
+      bedTravelRunningRef.current = false;
+      setBedTravelPhase("aborted");
+      setBedTravelMessage(`Aborted by ${reasonLabel}.`);
+    }
+    if (stockPerimeterRunningRef.current) {
+      stockPerimeterRunningRef.current = false;
+      setStockPerimeterPhase("aborted");
+      setStockPerimeterMessage(`Aborted by ${reasonLabel}.`);
+    }
+    if (ratesTrialRunningRef.current) {
+      ratesTrialRunningRef.current = false;
+      setRatesTrialRunning(false);
+      setCalMessage(`Rates trial aborted by ${reasonLabel}.`);
+    }
+  };
+
   const handleEstop = async () => {
     const client = clientRef.current;
+    // Latch first so no gate lets new motion through while we stop.
+    setEstopLatched(true);
+    abortAppMotionLoops("E-Stop");
     if (!client || !client.transport.isOpen) return;
-    activityLog.append("event", "E-Stop");
-    externalControlsRef.current.noteSoftwareAction("abort");
-    await stopContinuousJog();
+    // Feed hold goes out before anything else.
     try {
       await client.feedHold();
     } catch {
       /* best-effort */
     }
+    activityLog.append("event", "E-Stop (motion locked until cleared)");
+    externalControlsRef.current.noteSoftwareAction("abort");
+    await stopContinuousJog();
     // Brief pause so hold latches before soft reset clears the buffer.
     await new Promise((r) => setTimeout(r, 40));
     try {
@@ -1281,11 +1538,24 @@ export default function App() {
       } else {
         await client.softReset();
       }
+      setFeedOverridePercent(100);
+      setRapidOverridePercent(100);
+      setSpindleOverridePercent(100);
+      setHomed(false);
       setErrorMessage(null);
       setSoftLimitHint(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setErrorMessage(message);
+    }
+  };
+
+  const handleClearEstop = async () => {
+    setEstopLatched(false);
+    activityLog.append("event", "E-Stop cleared by operator");
+    const client = clientRef.current;
+    if (client?.transport.isOpen && statusRef.current.state === "Alarm") {
+      await handleUnlock();
     }
   };
 
@@ -1309,6 +1579,8 @@ export default function App() {
       setErrorMessage(message);
     }
   };
+
+  handleHoldRef.current = handleHold;
 
   const handleResume = async () => {
     const client = clientRef.current;
@@ -1370,13 +1642,13 @@ export default function App() {
   };
 
   const handleSimulateProbeFail = async () => {
-    await simulateMockAlarm("$Alarm4", "Simulated probe-fail alarm (mock)");
+    await simulateMockAlarm("$Alarm5", "Simulated probe no-contact alarm (mock)");
   };
 
   const handleHome = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canHome(statusRef.current.state, connected, streaming);
+    const gate = canHome(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setHomeMessage(gate.reason ?? "Cannot home");
       return;
@@ -1395,13 +1667,23 @@ export default function App() {
         const st = statusRef.current.state;
         if (st === "Home") sawHome = true;
         if (st === "Alarm") {
-          throw new Error(alarmMessage ?? "Homing failed (Alarm)");
+          const code = parseAlarmLine(alarmMessage ?? "")?.code ?? null;
+          throw new Error(
+            homingAlarmPlainDetail(code) ??
+              alarmMessage ??
+              "Homing failed (Alarm)",
+          );
         }
         if (st === "Idle" && (sawHome || usingMock)) break;
         await new Promise((r) => setTimeout(r, usingMock ? 80 : 250));
       }
       if (statusRef.current.state === "Alarm") {
-        throw new Error(alarmMessage ?? "Homing failed (Alarm)");
+        const code = parseAlarmLine(alarmMessage ?? "")?.code ?? null;
+        throw new Error(
+          homingAlarmPlainDetail(code) ??
+            alarmMessage ??
+            "Homing failed (Alarm)",
+        );
       }
       setHomed(true);
       setHomeMessage("Homed — machine coordinates at home switches.");
@@ -1413,6 +1695,66 @@ export default function App() {
       setHomed(false);
     } finally {
       setHomeBusy(false);
+    }
+  };
+
+  const handleWriteHomingSetting = async (
+    id: number,
+    before: number,
+    after: number,
+  ) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await writeGrblSetting(client, id, after, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value: after });
+        return next;
+      });
+      recordCalibrateWrites([{ id, before, after }]);
+      const unit = homingSettingUnit(id);
+      const unitSuffix = unit ? ` ${unit}` : "";
+      activityLog.append(
+        "event",
+        `Wrote $${id}=${after} (was ${before}) ${homingSettingPlainLabel(id)}`,
+      );
+      setCalMessage(
+        `${homingSettingPlainLabel(id)}: ${before} → ${after}${unitSuffix} ($${id})`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleToggleLimitPin = async (axis: LimitAxis) => {
+    // Mock-only — never send $ExtLimit* to a real Demon Shield port.
+    if (!usingMock) return;
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.sendLine(extLimitCommandForAxis(axis));
+      activityLog.append(
+        "event",
+        `Toggled ${axis} limit pin (Virtual CNC $ExtLimit${axis})`,
+      );
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
     }
   };
 
@@ -1510,7 +1852,7 @@ export default function App() {
   ) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canProbe(statusRef.current.state, connected, streaming, {
+    const gate = canProbe(gateStateLive(), connected, streaming, {
       probePinActive: !!statusRef.current.pins?.probe,
     });
     if (!gate.ok) {
@@ -1544,7 +1886,7 @@ export default function App() {
   const handleXyCornerProbe = async (mode: "outside" | "inside") => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canProbe(statusRef.current.state, connected, streaming, {
+    const gate = canProbe(gateStateLive(), connected, streaming, {
       probePinActive: !!statusRef.current.pins?.probe,
     });
     if (!gate.ok) {
@@ -1575,7 +1917,7 @@ export default function App() {
   const handleToolLengthProbe = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    const gate = canProbe(statusRef.current.state, connected, streaming, {
+    const gate = canProbe(gateStateLive(), connected, streaming, {
       probePinActive: !!statusRef.current.pins?.probe,
     });
     if (!gate.ok) {
@@ -1617,12 +1959,112 @@ export default function App() {
     }
   };
 
-  const handleResumeToolChange = async () => {
+  const handleToolChangeSameLength = (checked: boolean) => {
+    setToolChangeUi((prev) =>
+      prev ? { ...prev, sameToolLength: checked } : prev,
+    );
+  };
+
+  const handleToolChangeReprobeZ = async () => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    if (!toolChangeMotionOk) {
+      setErrorMessage(
+        toolChangeUi?.spindleStopped
+          ? "Wait for the spindle command to finish."
+          : "Wait until the spindle is stopped.",
+      );
+      return;
+    }
+    const gate = canProbe(gateStateLive(), connected, false, {
+      probePinActive: !!statusRef.current.pins?.probe,
+    });
+    if (!gate.ok) {
+      setErrorMessage(gate.reason ?? "Cannot probe");
+      return;
+    }
+    setToolChangeUi((prev) =>
+      prev
+        ? { ...prev, busy: true, statusNote: "Re-probing Z…" }
+        : prev,
+    );
     try {
-      await streamerRef.current?.resumeAfterToolChange();
-      activityLog.append("event", "Resumed after M6 tool change");
+      const result = await runToolLengthProbeCycle(client, {
+        plateThicknessMm: probeConfig.plateThicknessMm,
+        seekMm: probeConfig.seekMm,
+        feedMmMin: probeConfig.feedMmMin,
+        timeoutMs: usingMock ? 5000 : 20_000,
+      });
+      setToolChangeUi((prev) =>
+        prev
+          ? {
+              ...prev,
+              busy: false,
+              zReprobed: true,
+              statusNote: `Z re-probed · ${result.workZeroCommand}`,
+            }
+          : prev,
+      );
+      activityLog.append("event", "Tool change: Z re-probed");
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
+      setToolChangeUi((prev) =>
+        prev ? { ...prev, busy: false, statusNote: message } : prev,
+      );
+      setErrorMessage(message);
+    }
+  };
+
+  const handleResumeToolChange = async () => {
+    const streamer = streamerRef.current;
+    const currentJob = jobRef.current;
+    if (!streamer || !toolChangeUi) return;
+    if (
+      !canContinueToolChange({
+        spindleStopped: toolChangeUi.spindleStopped,
+        zReprobed: toolChangeUi.zReprobed,
+        sameToolLength: toolChangeUi.sameToolLength,
+        busy: toolChangeUi.busy,
+      })
+    ) {
+      setErrorMessage(
+        "Re-probe Z or tick “Same tool length” before continuing.",
+      );
+      return;
+    }
+    setToolChangeUi((prev) =>
+      prev
+        ? { ...prev, busy: true, statusNote: "Restoring spindle…" }
+        : prev,
+    );
+    try {
+      const m6Line =
+        streamer.getProgress().toolChangeLine ??
+        Math.max(0, (streamer.getProgress().absoluteLine ?? 1) - 1);
+      const resume =
+        currentJob != null
+          ? scanResumeState(currentJob.lines, m6Line)
+          : { spindle: null, spindleSpeed: null };
+      // Dry-run jobs keep the spindle off after the bit change.
+      const restore = dryRunRef.current
+        ? []
+        : buildToolChangeSpindleRestore(resume);
+      for (const line of restore) {
+        await streamer.sendDuringToolChange(line);
+      }
+      await streamer.resumeAfterToolChange();
+      activityLog.append(
+        "event",
+        restore.length > 0
+          ? `Resumed after M6 (restored ${restore[0]})`
+          : "Resumed after M6 tool change",
+      );
+      setToolChangeUi(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setToolChangeUi((prev) =>
+        prev ? { ...prev, busy: false, statusNote: message } : prev,
+      );
       setErrorMessage(message);
     }
   };
@@ -1652,6 +2094,16 @@ export default function App() {
       setGrblSettings(map);
       const fromGrbl = softTravelFromSettings(map, softTravel);
       updateSoftTravel(fromGrbl);
+      // Auto-backup once per session on first successful $$ load (Calibrate entry).
+      if (!sessionSettingsBackupTakenRef.current && map.size > 0) {
+        const store = pushSettingsBackup(map);
+        setSettingsBackups(store);
+        sessionSettingsBackupTakenRef.current = true;
+        activityLog.append(
+          "event",
+          `Settings backup saved (${map.size} settings, ${store.snapshots.length} kept)`,
+        );
+      }
       activityLog.append("event", `Read $$ (${map.size} settings)`);
       setCalMessage(`Loaded ${map.size} settings from $$`);
     } catch (err) {
@@ -1663,10 +2115,145 @@ export default function App() {
     }
   };
 
-  const handleCalibrateMove = async (axis: Axis, distanceMm: number) => {
+  const handleBackupSettingsDownload = async () => {
+    if (!grblSettings || grblSettings.size === 0) {
+      setCalMessage("Load settings first (Reload), then back up.");
+      return;
+    }
+    try {
+      const saved = await saveSettingsBackupFile(grblSettings);
+      if (saved === null) {
+        setCalMessage("Backup cancelled.");
+        return;
+      }
+      // Also keep a snapshot in the restore list when the operator explicitly backs up.
+      const store = pushSettingsBackup(grblSettings);
+      setSettingsBackups(store);
+      activityLog.append("event", `Settings backup downloaded (${saved})`);
+      setCalMessage(`Backed up settings → ${saved}`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    }
+  };
+
+  const recordCalibrateWrites = (
+    entries: Array<{ id: number; before: number; after: number }>,
+  ) => {
+    if (entries.length === 0) return;
+    setCalUndoStack((prev) => {
+      let next = prev;
+      for (const e of entries) {
+        next = pushCalibrateUndo(next, e);
+      }
+      return next;
+    });
+  };
+
+  const handleUndoCalibrateWrite = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
     const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    const { entry, next } = popCalibrateUndo(calUndoStack);
+    if (!entry) {
+      setCalMessage("Nothing to undo.");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    setCalUndoStack(next);
+    try {
+      await writeGrblSetting(client, entry.id, entry.before, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const map = new Map(prev ?? []);
+        map.set(entry.id, { id: entry.id, value: entry.before });
+        return map;
+      });
+      if (entry.id === 130 || entry.id === 131 || entry.id === 132) {
+        const patched = { ...softTravel, min: { ...softTravel.min } };
+        if (entry.id === 130) patched.maxX = entry.before;
+        if (entry.id === 131) patched.maxY = entry.before;
+        if (entry.id === 132) patched.maxZ = entry.before;
+        updateSoftTravel(patched);
+      }
+      activityLog.append(
+        "event",
+        `Undo $${entry.id}: ${entry.after} → ${entry.before}`,
+      );
+      setCalMessage(`Undid $${entry.id}: ${entry.after} → ${entry.before}`);
+    } catch (err) {
+      setCalUndoStack((prev) => pushCalibrateUndo(prev, entry));
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleRestoreSettingsSnapshot = async (snapshot: SettingsSnapshot) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setRestoreMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    setCalBusy(true);
+    setRestoreMessage(null);
+    try {
+      let live = grblSettings;
+      if (!live || live.size === 0) {
+        live = await fetchGrblSettings(client, {
+          timeoutMs: usingMock ? 1500 : 5000,
+        });
+        setGrblSettings(live);
+      }
+      const diff = diffSettings(snapshot.settings, live);
+      const entries = restoreWriteEntries(diff);
+      if (entries.length === 0) {
+        setRestoreMessage("Nothing to restore — live settings match.");
+        return;
+      }
+      await writeGrblSettings(client, entries, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      const confirmed = await fetchGrblSettings(client, {
+        timeoutMs: usingMock ? 1500 : 5000,
+      });
+      setGrblSettings(confirmed);
+      const fromGrbl = softTravelFromSettings(confirmed, softTravel);
+      updateSoftTravel(fromGrbl);
+      activityLog.append(
+        "event",
+        `Restored ${entries.length} setting${entries.length === 1 ? "" : "s"} from backup`,
+      );
+      setRestoreMessage(
+        `Restored ${entries.length} setting${entries.length === 1 ? "" : "s"}; re-read $$ (${confirmed.size}).`,
+      );
+      setCalMessage(
+        `Restored ${entries.length} setting${entries.length === 1 ? "" : "s"} from backup.`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setRestoreMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleCalibrateMove = async (axis: Axis, distanceMm: number) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setCalMessage(gate.reason ?? "Cannot move for calibration");
       return;
@@ -1732,12 +2319,237 @@ export default function App() {
         next.set(id, { id, value: after });
         return next;
       });
+      recordCalibrateWrites([{ id, before, after }]);
       activityLog.append(
         "event",
         `Wrote $${id}=${after} (was ${before}) steps/mm ${axis}`,
       );
       setCalMessage(
         `${axis} steps/mm: ${before.toFixed(3)} → ${after.toFixed(3)} ($${id})`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const waitRatesIdle = async (client: GrblClient) => {
+    const deadline = Date.now() + (usingMock ? 60_000 : 300_000);
+    await new Promise((r) => setTimeout(r, usingMock ? 40 : 80));
+    while (Date.now() < deadline) {
+      if (ratesTrialAbortRef.current) return;
+      await client.requestStatus().catch(() => undefined);
+      const st = statusRef.current.state;
+      if (st === "Alarm") {
+        throw new Error(alarmMessage ?? "Alarm during rates trial");
+      }
+      if (st === "Hold") {
+        await new Promise((r) => setTimeout(r, usingMock ? 80 : 200));
+        continue;
+      }
+      if (st === "Idle" || st === "Check") return;
+      await new Promise((r) => setTimeout(r, usingMock ? 50 : 120));
+    }
+    throw new Error("Timed out waiting for Idle after rates trial.");
+  };
+
+  /** Restore abandoned temp rate/accel writes (cancel, leave, reconnect). */
+  const handleRestoreRatesPending = async (reason: string) => {
+    const pending = loadPendingRatesRestore();
+    if (!pending || pending.entries.length === 0) return;
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    // Use transport openness (not React `connected`) so reconnect can restore
+    // before the next render flips phase → connected.
+    const gate = canWriteSettings(statusRef.current.state, true, streaming);
+    if (!gate.ok) {
+      // Keep pending for a later Idle/connect attempt.
+      return;
+    }
+    setCalBusy(true);
+    try {
+      await writeGrblSettings(
+        client,
+        pending.entries.map((e) => ({ id: e.id, value: e.value })),
+        { timeoutMs: usingMock ? 1500 : 4000 },
+      );
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        for (const e of pending.entries) {
+          next.set(e.id, { id: e.id, value: e.value });
+        }
+        return next;
+      });
+      clearPendingRatesRestore();
+      ratesTempActiveRef.current = false;
+      activityLog.append(
+        "event",
+        `Rates pending restore (${reason}): ${pending.entries
+          .map((e) => `$${e.id}=${e.value}`)
+          .join(", ")}`,
+      );
+      setCalMessage(`Restored temporary rate/accel writes (${reason}).`);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      activityLog.append("event", `Rates pending restore failed: ${message}`);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleRatesTrial = async (args: {
+    axis: Axis;
+    kind: RatesKind;
+    trialValue: number;
+    baselineValue: number;
+    distanceMm: number;
+    cycles: number;
+  }) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) {
+      throw new Error("Connect first.");
+    }
+    if (statusRef.current.state !== "Idle" && statusRef.current.state !== "Check") {
+      throw new Error("Wait for Idle before starting a trial.");
+    }
+    const fit = canFitRatesTest(
+      statusRef.current.machine,
+      softTravel,
+      args.axis,
+      args.distanceMm,
+    );
+    if (!fit.ok) {
+      throw new Error(fit.reason ?? "Test does not fit soft travel.");
+    }
+    const id = ratesSettingId(args.kind, args.axis);
+    const writeGate = canWriteSettings(
+      statusRef.current.state,
+      connected,
+      streaming,
+    );
+    if (!writeGate.ok) {
+      throw new Error(writeGate.reason ?? "Cannot write settings.");
+    }
+
+    ratesTrialAbortRef.current = false;
+    ratesTrialRunningRef.current = true;
+    setRatesTrialRunning(true);
+    setCalBusy(true);
+    setCalMessage(null);
+
+    try {
+      await stopContinuousJog();
+
+      // Record baseline once per setting id; trial value is temporary.
+      const existing = loadPendingRatesRestore()?.entries ?? [];
+      const merged = mergePendingRatesRestore(existing, [
+        { id, value: args.baselineValue },
+      ]);
+      savePendingRatesRestore(merged);
+      ratesTempActiveRef.current = true;
+
+      await writeGrblSetting(client, id, args.trialValue, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value: args.trialValue });
+        return next;
+      });
+
+      // Feed for G1: use the trial max rate when tuning rate; when tuning
+      // accel, use the current max rate for this axis so accel is the variable.
+      const feedMmMin =
+        args.kind === "rate"
+          ? args.trialValue
+          : (grblSettings?.get(ratesSettingId("rate", args.axis))?.value ??
+            args.trialValue);
+
+      const lines = buildRatesTrialLines(
+        args.axis,
+        args.distanceMm,
+        args.cycles,
+        feedMmMin,
+      );
+      activityLog.append(
+        "event",
+        `Rates trial ${args.kind} ${args.axis}: $${id}=${args.trialValue} · ${args.cycles}× ${args.distanceMm} mm`,
+      );
+      for (const line of lines) {
+        if (ratesTrialAbortRef.current) break;
+        await client.sendLine(line);
+      }
+      await waitRatesIdle(client);
+      if (ratesTrialAbortRef.current) {
+        throw new Error("Rates trial aborted.");
+      }
+      setCalMessage(
+        `Trial done at ${args.trialValue} ${ratesSettingUnit(args.kind)} — check the mark.`,
+      );
+      activityLog.append(
+        "event",
+        `Rates trial complete ${args.kind} ${args.axis} @ ${args.trialValue}`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      activityLog.append("event", `Rates trial failed: ${message}`);
+      throw err;
+    } finally {
+      ratesTrialRunningRef.current = false;
+      setRatesTrialRunning(false);
+      setCalBusy(false);
+    }
+  };
+
+  const handleWriteRates = async (
+    kind: RatesKind,
+    axis: Axis,
+    before: number,
+    after: number,
+  ) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    const id = ratesSettingId(kind, axis);
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await writeGrblSetting(client, id, after, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value: after });
+        return next;
+      });
+      recordCalibrateWrites([{ id, before, after }]);
+      // Accepted write replaces any pending restore for this id.
+      const pending = loadPendingRatesRestore();
+      if (pending) {
+        const rest = pending.entries.filter((e) => e.id !== id);
+        if (rest.length === 0) {
+          clearPendingRatesRestore();
+          ratesTempActiveRef.current = false;
+        } else {
+          savePendingRatesRestore(rest);
+        }
+      } else {
+        ratesTempActiveRef.current = false;
+      }
+      activityLog.append(
+        "event",
+        `Wrote $${id}=${after} (was ${before}) ${ratesSettingPlainLabel(kind, axis)}`,
+      );
+      setCalMessage(
+        `${ratesSettingPlainLabel(kind, axis)}: ${before} → ${after} ${ratesSettingUnit(kind)} ($${id})`,
       );
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
@@ -1757,6 +2569,9 @@ export default function App() {
       return;
     }
     const value = Math.trunc(mask) & 0b111;
+    const before =
+      grblSettings?.get(SETTING_DIR_PORT_INVERT)?.value ??
+      0;
     setCalBusy(true);
     setCalMessage(null);
     try {
@@ -1771,6 +2586,9 @@ export default function App() {
         });
         return next;
       });
+      recordCalibrateWrites([
+        { id: SETTING_DIR_PORT_INVERT, before, after: value },
+      ]);
       const summary = describeDirInvertMask(value);
       activityLog.append(
         "event",
@@ -1791,6 +2609,7 @@ export default function App() {
   const handleApplySoftTravel = async (
     limits: SoftTravelLimits,
     enableSoft: boolean,
+    enableHard = false,
   ) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
@@ -1811,6 +2630,15 @@ export default function App() {
       if (limits.maxY !== null) entries.push({ id: 131, value: limits.maxY });
       if (limits.maxZ !== null) entries.push({ id: 132, value: limits.maxZ });
       if (enableSoft) entries.push({ id: SETTING_SOFT_LIMITS, value: 1 });
+      if (enableHard) entries.push({ id: SETTING_HARD_LIMITS, value: 1 });
+
+      const undoEntries = entries
+        .map((e) => {
+          const before = grblSettings?.get(e.id)?.value;
+          if (before === undefined || !Number.isFinite(before)) return null;
+          return { id: e.id, before, after: e.value };
+        })
+        .filter((e): e is CalibrateWriteEntry => e !== null);
 
       await writeGrblSettings(client, entries, {
         timeoutMs: usingMock ? 1500 : 4000,
@@ -1829,14 +2657,75 @@ export default function App() {
         for (const e of entries) next.set(e.id, { id: e.id, value: e.value });
         return next;
       });
+      recordCalibrateWrites(undoEntries);
 
       activityLog.append(
         "event",
-        `Soft travel X${merged.maxX ?? "—"} Y${merged.maxY ?? "—"} Z${merged.maxZ ?? "—"} · $20=${enableSoft ? 1 : "unchanged"}`,
+        `Soft travel X${merged.maxX ?? "—"} Y${merged.maxY ?? "—"} Z${merged.maxZ ?? "—"} · $20=${enableSoft ? 1 : "unchanged"} · $21=${enableHard ? 1 : "unchanged"}`,
       );
       setCalMessage(
-        `Wrote max travel${enableSoft ? " and enabled soft limits ($20=1)" : ""}. Bed updated.`,
+        `Wrote max travel${enableSoft ? " and enabled soft limits ($20=1)" : ""}${enableHard ? " · hard limits ($21=1)" : ""}. Bed updated.`,
       );
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err);
+      const plain = plainSoftLimitsNeedHoming(raw);
+      const message = plain ?? raw;
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleVerifySoftLimit = async (axis: Axis) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot test soft limit");
+      return;
+    }
+    if (!grblSettings || !softLimitsEnabled(grblSettings)) {
+      setCalMessage("Enable soft limits ($20=1) before testing.");
+      return;
+    }
+    const delta = softLimitVerifyDelta(
+      axis,
+      statusRef.current.machine,
+      softTravelRef.current,
+    );
+    if (!delta) {
+      setCalMessage(
+        `Set max ${axis} travel first, then write soft limits before testing.`,
+      );
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await stopContinuousJog();
+      const cmd = buildJogCommand(delta, Math.min(feedMmMin, 500));
+      const outcome = await runSoftLimitVerifyJog(client, cmd, {
+        timeoutMs: usingMock ? 2000 : 4000,
+      });
+      if (!outcome.ok) {
+        setCalMessage(outcome.reason);
+        return;
+      }
+      if (outcome.kind === "ALARM:2") {
+        // Default Virtual CNC soft-limit jog raises Alarm — unlock so the
+        // operator can keep calibrating. Real / strict path stays Idle.
+        try {
+          await client.sendLine(UNLOCK_COMMAND);
+        } catch {
+          /* ignore unlock failure; message still reports success */
+        }
+      }
+      activityLog.append(
+        "event",
+        `Soft-limit verify ${axis}: ${outcome.kind}`,
+      );
+      setCalMessage(`${SOFT_LIMITS_WORKING_COPY} (${axis})`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setCalMessage(message);
@@ -1886,9 +2775,9 @@ export default function App() {
   const sendJogDelta = async (axes: JogAxisMap, continuous: boolean) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
-    if (streaming) return;
+    if (streamingBlocksMotion) return;
 
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streamingBlocksMotion);
     if (!gate.ok) {
       setSoftLimitHint(gate.reason ?? "Cannot jog");
       if (continuous) await stopContinuousJog();
@@ -1946,7 +2835,7 @@ export default function App() {
   };
 
   const handleJog = (axes: JogAxisMap) => {
-    if (!connected || streaming) return;
+    if (!connected || streamingBlocksMotion) return;
     if (statusRef.current.state === "Alarm") {
       setSoftLimitHint("Alarm lock — unlock before jogging.");
       return;
@@ -2035,7 +2924,7 @@ export default function App() {
   const handleZero = async (axes: ZeroAxisSelection) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setZeroMessage(gate.reason ?? "Cannot set zero");
       return;
@@ -2066,7 +2955,7 @@ export default function App() {
   const handlePrepareZeroXy = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot set zero");
       return;
@@ -2098,7 +2987,7 @@ export default function App() {
       );
       return;
     }
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot set zero");
       setZeroMessage(gate.reason ?? "Cannot set zero");
@@ -2131,14 +3020,29 @@ export default function App() {
     }
   };
 
+  const handleSimulateProbeTouch = async () => {
+    // Mock-only — never send $ExtProbe to a real Demon Shield port.
+    if (!usingMock) return;
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.sendLine("$ExtProbe");
+      activityLog.append("event", "Simulated probe clip touch (Virtual CNC)");
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setPrepareMessage(message);
+    }
+  };
+
   const handleRunZProbe = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canProbe(
-      statusRef.current.state,
-      connected,
-      streaming,
-      { probePinActive: !!statusRef.current.pins?.probe },
+    const pinActive = !!statusRef.current.pins?.probe;
+    const gate = canRunPrepareZProbe(
+      prepareProbeContinuityOk,
+      canProbe(gateStateLive(), connected, streaming),
+      pinActive,
     );
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot probe");
@@ -2178,7 +3082,7 @@ export default function App() {
   const handlePrepareManualZZero = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot set zero");
       return;
@@ -2201,7 +3105,7 @@ export default function App() {
   const handlePrepareRetract = async () => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setPrepareMessage(gate.reason ?? "Cannot retract");
       return;
@@ -2229,6 +3133,7 @@ export default function App() {
   const resetPrepareSession = () => {
     setPrepareXyZeroed(false);
     setPrepareZProbed(false);
+    setPrepareProbeContinuityOk(false);
     setPrepareReady(false);
     setPrepareMessage(null);
     setVerifyChecklist(emptyVerifyChecklist());
@@ -2478,13 +3383,19 @@ export default function App() {
       return;
     }
 
-    const gate = canStartJob(statusRef.current.state, connected);
+    const gate = canStartJob(gateStateLive(), connected);
     if (!gate.ok) {
       setErrorMessage(gate.reason ?? "Cannot start");
       return;
     }
 
     resetSimForPath(job.path);
+
+    // Dry run lifts every absolute Z so the deepest cut stays above material Z0.
+    const lift = dryRun ? dryRunLiftMm(job.zRange) : 0;
+    const effectiveZRange = job.zRange
+      ? { minZ: job.zRange.minZ + lift, maxZ: job.zRange.maxZ + lift }
+      : null;
 
     const soft = checkJobSoftLimits(
       job.bounds,
@@ -2494,17 +3405,33 @@ export default function App() {
         z: statusRef.current.machine.z - statusRef.current.work.z,
       },
       softTravel,
+      effectiveZRange,
     );
     if (!soft.ok) {
-      setErrorMessage(soft.reason ?? "Job outside soft limits");
+      setErrorMessage(
+        dryRun
+          ? `${soft.reason ?? "Job outside soft limits"} (Dry run lifts Z by ${lift.toFixed(1)} mm to keep the bit above the stock.)`
+          : (soft.reason ?? "Job outside soft limits"),
+      );
       return;
     }
 
     const startAt = clampScrubIndex(scrubIndex, job.lines.length);
-    const sliced = job.lines.slice(startAt);
-    const sourceLines = dryRun
-      ? buildDryRunLines(sliced, { spindleOff: true })
-      : sliced;
+    const jobLines = dryRun ? dryRunJobLines(job.lines, lift) : job.lines;
+    // Starting mid-file: restore units, offsets, spindle, and feed first, then
+    // retract → move over the start point → spin up → plunge.
+    const resumePreamble = buildResumePreamble(jobLines, startAt, {
+      clearanceZMm: effectiveZRange?.maxZ ?? 5,
+    });
+    const preamble = dryRun
+      ? ["M5", ...dryRunJobLines(resumePreamble, 0)]
+      : resumePreamble;
+    if (resumePreamble.length > 0) {
+      activityLog.append(
+        "event",
+        `Resume setup before line ${startAt + 1}: ${resumePreamble.join(" | ")}`,
+      );
+    }
 
     await stopContinuousJog();
     setErrorMessage(null);
@@ -2518,11 +3445,16 @@ export default function App() {
       !usingVirtualCnc ? markStartedOnRealMachine() : loadVerifyRunState(),
     );
     try {
-      await streamer.start(sourceLines);
+      await streamer.start(jobLines, { startIndex: startAt, preamble });
       activityLog.append("event", `Job completed: ${job.name}`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
-      setErrorMessage(message);
+      const shown = /^error:/i.test(message)
+        ? `Job halted — GRBL rejected a line (${message}). Motion is on hold. Press Stop to cancel the job and turn the spindle off.`
+        : /^ALARM:/i.test(message)
+          ? `Job stopped by ${message}. See the alarm panel for what it means.`
+          : message;
+      setErrorMessage(shown);
       activityLog.append("event", `Job error: ${message}`);
     }
   };
@@ -2628,8 +3560,27 @@ export default function App() {
           ? "Virtual CNC"
           : selectedPath || "No port";
 
-  const jogGate = canJogOrZero(status.state, connected, streaming);
+  const jogGate = canJogOrZero(gateState, connected, streamingBlocksMotion);
   const jogEnabled = jogGate.ok;
+
+  /** Same jog pad as Prepare, for Calibrate steps that need to move the machine. */
+  const calibrationJogPad = (
+    <JogPanel
+      enabled={jogEnabled && !calBusy}
+      mode={jogMode}
+      stepMm={stepMm}
+      feedMmMin={feedMmMin}
+      softLimitHint={
+        softLimitHint ?? (!jogGate.ok && connected ? jogGate.reason : null)
+      }
+      gamepadStatus={gamepadStatus}
+      onModeChange={setJogMode}
+      onStepChange={setStepMm}
+      onFeedChange={setFeedMmMin}
+      onJog={handleJog}
+      onJogEnd={handleJogEnd}
+    />
+  );
   const softLimitsOn = grblSettings
     ? softLimitsEnabled(grblSettings)
     : false;
@@ -2718,7 +3669,7 @@ export default function App() {
   const handleBedTravelStart = async (plan: BedTravelPlan) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setBedTravelMessage(gate.reason ?? "Cannot start bed travel");
       return;
@@ -2873,7 +3824,7 @@ export default function App() {
   const handleStockPerimeterStart = async (plan: StockPerimeterPlan) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen || streaming) return;
-    const gate = canJogOrZero(statusRef.current.state, connected, streaming);
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
     if (!gate.ok) {
       setStockPerimeterMessage(gate.reason ?? "Cannot start stock perimeter");
       return;
@@ -3025,19 +3976,6 @@ export default function App() {
     );
   };
 
-  const handleFirstRunSoftTravel = async () => {
-    updateSoftTravel(softTravel);
-    setFirstRunMessage(
-      `Saved local soft travel X${softTravel.maxX ?? "—"} Y${softTravel.maxY ?? "—"} Z${softTravel.maxZ ?? "—"}`,
-    );
-    if (connected) {
-      await handleApplySoftTravel(softTravel, true);
-      setFirstRunMessage(
-        (prev) => `${prev ?? "Saved"} · wrote GRBL max travel + $20=1`,
-      );
-    }
-  };
-
   const openPrepareRun = () => {
     if (connected && calibrationCompleted) {
       setTaskPhase("prepare");
@@ -3174,9 +4112,6 @@ export default function App() {
             onDisconnect={() => {
               void handleDisconnect();
             }}
-            onSoftReset={() => {
-              void handleSoftReset();
-            }}
           />
         </div>
         <div className="brand__actions">
@@ -3229,10 +4164,14 @@ export default function App() {
         <div className="shell__main">
           <section className="shell__chrome" aria-label="Position and safety">
             <div className="shell__chrome-row">
-              <CoordinateReadout status={status} />
+              <CoordinateReadout status={status} showInputs={connected} />
               <SafetyControls
                 connected={connected}
                 machineState={status.state}
+                estopLatched={estopLatched}
+                onClearEstop={() => {
+                  void handleClearEstop();
+                }}
                 alarmMessage={alarmMessage}
                 alarmGuide={alarmGuide}
                 usingMock={usingMock}
@@ -3333,7 +4272,25 @@ export default function App() {
             simActivity={simulating ? sim.activity : null}
             wco={status.wco ?? currentWco}
             overlay={
-              job && job.path.length > 0 ? (
+              <>
+              {connected ? (
+                <ZGauge
+                  machineZ={status.machine.z}
+                  zTravelMm={softTravel.maxZ}
+                  homeZ={softTravel.min.z}
+                  materialZeroMachineZ={
+                    prepareZProbed ||
+                    Math.abs((status.wco ?? currentWco).z) > 1e-6
+                      ? (status.wco ?? currentWco).z
+                      : null
+                  }
+                  stockThicknessMm={
+                    taskPhase === "calibrate" ? null : stock.thicknessMm
+                  }
+                  jobZRange={job?.zRange ?? null}
+                />
+              ) : null}
+              {job && job.path.length > 0 ? (
                 <div className="machine__overlay">
                   <SimControls
                     variant="overlay"
@@ -3354,7 +4311,8 @@ export default function App() {
                     onStop={handleSimStop}
                   />
                 </div>
-              ) : null
+              ) : null}
+              </>
             }
           />
         </div>
@@ -3437,7 +4395,7 @@ export default function App() {
                         Machine already calibrated
                       </button>
                       <span className="phase-cal__skip-hint">
-                        Four guided steps — Home and bed travel are optional.
+                        Four guided steps. Home first (once per power-on); the bed travel test at the end is optional.
                       </span>
                     </div>
                   ) : (
@@ -3446,6 +4404,7 @@ export default function App() {
                     </p>
                   )}
                   <CalibrationPanel
+                    jogPad={calibrationJogPad}
                     dense
                     enabled={settingsGate.ok && !calBusy}
                     blockedReason={
@@ -3468,6 +4427,19 @@ export default function App() {
                     onRefreshSettings={() => {
                       void handleRefreshSettings();
                     }}
+                    onBackupSettings={() => {
+                      void handleBackupSettingsDownload();
+                    }}
+                    undoLabel={
+                      calUndoStack.length > 0
+                        ? formatCalibrateUndoLabel(
+                            calUndoStack[calUndoStack.length - 1]!,
+                          )
+                        : null
+                    }
+                    onUndoCalibrateWrite={() => {
+                      void handleUndoCalibrateWrite();
+                    }}
                     onCalibrateMove={(axis, distanceMm) => {
                       void handleCalibrateMove(axis, distanceMm);
                     }}
@@ -3477,9 +4449,34 @@ export default function App() {
                     onWriteDirInvert={(mask) => {
                       void handleWriteDirInvert(mask);
                     }}
-                    onApplySoftTravel={(limits, enableSoft) => {
-                      void handleApplySoftTravel(limits, enableSoft);
+                    onApplySoftTravel={(limits, enableSoft, enableHard) => {
+                      void handleApplySoftTravel(
+                        limits,
+                        enableSoft,
+                        enableHard,
+                      );
                     }}
+                    onVerifySoftLimit={(axis) => {
+                      void handleVerifySoftLimit(axis);
+                    }}
+                    onRatesTrial={handleRatesTrial}
+                    onWriteRates={(kind, axis, before, after) => {
+                      void handleWriteRates(kind, axis, before, after);
+                    }}
+                    onRatesCancelRestore={() => {
+                      void handleRestoreRatesPending("cancel/leave");
+                    }}
+                    ratesTrialRunning={ratesTrialRunning}
+                    onWriteHomingSetting={(id, before, after) => {
+                      void handleWriteHomingSetting(id, before, after);
+                    }}
+                    onToggleLimitPin={
+                      usingMock
+                        ? (axis) => {
+                            void handleToggleLimitPin(axis);
+                          }
+                        : null
+                    }
                     onZero={(axes) => {
                       void handleZero(axes);
                     }}
@@ -3487,10 +4484,10 @@ export default function App() {
                     onOpenBedTravelTest={openBedTravelTest}
                     homing={{
                       enabled:
-                        canHome(status.state, connected, streaming).ok &&
+                        canHome(gateState, connected, streaming).ok &&
                         !homeBusy,
                       blockedReason:
-                        canHome(status.state, connected, streaming).reason ??
+                        canHome(gateState, connected, streaming).reason ??
                         null,
                       homed,
                       busy: homeBusy,
@@ -3541,14 +4538,22 @@ export default function App() {
                       bedMm={bedMm}
                       jogEnabled={jogEnabled}
                       probeEnabled={
-                        canProbe(status.state, connected, streaming, {
-                          probePinActive: !!status.pins?.probe,
-                        }).ok && !prepareBusy
+                        canRunPrepareZProbe(
+                          prepareProbeContinuityOk,
+                          canProbe(gateState, connected, streaming),
+                          !!status.pins?.probe,
+                        ).ok && !prepareBusy
                       }
                       probeBlockedReason={
-                        canProbe(status.state, connected, streaming, {
-                          probePinActive: !!status.pins?.probe,
-                        }).reason ?? null
+                        canRunPrepareZProbe(
+                          prepareProbeContinuityOk,
+                          canProbe(gateState, connected, streaming),
+                          !!status.pins?.probe,
+                        ).reason ?? null
+                      }
+                      probeContinuityOk={prepareProbeContinuityOk}
+                      onSimulateProbeTouch={
+                        usingMock ? () => void handleSimulateProbeTouch() : null
                       }
                       busy={prepareBusy}
                       message={prepareMessage}
@@ -3604,11 +4609,11 @@ export default function App() {
                       onOpenStockPerimeter={openStockPerimeterTest}
                       xyProbe={{
                         enabled:
-                          canProbe(status.state, connected, streaming, {
+                          canProbe(gateState, connected, streaming, {
                             probePinActive: !!status.pins?.probe,
                           }).ok && !xyProbeBusy,
                         blockedReason:
-                          canProbe(status.state, connected, streaming, {
+                          canProbe(gateState, connected, streaming, {
                             probePinActive: !!status.pins?.probe,
                           }).reason ?? null,
                         busy: xyProbeBusy,
@@ -3626,10 +4631,10 @@ export default function App() {
                       }}
                       homing={{
                         enabled:
-                          canHome(status.state, connected, streaming).ok &&
+                          canHome(gateState, connected, streaming).ok &&
                           !homeBusy,
                         blockedReason:
-                          canHome(status.state, connected, streaming).reason ??
+                          canHome(gateState, connected, streaming).reason ??
                           null,
                         busy: homeBusy,
                         homed,
@@ -3803,6 +4808,11 @@ export default function App() {
                         showSimNudge={!verifyRunPrefs.simNudgeDismissed}
                         onDismissSimNudge={handleDismissSimNudge}
                         usingVirtualCnc={usingVirtualCnc}
+                        toolChangeUi={toolChangeUi}
+                        onToolChangeSameLength={handleToolChangeSameLength}
+                        onToolChangeReprobeZ={() => {
+                          void handleToolChangeReprobeZ();
+                        }}
                         onResumeToolChange={() => {
                           void handleResumeToolChange();
                         }}
@@ -3846,6 +4856,11 @@ export default function App() {
                     }}
                     timeEstimate={jobTimeEstimate}
                     dryRun={dryRun}
+                    toolChangeUi={toolChangeUi}
+                    onToolChangeSameLength={handleToolChangeSameLength}
+                    onToolChangeReprobeZ={() => {
+                      void handleToolChangeReprobeZ();
+                    }}
                     onResumeToolChange={() => {
                       void handleResumeToolChange();
                     }}
@@ -3914,11 +4929,9 @@ export default function App() {
               homed={homed}
               homeBusy={homeBusy}
               homeBlockedReason={
-                canHome(status.state, connected, streaming).reason ?? null
+                canHome(gateState, connected, streaming).reason ?? null
               }
               homeMessage={homeMessage}
-              softTravel={softTravel}
-              stock={stock}
               message={firstRunMessage}
               onStepChange={setFirstRunStep}
               onRefreshPorts={() => {
@@ -3933,11 +4946,6 @@ export default function App() {
               onOpenCalibration={() => {
                 openCalibration();
               }}
-              onSoftTravelChange={updateSoftTravel}
-              onApplySoftTravel={() => {
-                void handleFirstRunSoftTravel();
-              }}
-              onStockChange={handleStockChange}
               onComplete={() => finishFirstRun(false)}
               onSkip={() => finishFirstRun(true)}
             />
@@ -3974,6 +4982,7 @@ export default function App() {
             </header>
             <div className="cal-modal__body">
               <CalibrationPanel
+                jogPad={calibrationJogPad}
                 enabled={settingsGate.ok && !calBusy}
                 blockedReason={
                   !connected
@@ -3995,6 +5004,19 @@ export default function App() {
                 onRefreshSettings={() => {
                   void handleRefreshSettings();
                 }}
+                onBackupSettings={() => {
+                  void handleBackupSettingsDownload();
+                }}
+                undoLabel={
+                  calUndoStack.length > 0
+                    ? formatCalibrateUndoLabel(
+                        calUndoStack[calUndoStack.length - 1]!,
+                      )
+                    : null
+                }
+                onUndoCalibrateWrite={() => {
+                  void handleUndoCalibrateWrite();
+                }}
                 onCalibrateMove={(axis, distanceMm) => {
                   void handleCalibrateMove(axis, distanceMm);
                 }}
@@ -4004,15 +5026,48 @@ export default function App() {
                 onWriteDirInvert={(mask) => {
                   void handleWriteDirInvert(mask);
                 }}
-                onApplySoftTravel={(limits, enableSoft) => {
-                  void handleApplySoftTravel(limits, enableSoft);
+                onApplySoftTravel={(limits, enableSoft, enableHard) => {
+                  void handleApplySoftTravel(limits, enableSoft, enableHard);
                 }}
+                onVerifySoftLimit={(axis) => {
+                  void handleVerifySoftLimit(axis);
+                }}
+                onRatesTrial={handleRatesTrial}
+                onWriteRates={(kind, axis, before, after) => {
+                  void handleWriteRates(kind, axis, before, after);
+                }}
+                onRatesCancelRestore={() => {
+                  void handleRestoreRatesPending("cancel/leave");
+                }}
+                ratesTrialRunning={ratesTrialRunning}
+                onWriteHomingSetting={(id, before, after) => {
+                  void handleWriteHomingSetting(id, before, after);
+                }}
+                onToggleLimitPin={
+                  usingMock
+                    ? (axis) => {
+                        void handleToggleLimitPin(axis);
+                      }
+                    : null
+                }
                 onZero={(axes) => {
                   void handleZero(axes);
                 }}
                 onClose={() => setCalOpen(false)}
                 onComplete={handleCalibrationComplete}
                 onOpenBedTravelTest={openBedTravelTest}
+                homing={{
+                  enabled:
+                    canHome(gateState, connected, streaming).ok && !homeBusy,
+                  blockedReason:
+                    canHome(gateState, connected, streaming).reason ?? null,
+                  homed,
+                  busy: homeBusy,
+                  message: homeMessage,
+                  onHome: () => {
+                    void handleHome();
+                  },
+                }}
               />
             </div>
           </div>
@@ -4107,6 +5162,13 @@ export default function App() {
                 onSaveMacro={handleSaveMacro}
                 onDeleteMacro={handleDeleteMacro}
                 offsetsEnabled={jogEnabled}
+                offsetsBlockedReason={
+                  !connected
+                    ? "Connect first."
+                    : !jogGate.ok
+                      ? (jogGate.reason ?? "Motion locked")
+                      : null
+                }
                 activeWcs={workOffsets.active}
                 offsetSlots={workOffsets.slots}
                 currentWco={currentWco}
@@ -4136,6 +5198,11 @@ export default function App() {
                 }}
                 onWriteManual={(id, value) => {
                   void handleWriteManual(id, value);
+                }}
+                settingsSnapshots={settingsBackups.snapshots}
+                restoreMessage={restoreMessage}
+                onRestoreSettingsSnapshot={(snapshot) => {
+                  void handleRestoreSettingsSnapshot(snapshot);
                 }}
               />
             </div>

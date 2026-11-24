@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 340" role="img" aria-labelledby="t d">
   <title id="t">Axis direction invert ($3)</title>
-  <desc id="d">GRBL $3 bitmask bits for X Y Z and test jog: +X right, +Y back up on screen, +Z up</desc>
+  <desc id="d">GRBL $3 bitmask bits for X Y Z and test jog: +X right, +Y away from you, +Z up (tool lifts off the work). Fix Z first.</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -49,15 +49,15 @@
   <circle class="accent" cx="384" cy="108" r="15"/>
   <text class="w" x="384" y="108" text-anchor="middle" dominant-baseline="central">1</text>
   <text class="lab" x="410" y="114" font-weight="700">Toggle · Write · Test</text>
-  <text class="tiny" x="372" y="144">1. Read $$ — see current $3</text>
-  <text class="tiny" x="372" y="164">2. Toggle Invert X / Y / Z independently</text>
-  <text class="tiny" x="372" y="184">3. Write $3=… to GRBL EEPROM</text>
-  <text class="tiny" x="372" y="204">4. Test ±5 mm and check the bed</text>
+  <text class="tiny" x="372" y="144">1. Test Z first — Yes/No; No ticks Invert</text>
+  <text class="tiny" x="372" y="164">2. Then X and Y the same way</text>
+  <text class="tiny" x="372" y="184">3. Write $3=… (operator still clicks Write)</text>
+  <text class="tiny" x="372" y="204">4. If $22=1, also check homing ($23)</text>
 
-  <!-- Compact top-down triad: +X right, +Y back (= up on screen) — #62 geometry + centered labels -->
+  <!-- Compact top-down triad: +X right, +Y away (= up on screen) — #62 geometry + centered labels -->
   <line class="arrow" x1="400" y1="270" x2="520" y2="270"/>
   <text class="lab" x="536" y="270" dominant-baseline="central" font-weight="700">+X right</text>
   <line class="arrow" x1="400" y1="270" x2="400" y2="222"/>
-  <text class="lab" x="416" y="236" dominant-baseline="central" font-weight="700">+Y back</text>
-  <text class="tiny" x="372" y="318">Looking down: +Y back = up on screen (matches visualizer). +Z up.</text>
+  <text class="lab" x="416" y="236" dominant-baseline="central" font-weight="700">+Y away</text>
+  <text class="tiny" x="372" y="318">+Z → up (tool lifts off the work). Wrong +Z plunges on retract.</text>
 </svg>

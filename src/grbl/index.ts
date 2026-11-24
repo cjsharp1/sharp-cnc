@@ -35,6 +35,7 @@ export type { SoftTravelLimits } from "./machineConfig";
 export {
   DEFAULT_SOFT_TRAVEL,
   bedSizeFromLimits,
+  describeSoftEdge,
   loadSoftTravel,
   maxForAxis,
   minForAxis,
@@ -81,7 +82,20 @@ export {
   DIR_TEST_JOG_MM,
   MAX_TRAVEL_SETTING_FOR_AXIS,
   SETTING_DIR_PORT_INVERT,
+  SETTING_HARD_LIMITS,
+  SETTING_HOMING_CYCLE,
+  SETTING_HOMING_DIR_MASK,
+  SETTING_HOMING_FEED,
+  SETTING_HOMING_PULLOFF,
+  SETTING_HOMING_SEEK,
+  SETTING_LIMIT_INVERT,
   SETTING_LABELS,
+  SETTING_ACCEL_X,
+  SETTING_ACCEL_Y,
+  SETTING_ACCEL_Z,
+  SETTING_MAX_RATE_X,
+  SETTING_MAX_RATE_Y,
+  SETTING_MAX_RATE_Z,
   SETTING_MAX_TRAVEL_X,
   SETTING_MAX_TRAVEL_Y,
   SETTING_MAX_TRAVEL_Z,
@@ -89,19 +103,25 @@ export {
   SETTING_STEPS_X,
   SETTING_STEPS_Y,
   SETTING_STEPS_Z,
+  STEPS_MM_LARGE_CHANGE_FRACTION,
+  STEPS_RETEST_TOLERANCE_MM,
   STEPS_SETTING_FOR_AXIS,
   canWriteSettings,
   computeStepsPerMm,
   decodeDirInvertMask,
   describeDirInvertMask,
   encodeDirInvertMask,
+  estimateStepsPerMm,
   formatSettingWrite,
+  hardLimitsEnabled,
+  homingEnabled,
   parseSettingLine,
   parseSettingsDump,
   roundStepsPerMm,
   softLimitsEnabled,
   softTravelFromSettings,
   softTravelWriteCommands,
+  stepsPerMmChangeFraction,
 } from "./settings";
 
 export {
@@ -109,6 +129,30 @@ export {
   writeGrblSetting,
   writeGrblSettings,
 } from "./settingsIo";
+
+export type {
+  CalibrateWriteEntry,
+  SettingsBackupStore,
+  SettingsDiffEntry,
+  SettingsSnapshot,
+} from "./settingsBackup";
+export {
+  DEFAULT_SETTINGS_BACKUP,
+  SETTINGS_BACKUP_MAX,
+  SETTINGS_BACKUP_STORAGE_KEY,
+  diffSettings,
+  formatCalibrateUndoLabel,
+  formatSettingsDumpText,
+  formatSnapshotLabel,
+  loadSettingsBackups,
+  popCalibrateUndo,
+  pushCalibrateUndo,
+  pushSettingsBackup,
+  restoreWriteEntries,
+  saveSettingsBackupFile,
+  settingsMapToRecord,
+  settingsRecordToMap,
+} from "./settingsBackup";
 
 export type { JogDelta, JogMode, SoftLimitCheck, SoftLimitClamp } from "./jog";
 export {
@@ -238,6 +282,13 @@ export {
   ESTIMATE_FEED_MM_MIN,
   ESTIMATE_RAPID_MM_MIN,
   buildDryRunLines,
+  buildResumePreamble,
+  dryRunJobLines,
+  scanResumeState,
+  RESUME_BACKOFF_LINES,
+  DRY_RUN_CLEARANCE_MM,
+  dryRunLiftMm,
+  liftAbsoluteZ,
   clampScrubIndex,
   estimateJobTime,
   estimateJobTimeFromJob,
@@ -245,6 +296,13 @@ export {
   isToolChangeLine,
   sliceJobFromLine,
 } from "./jobControls";
+
+export {
+  TOOL_CHANGE_SPINDLE_DWELL_SEC,
+  buildToolChangeSpindleRestore,
+  buildToolChangeSpindleStop,
+  canContinueToolChange,
+} from "./toolChange";
 
 export type {
   AlarmGuide,
@@ -255,6 +313,7 @@ export {
   classifyAlarm,
   guideForAlarm,
   guideFromAlarmLine,
+  homingAlarmPlainDetail,
 } from "./alarmGuide";
 
 export type { DesktopPortInfo } from "./desktopSerial";
@@ -264,11 +323,15 @@ export {
   listDesktopPorts,
 } from "./desktopSerial";
 
+export type { MockTransportOptions } from "./mockSerial";
 export {
   createMockGrblClient,
   createMockTransport,
   isVirtualCncPath,
   listMockPorts,
+  MOCK_HOLD_DURING_JOG_CANCELS_KEY,
+  MOCK_STRICT_GRBL_KEY,
+  mockTransportOptionsFromStorage,
   VIRTUAL_CNC_PATH,
 } from "./mockSerial";
 
@@ -467,7 +530,10 @@ export {
   isStatusChatter,
 } from "./activityLog";
 
-export { instrumentTransport } from "./instrumentTransport";
+export {
+  instrumentTransport,
+  SMOKE_TX_LOG_KEY,
+} from "./instrumentTransport";
 
 export type {
   BuildDebugSnapshotInput,
@@ -514,6 +580,95 @@ export {
   resetCalibrationState,
   saveCalibrationCompleted,
 } from "./calibrationConfig";
+
+export type {
+  RatesKind,
+  RatesPendingRestore,
+  RatesPendingRestoreEntry,
+  RatesTrialResult,
+} from "./ratesCalibration";
+export {
+  ACCEL_SETTING_FOR_AXIS,
+  CAL_NEW_STEPS_BANNER_KEY,
+  RATE_SETTING_FOR_AXIS,
+  RATES_DEFAULT_CYCLES_XY,
+  RATES_DEFAULT_CYCLES_Z,
+  RATES_DEFAULT_DISTANCE_XY_MM,
+  RATES_DEFAULT_DISTANCE_Z_MM,
+  RATES_PENDING_RESTORE_KEY,
+  RATES_RAMP_FACTOR,
+  RATES_RECOMMEND_DEFAULT,
+  RATES_RECOMMEND_MAX,
+  RATES_RECOMMEND_MIN,
+  RATES_TRIAL_CEILING_MULT,
+  buildRatesTrialLines,
+  canFitRatesTest,
+  clearPendingRatesRestore,
+  defaultRatesCycles,
+  defaultRatesDistanceMm,
+  loadCalNewStepsBannerDismissed,
+  loadPendingRatesRestore,
+  mergePendingRatesRestore,
+  nextRatesTrialValue,
+  ratesFirstMotionDelta,
+  ratesOutDeltaMm,
+  ratesSettingId,
+  ratesSettingPlainLabel,
+  ratesSettingUnit,
+  ratesTrialCeiling,
+  recommendRatesValue,
+  saveCalNewStepsBannerDismissed,
+  savePendingRatesRestore,
+} from "./ratesCalibration";
+
+export type {
+  ExtLimitCommand,
+  HomingDirChoice,
+  HomingXyCorner,
+  HomingZSide,
+  LimitAxis,
+  SwitchCheckAxis,
+  SwitchCheckState,
+} from "./homingCalibration";
+export {
+  EXT_LIMIT_COMMANDS,
+  HOMING_DIR_BIT,
+  HOMING_FEED_SUGGEST_MAX,
+  HOMING_FEED_SUGGEST_MIN,
+  HOMING_PULLOFF_TYPICAL_MAX,
+  HOMING_PULLOFF_TYPICAL_MIN,
+  HOMING_SEEK_RATE_FRACTION,
+  advanceSwitchCheck,
+  allSwitchesVerified,
+  decodeHomingDirMask,
+  decodeLimitInvert,
+  describeHomingDirMask,
+  emptySwitchCheckState,
+  encodeHomingDirMask,
+  encodeLimitInvert,
+  extLimitCommandForAxis,
+  flippedLimitInvert,
+  homingSettingPlainLabel,
+  homingSettingUnit,
+  suggestHomingFeed,
+  suggestHomingPullOff,
+  suggestHomingSeek,
+} from "./homingCalibration";
+
+export type { SoftLimitVerifyOutcome } from "./softTravelCalibration";
+export {
+  HARD_LIMITS_OPTIONAL_COPY,
+  SOFT_LIMITS_WORKING_COPY,
+  SOFT_LIMIT_VERIFY_OVERSHOOT_MM,
+  SOFT_TRAVEL_MACHINE_NOT_WORK_COPY,
+  SOFT_TRAVEL_NEEDS_HOMING_COPY,
+  Z_TRAVEL_POSITIVE_COPY,
+  isSoftLimitJogAlarm,
+  isSoftLimitJogError,
+  plainSoftLimitsNeedHoming,
+  runSoftLimitVerifyJog,
+  softLimitVerifyDelta,
+} from "./softTravelCalibration";
 
 export type { PhaseGate, TaskPhaseContext, TaskPhaseId } from "./taskPhase";
 export {
@@ -581,13 +736,16 @@ export type {
 export {
   DEFAULT_PROBE_CONFIG,
   PROBE_CONFIG_KEY,
+  PROBE_CONTINUITY_HINT,
   buildManualZZeroCommand,
   buildProbeRetractCommand,
   buildProbeWorkZZeroCommand,
   buildZProbeSeekCommand,
   canProbe,
+  canRunPrepareZProbe,
   loadProbeConfig,
   parseProbeResult,
+  probeTimeoutMs,
   runZProbeCycle,
   saveProbeConfig,
 } from "./probe";

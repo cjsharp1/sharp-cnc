@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 560" role="img" aria-labelledby="t d">
+  <title id="t">Z machine coordinates and the Z gauge</title>
+  <desc id="d">Z home at top, pull-off, negative travel, material Z0 on the stock, and the Z gauge</desc>
+  <defs>
+    <style>
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
+      .title { font-size: 18px; font-weight: 700; }
+      .strong { font-weight: 700; }
+      .tiny { font-size: 12px; fill: #5a6570; }
+      .bed { fill: #cfd6dd; stroke: #7a8694; stroke-width: 1.5; }
+      .stock { fill: #d4a574; stroke: #8a5a2b; stroke-width: 1.5; }
+      .steel { fill: #5c6570; }
+      .bit { fill: #2c3e50; }
+      .brass { fill: #b8862d; stroke: #b8862d; }
+      .ok { fill: #1f6a4a; }
+      .warn { fill: #b85c2a; }
+      .box { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .gauge { fill: #cfd6dd; stroke: #3a4550; stroke-width: 2; }
+      .job { fill: rgba(184, 92, 42, 0.35); }
+      .leader { stroke: #b85c2a; stroke-width: 1.5; fill: none; }
+      .z0 { stroke: #b8862d; stroke-width: 2.5; }
+    </style>
+  </defs>
+
+  <rect class="bg" width="920" height="560" rx="10"/>
+  <text class="lab title" x="28" y="36">Z machine coordinates</text>
+  <text class="tiny" x="28" y="56">Home at the top · travel goes negative · material Z0 sits on the stock</text>
+
+  <!-- Side view of machine Z -->
+  <rect class="bed" x="80" y="420" width="320" height="28" rx="3"/>
+  <text class="tiny" x="80" y="470">Machine bed</text>
+
+  <rect class="stock" x="140" y="360" width="200" height="60" rx="3"/>
+  <text class="tiny" x="240" y="396" text-anchor="middle">Stock</text>
+
+  <!-- Material Z0 line on stock top -->
+  <line class="z0" x1="120" y1="360" x2="360" y2="360"/>
+  <text class="lab strong brass" x="370" y="364">Material Z0</text>
+  <text class="tiny" x="370" y="382">Work zero on stock top</text>
+
+  <!-- Spindle / bit -->
+  <rect class="steel" x="220" y="120" width="40" height="60" rx="4"/>
+  <polygon class="bit" points="240,180 228,250 252,250"/>
+  <text class="tiny" x="270" y="150">Spindle</text>
+  <text class="tiny" x="270" y="230">Tool tip</text>
+
+  <!-- Z home / pull-off -->
+  <line class="leader" x1="160" y1="100" x2="220" y2="100" stroke="#1f6a4a"/>
+  <text class="lab strong ok" x="80" y="104">Z home = 0</text>
+  <text class="tiny" x="80" y="122">Top of travel</text>
+
+  <path class="leader" d="M200 100 V140" stroke="#b8862d" stroke-dasharray="5 4"/>
+  <text class="tiny brass" x="80" y="160">Pull-off after home</text>
+  <text class="tiny" x="80" y="178">(small move off switch)</text>
+
+  <text class="lab strong warn" x="80" y="280">Negative travel</text>
+  <text class="tiny" x="80" y="298">Machine Z decreases</text>
+  <text class="tiny" x="80" y="316">as the tool goes down</text>
+  <text class="tiny" x="80" y="334">Bottom = −$132</text>
+
+  <!-- Z gauge callout -->
+  <rect class="box" x="560" y="90" width="320" height="400" rx="12"/>
+  <text class="lab strong" x="720" y="128" text-anchor="middle">Z gauge (UI)</text>
+  <text class="tiny" x="720" y="150" text-anchor="middle">Top-right of the machine view</text>
+
+  <rect class="gauge" x="680" y="180" width="28" height="220" rx="3"/>
+  <line x1="670" y1="180" x2="718" y2="180" stroke="#1f6a4a" stroke-width="2"/>
+  <text class="tiny ok" x="728" y="186">0 home</text>
+  <line class="z0" x1="670" y1="300" x2="718" y2="300"/>
+  <text class="tiny brass" x="728" y="304">Z0</text>
+  <rect class="job" x="684" y="300" width="20" height="70"/>
+  <text class="tiny warn" x="728" y="348">Job Z</text>
+  <rect x="684" y="300" width="20" height="40" fill="#d4a574" opacity="0.7"/>
+  <text class="tiny" x="728" y="380">Stock</text>
+  <line x1="670" y1="400" x2="718" y2="400" stroke="#3a4550" stroke-width="2"/>
+  <text class="tiny" x="728" y="406">−$132</text>
+  <!-- tool tip marker -->
+  <circle cx="694" cy="270" r="6" fill="#2c3e50"/>
+  <text class="tiny" x="640" y="274" text-anchor="end">Tip</text>
+
+  <text class="tiny" x="580" y="450">Shows home, material Z0, stock,</text>
+  <text class="tiny" x="580" y="468">job range, and tool tip.</text>
+
+  <text class="tiny" x="28" y="530">Machine Z is always 0 at home and negative below — independent of material zero.</text>
+</svg>

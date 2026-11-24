@@ -44,7 +44,8 @@
           <nav class="visual-guide__jump" aria-label="Steps">
             <a href="#r1">1 Progress</a>
             <a href="#r2">2 Overrides</a>
-            <a href="#r3">3 After</a>
+            <a href="#r3">3 Tool change</a>
+            <a href="#r4">4 After</a>
           </nav>
         </header>
 
@@ -144,15 +145,65 @@
             </li>
           </ol>
           <p class="step-card__aside">
-            Not in Run: Probe, Calibrate, job load, console / macros / G54–G59
-            (those are <strong>Menu → Advanced…</strong> only).
+            Not in Run (except during an M6 pause): Probe, Calibrate, job load,
+            console / macros / G54–G59 (those are
+            <strong>Menu → Advanced…</strong> only).
           </p>
-          <a class="step-card__next" href="#r3">Next: After the job →</a>
+          <a class="step-card__next" href="#r3">Next: Tool change →</a>
         </article>
 
         <article class="step-card" id="r3">
           <div class="step-card__meta">
             <span class="step-card__num" aria-hidden="true">3</span>
+            <h2>Tool change (M6)</h2>
+            <p class="step-card__action">
+              Idle → spindle stop → change bit → re-probe Z → Continue
+            </p>
+            <p class="step-card__eli5">
+              The app waits until the machine stops moving, turns the spindle
+              off, then asks you to change the bit and re-zero Z before it
+              spins back up.
+            </p>
+          </div>
+          <figure class="step-card__figure">
+            <img
+              src="assets/run-02-tool-change.svg"
+              alt="Tool-change panel: Spindle stopped, Change the bit, Re-probe Z, Continue"
+              width="960"
+              height="360"
+            />
+          </figure>
+          <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                When a job hits <strong>M6</strong>, wait for the strip:
+                <strong>Spindle stopped ✓</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Machine Idle, then <code>M5</code>. Do not touch the bit before
+                this.
+              </p>
+            </li>
+            <li>
+              <p class="step-card__do-act">
+                Change the bit. <strong>Re-probe Z</strong> (or tick
+                <strong>Same tool length</strong> if it did not change). Then
+                <strong>Continue</strong>.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Continue stays disabled until re-probe or same-length. Spindle
+                restores with a short dwell, then the job resumes.
+              </p>
+            </li>
+          </ol>
+          <a class="step-card__next" href="#r4">Next: After the job →</a>
+        </article>
+
+        <article class="step-card" id="r4">
+          <div class="step-card__meta">
+            <span class="step-card__num" aria-hidden="true">4</span>
             <h2>After the job</h2>
             <p class="step-card__action">
               Complete / Stop → <strong>Verify</strong> · new blank →

@@ -19,7 +19,6 @@ interface ConnectPanelProps {
   onRefreshPorts: () => void;
   onConnect: () => void;
   onDisconnect: () => void;
-  onSoftReset: () => void;
 }
 
 function shortPortLabel(label: string): string {
@@ -48,7 +47,6 @@ export function ConnectPanel({
   onRefreshPorts,
   onConnect,
   onDisconnect,
-  onSoftReset,
 }: ConnectPanelProps) {
   const connected = phase === "connected";
   const busy = phase === "connecting";
@@ -133,14 +131,6 @@ export function ConnectPanel({
         </div>
       ) : (
         <div className="connect__actions">
-          <button
-            type="button"
-            className="connect__btn connect__btn--ghost"
-            onClick={onSoftReset}
-            title="Soft reset (Ctrl-X)"
-          >
-            Reset
-          </button>
           <button type="button" className="connect__btn" onClick={onDisconnect}>
             Disconnect
           </button>

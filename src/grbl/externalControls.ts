@@ -74,10 +74,13 @@ const EMPTY_PINS: GrblActivePins = {
   reset: false,
   door: false,
   probe: false,
+  limitX: false,
+  limitY: false,
+  limitZ: false,
   raw: "",
 };
 
-/** Parse `Pn:XYZPDHRS`-style pin letters into control pin flags. */
+/** Parse `Pn:XYZPDHRS`-style pin letters into control + limit pin flags. */
 export function parseActivePins(raw: string | undefined | null): GrblActivePins {
   if (!raw) return { ...EMPTY_PINS };
   const letters = raw.toUpperCase();
@@ -87,6 +90,9 @@ export function parseActivePins(raw: string | undefined | null): GrblActivePins 
     reset: letters.includes("R"),
     door: letters.includes("D"),
     probe: letters.includes("P"),
+    limitX: letters.includes("X"),
+    limitY: letters.includes("Y"),
+    limitZ: letters.includes("Z"),
     raw: letters,
   };
 }

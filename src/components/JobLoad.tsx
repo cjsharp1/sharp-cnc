@@ -9,7 +9,7 @@ import type {
   StreamProgress,
   VerifyChecklistState,
 } from "../grbl";
-import { VERIFY_CHECKLIST, isGcodeFileName } from "../grbl";
+import { VERIFY_CHECKLIST, canContinueToolChange, isGcodeFileName } from "../grbl";
 import { SimControls } from "./SimControls";
 
 export type JobRunPhase = StreamPhase | "idle";
@@ -53,6 +53,17 @@ interface JobLoadProps {
   dryRun?: boolean;
   onDryRunChange?: (enabled: boolean) => void;
   onResumeToolChange?: () => void;
+  /** Spindle-safe M6 panel state (Idle → M5 → re-probe / same length). */
+  toolChangeUi?: {
+    waitingForIdle: boolean;
+    spindleStopped: boolean;
+    zReprobed: boolean;
+    sameToolLength: boolean;
+    busy: boolean;
+    statusNote: string | null;
+  } | null;
+  onToolChangeSameLength?: (checked: boolean) => void;
+  onToolChangeReprobeZ?: () => void;
   /**
    * Phase-shell mode: prepare = load only; verify = sim + Start;
    * run = progress + hold/stop; full = legacy all-in-one.
@@ -121,6 +132,9 @@ export function JobLoad({
   dryRun = false,
   onDryRunChange,
   onResumeToolChange,
+  toolChangeUi = null,
+  onToolChangeSameLength,
+  onToolChangeReprobeZ,
   variant = "full",
   softLimitOk = null,
   softLimitReason = null,
@@ -338,14 +352,76 @@ export function JobLoad({
           {progress?.lastError && (
             <p className="job__error">{progress.lastError}</p>
           )}
-          {progress?.toolChangeMessage && phase === "tool-change" && (
-            <p className="job__toolchange" role="status">
-              {progress.toolChangeMessage}
-            </p>
-          )}
           {showStart && startBlockedReason && !streaming && (
             <p className="job__warn-text">{startBlockedReason}</p>
           )}
+        </div>
+      )}
+
+      {showToolChange && (
+        <div className="job__toolchange-panel" role="status" aria-live="polite">
+          <p className="job__toolchange-title">
+            {progress?.toolChangeMessage ?? "Tool change (M6)"}
+          </p>
+          <ol className="job__toolchange-steps">
+            <li
+              className={
+                toolChangeUi?.spindleStopped
+                  ? "job__toolchange-step is-done"
+                  : "job__toolchange-step"
+              }
+            >
+              {toolChangeUi?.spindleStopped
+                ? "Spindle stopped ✓"
+                : toolChangeUi?.waitingForIdle
+                  ? "Waiting for Idle…"
+                  : "Stopping spindle…"}
+            </li>
+            <li className="job__toolchange-step">Change the bit</li>
+            <li
+              className={
+                toolChangeUi?.zReprobed || toolChangeUi?.sameToolLength
+                  ? "job__toolchange-step is-done"
+                  : "job__toolchange-step"
+              }
+            >
+              Re-probe Z
+              {toolChangeUi?.zReprobed ? " ✓" : ""}
+            </li>
+            <li className="job__toolchange-step">Continue</li>
+          </ol>
+          {toolChangeUi?.statusNote ? (
+            <p className="job__toolchange-note">{toolChangeUi.statusNote}</p>
+          ) : null}
+          <div className="job__toolchange-actions">
+            <button
+              type="button"
+              className="job__btn job__btn--ghost"
+              disabled={
+                !toolChangeUi?.spindleStopped ||
+                !!toolChangeUi?.busy ||
+                !onToolChangeReprobeZ
+              }
+              onClick={onToolChangeReprobeZ}
+              title="Probe the touch plate and set material Z0 for the new bit"
+            >
+              Re-probe Z
+            </button>
+            <label
+              className="job__toolchange-same"
+              title="Use when the bit length did not change"
+            >
+              <input
+                type="checkbox"
+                checked={!!toolChangeUi?.sameToolLength}
+                disabled={
+                  !toolChangeUi?.spindleStopped || !!toolChangeUi?.busy
+                }
+                onChange={(e) => onToolChangeSameLength?.(e.target.checked)}
+              />
+              Same tool length
+            </label>
+          </div>
         </div>
       )}
 
@@ -357,6 +433,13 @@ export function JobLoad({
               <span className="job__scrub-preview"> · {previewLine}</span>
             ) : null}
           </label>
+          {scrubIndex > 0 ? (
+            <p className="job__scrub-note">
+              Starting mid-file: SharpCNC first restores units, offsets, feed, and
+              spindle from earlier lines, then retracts, moves over this point,
+              spins up, and plunges. Details go to the activity log.
+            </p>
+          ) : null}
           <input
             id="job-scrub"
             type="range"
@@ -377,14 +460,17 @@ export function JobLoad({
               Reset to start
             </button>
             {onDryRunChange && (
-              <label className="job__dryrun">
+              <label
+                className="job__dryrun"
+                title="Spindle stays off and every Z is lifted so the deepest cut stays 5 mm above material Z0. Use it to watch the path in the air."
+              >
                 <input
                   type="checkbox"
                   checked={dryRun}
                   disabled={simulating}
                   onChange={(e) => onDryRunChange(e.target.checked)}
                 />
-                Spindle-off dry run
+                Dry run (spindle off, Z lifted above the stock)
               </label>
             )}
           </div>
@@ -521,10 +607,18 @@ export function JobLoad({
           <button
             type="button"
             className="job__btn"
+            disabled={
+              !canContinueToolChange({
+                spindleStopped: !!toolChangeUi?.spindleStopped,
+                zReprobed: !!toolChangeUi?.zReprobed,
+                sameToolLength: !!toolChangeUi?.sameToolLength,
+                busy: !!toolChangeUi?.busy,
+              })
+            }
             onClick={onResumeToolChange}
-            title="Bit changed — continue past M6"
+            title="Restores spindle if needed, then continues past M6"
           >
-            Resume after tool change
+            Continue
           </button>
         )}
         {showStop && (

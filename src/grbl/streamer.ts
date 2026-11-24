@@ -25,6 +25,11 @@ export interface StreamProgress {
    * (accounts for skip-to-line start offset).
    */
   absoluteLine?: number;
+  /**
+   * Absolute 0-based index of the first job line GRBL has NOT acknowledged.
+   * Lines before it were parsed by GRBL, though not necessarily executed yet.
+   */
+  ackedAbsoluteLine?: number;
   /** Percent complete based on acked lines (0–100). */
   percent: number;
   /** Last error message from GRBL, if any. */
@@ -32,6 +37,11 @@ export interface StreamProgress {
   /** Set when paused for M6 tool change. */
   toolChangeLine?: number;
   toolChangeMessage?: string;
+  /**
+   * Job lines still waiting for ok/error in the RX buffer.
+   * Side commands (M5 / spindle restore) must wait until this is 0.
+   */
+  pendingLines?: number;
 }
 
 export interface GcodeStreamerOptions {
@@ -48,6 +58,12 @@ export interface GcodeStreamerOptions {
 export interface StreamStartOptions {
   /** 0-based offset into jobLines — skip earlier lines (scrubber / skip-to-line). */
   startIndex?: number;
+  /**
+   * Setup lines sent before jobLines[startIndex] (e.g. the resume preamble).
+   * They are not part of the job, so progress and error line numbers keep
+   * pointing at real job lines.
+   */
+  preamble?: string[];
 }
 
 interface PendingLine {
@@ -74,6 +90,12 @@ export function createGcodeStreamer(
   resume(): Promise<void>;
   /** Continue after an M6 tool-change pause (does not send `~` unless also held). */
   resumeAfterToolChange(): Promise<void>;
+  /**
+   * Send a non-job line while paused for tool change (e.g. M5, spindle restore).
+   * Waits until job pending is drained, then awaits that line's ok without
+   * counting it as a job-line ack.
+   */
+  sendDuringToolChange(line: string): Promise<void>;
   stop(): Promise<void>;
   /** Mirror external feed hold — do not send `!`. */
   syncFromExternalHold(): void;
@@ -89,8 +111,13 @@ export function createGcodeStreamer(
   const pauseOnToolChange = options.pauseOnToolChange !== false;
 
   let lines: string[] = [];
-  /** Absolute index of lines[0] in the original job. */
+  /** Absolute index (in the original job) of the first job line sent. */
   let lineOffset = 0;
+  /** Number of setup lines at the front of `lines` that are not job lines. */
+  let preambleCount = 0;
+  /** Absolute job line for an index into `lines` (null for preamble lines). */
+  const jobLineFor = (index: number): number | null =>
+    index < preambleCount ? null : lineOffset + (index - preambleCount);
   let sendIndex = 0;
   let acked = 0;
   let bufferUsed = 0;
@@ -104,6 +131,14 @@ export function createGcodeStreamer(
   let settleReject: ((err: Error) => void) | null = null;
   /** Serialize fill loops so concurrent ok callbacks cannot double-send. */
   let sendLock: Promise<void> = Promise.resolve();
+  /**
+   * Expected oks for out-of-band lines sent during tool-change (M5, spindle
+   * restore, dwell). Must not steal job-line acks from `pending`.
+   */
+  let sideAckWaiters: Array<{
+    resolve: () => void;
+    reject: (err: Error) => void;
+  }> = [];
 
   const progress = (): StreamProgress => {
     const total = lines.length;
@@ -114,13 +149,42 @@ export function createGcodeStreamer(
       sentLines: sendIndex,
       ackedLines: acked,
       totalLines: total,
-      absoluteLine: lineOffset + sendIndex,
+      absoluteLine: lineOffset + Math.max(0, sendIndex - preambleCount),
+      ackedAbsoluteLine: lineOffset + Math.max(0, acked - preambleCount),
       percent,
       lastError,
       toolChangeLine,
       toolChangeMessage,
+      pendingLines: pending.length,
     };
   };
+
+  const rejectSideAcks = (reason: string) => {
+    const waiters = sideAckWaiters;
+    sideAckWaiters = [];
+    for (const w of waiters) w.reject(new Error(reason));
+  };
+
+  const waitPendingDrained = (timeoutMs = 60_000): Promise<void> =>
+    new Promise((resolve, reject) => {
+      const started = Date.now();
+      const tick = () => {
+        if (phase !== "tool-change") {
+          reject(new Error("Tool change ended before the buffer drained"));
+          return;
+        }
+        if (pending.length === 0) {
+          resolve();
+          return;
+        }
+        if (Date.now() - started > timeoutMs) {
+          reject(new Error("Timed out waiting for the job buffer to drain"));
+          return;
+        }
+        setTimeout(tick, 25);
+      };
+      tick();
+    });
 
   const emit = () => {
     onProgress?.(progress());
@@ -171,7 +235,7 @@ export function createGcodeStreamer(
       // Pause *before* sending M6 so the operator can change the bit first
       // when configured; still allow resumeAfterToolChange to send it.
       if (pauseOnToolChange && isToolChangeLine(body) && toolChangeLine == null) {
-        enterToolChange(lineOffset + sendIndex, body);
+        enterToolChange(jobLineFor(sendIndex) ?? lineOffset, body);
         return;
       }
 
@@ -186,7 +250,7 @@ export function createGcodeStreamer(
       bufferUsed += chars;
       sendIndex += 1;
       // Clear latch so a later M6 can pause again.
-      if (toolChangeLine !== undefined && index === toolChangeLine - lineOffset) {
+      if (toolChangeLine !== undefined && jobLineFor(index) === toolChangeLine) {
         toolChangeLine = undefined;
         toolChangeMessage = undefined;
       }
@@ -225,24 +289,42 @@ export function createGcodeStreamer(
       phase === "tool-change"
     ) {
       // Still ack buffer while tool-change if GRBL replies for prior lines.
+      // Side-command oks (M5 / spindle restore) must not steal job-line acks.
       if (
         phase === "tool-change" &&
         (trimmed === "ok" || trimmed.startsWith("error"))
       ) {
-        const item = pending.shift();
-        if (item) {
+        if (pending.length > 0) {
+          const item = pending.shift()!;
           bufferUsed = Math.max(0, bufferUsed - item.chars);
           acked = Math.max(acked, item.index + 1);
           emit();
+          if (trimmed.startsWith("error")) {
+            const jobLine = jobLineFor(item.index);
+            failStream(
+              `${trimmed} ${jobLine === null ? "in the resume setup" : `on line ${jobLine + 1}`}`,
+              true,
+            );
+          }
+          return;
         }
-        if (trimmed.startsWith("error")) {
-          lastError = trimmed;
-          phase = "error";
+        if (sideAckWaiters.length > 0) {
+          const waiter = sideAckWaiters.shift()!;
+          if (trimmed.startsWith("error")) {
+            waiter.reject(new Error(trimmed));
+          } else {
+            waiter.resolve();
+          }
           emit();
-          settleReject?.(new Error(trimmed));
-          settle = null;
-          settleReject = null;
+          return;
         }
+        // Spurious ok (probe cycle, leftover) — ignore; do not invent job acks.
+      } else if (
+        phase === "tool-change" &&
+        /^ALARM:\s*\d+/i.test(trimmed)
+      ) {
+        rejectSideAcks(trimmed);
+        failStream(trimmed, false);
       }
       return;
     }
@@ -257,12 +339,14 @@ export function createGcodeStreamer(
       acked = Math.max(acked, item.index + 1);
 
       if (trimmed.startsWith("error")) {
-        lastError = trimmed;
-        phase = "error";
-        emit();
-        settleReject?.(new Error(trimmed));
-        settle = null;
-        settleReject = null;
+        const jobLine = jobLineFor(item.index);
+        const where =
+          jobLine === null ? "in the resume setup" : `on line ${jobLine + 1}`;
+        const source = (lines[item.index] ?? "").trim();
+        failStream(
+          `${trimmed} ${where}${source ? `: ${source}` : ""}`,
+          true,
+        );
         return;
       }
 
@@ -272,11 +356,35 @@ export function createGcodeStreamer(
       return;
     }
 
-    if (trimmed.startsWith("ALARM:") || trimmed.startsWith("<Alarm")) {
-      lastError = trimmed;
-      phase = "error";
-      emit();
+    if (phase === "error") return; // keep the first failure as lastError
+
+    if (/^ALARM:\s*\d+/i.test(trimmed)) {
+      failStream(trimmed, false);
+      return;
     }
+    if (trimmed.startsWith("<Alarm")) {
+      // Real GRBL prints ALARM:n first; this is a fallback if that line was missed.
+      failStream("Controller entered Alarm state", false);
+    }
+  };
+
+  /**
+   * Stop streaming and reject the pending start() promise.
+   * On a G-code error GRBL keeps running what is already buffered (spindle on),
+   * so send a feed hold to stop motion until the operator chooses Stop.
+   */
+  const failStream = (message: string, holdMotion: boolean) => {
+    lastError = message;
+    phase = "error";
+    emit();
+    rejectSideAcks(message);
+    if (holdMotion) {
+      void transport.write("!").catch(() => undefined);
+    }
+    const fail = settleReject;
+    settle = null;
+    settleReject = null;
+    fail?.(new Error(message));
   };
 
   const attach = () => {
@@ -323,7 +431,9 @@ export function createGcodeStreamer(
 
       attach();
       lineOffset = startIndex;
-      lines = jobLines.slice(startIndex);
+      const preamble = startOptions.preamble ?? [];
+      preambleCount = preamble.length;
+      lines = [...preamble, ...jobLines.slice(startIndex)];
       resetCounters();
       phase = "running";
       emit();
@@ -352,12 +462,37 @@ export function createGcodeStreamer(
 
     async resumeAfterToolChange() {
       if (phase !== "tool-change") return;
+      if (sideAckWaiters.length > 0) {
+        throw new Error("Wait for the spindle command to finish first");
+      }
       // Mark so fillBuffer will send the pending M6 line instead of re-pausing.
-      toolChangeLine = lineOffset + sendIndex;
+      toolChangeLine = jobLineFor(sendIndex) ?? lineOffset;
       toolChangeMessage = undefined;
       phase = "running";
       emit();
       await scheduleFill();
+    },
+
+    async sendDuringToolChange(line: string) {
+      if (phase !== "tool-change") {
+        throw new Error("Not paused for a tool change");
+      }
+      const body = line.trim();
+      if (!body) return;
+      await waitPendingDrained();
+      if (phase !== "tool-change") {
+        throw new Error("Tool change ended before the command was sent");
+      }
+      const payload = body.endsWith("\n") ? body : `${body}\n`;
+      await new Promise<void>((resolve, reject) => {
+        const waiter = { resolve, reject };
+        sideAckWaiters.push(waiter);
+        void transport.write(payload).catch((err) => {
+          const idx = sideAckWaiters.indexOf(waiter);
+          if (idx >= 0) sideAckWaiters.splice(idx, 1);
+          reject(err instanceof Error ? err : new Error(String(err)));
+        });
+      });
     },
 
     async stop() {
@@ -379,6 +514,7 @@ export function createGcodeStreamer(
       }
       pending = [];
       bufferUsed = 0;
+      rejectSideAcks("Job stopped");
       finish("idle");
     },
 
@@ -414,6 +550,7 @@ export function createGcodeStreamer(
       lastError = undefined;
       toolChangeLine = undefined;
       toolChangeMessage = undefined;
+      rejectSideAcks("Job aborted");
       finish("idle");
     },
 
@@ -423,7 +560,9 @@ export function createGcodeStreamer(
       detach();
       lines = [];
       lineOffset = 0;
+      preambleCount = 0;
       resetCounters();
+      rejectSideAcks("Streamer disposed");
       phase = "idle";
       settle = null;
       settleReject = null;

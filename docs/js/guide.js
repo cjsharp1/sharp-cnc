@@ -91,11 +91,21 @@
           title: "13. First-test stages",
           path: "user-guide/13-first-test-stages.md",
         },
+        {
+          id: "14",
+          title: "14. First real connection",
+          path: "user-guide/14-first-real-connection.md",
+        },
       ],
     },
     {
       group: "Hardware & extras",
       items: [
+        {
+          id: "hardware-checklist",
+          title: "Hardware checklist (running list)",
+          path: "hardware-checklist.md",
+        },
         {
           id: "demon-shield-soak",
           title: "Demon Shield soak playbook",

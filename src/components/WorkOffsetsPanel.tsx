@@ -3,6 +3,7 @@ import { WCS_OPTIONS } from "../grbl";
 
 interface WorkOffsetsPanelProps {
   enabled: boolean;
+  blockedReason?: string | null;
   active: WcsId;
   slots: Partial<Record<WcsId, SavedWorkOffset>>;
   currentWco: Position3;
@@ -18,6 +19,7 @@ function fmt(n: number): string {
 
 export function WorkOffsetsPanel({
   enabled,
+  blockedReason = null,
   active,
   slots,
   currentWco,
@@ -27,6 +29,9 @@ export function WorkOffsetsPanel({
   onRecall,
 }: WorkOffsetsPanelProps) {
   const activeSlot = slots[active];
+  const disabledWhy = !enabled
+    ? (blockedReason ?? "Connect and clear alarms first")
+    : null;
 
   return (
     <section className="offsets" aria-label="Work offsets">
@@ -36,9 +41,15 @@ export function WorkOffsetsPanel({
       </header>
 
       <p className="offsets__hint">
-        Select a coordinate system, save the current WCO into that slot, or
-        recall a saved slot into GRBL (<code>G10 L2</code>).
+        Select a coordinate system, save the current work offset into that
+        slot, or recall a saved slot into GRBL (<code>G10 L2</code>).
       </p>
+
+      {disabledWhy ? (
+        <p className="offsets__warn" role="status">
+          {disabledWhy}
+        </p>
+      ) : null}
 
       <div className="offsets__wcs" role="group" aria-label="Active WCS">
         {WCS_OPTIONS.map((opt) => (
@@ -49,9 +60,10 @@ export function WorkOffsetsPanel({
             disabled={!enabled}
             onClick={() => onSelect(opt.id)}
             title={
-              slots[opt.id]
+              disabledWhy ??
+              (slots[opt.id]
                 ? `${opt.id} — saved ${slots[opt.id]!.name}`
-                : `Select ${opt.id}`
+                : `Select ${opt.id}`)
             }
           >
             {opt.label}
@@ -61,7 +73,7 @@ export function WorkOffsetsPanel({
 
       <div className="offsets__readout" aria-live="polite">
         <p className="offsets__readout-label">
-          Current WCO (mm) · active {active}
+          Current work offset (mm) · active {active}
         </p>
         <p className="offsets__readout-vals">
           X{fmt(currentWco.x)} · Y{fmt(currentWco.y)} · Z{fmt(currentWco.z)}
@@ -84,7 +96,7 @@ export function WorkOffsetsPanel({
           className="offsets__btn"
           disabled={!enabled}
           onClick={() => onSave(active)}
-          title={`Save current WCO into ${active}`}
+          title={disabledWhy ?? `Save current work offset into ${active}`}
         >
           Save {active}
         </button>
@@ -93,7 +105,12 @@ export function WorkOffsetsPanel({
           className="offsets__btn offsets__btn--ghost"
           disabled={!enabled || !activeSlot}
           onClick={() => onRecall(active)}
-          title={`Recall ${active} into GRBL`}
+          title={
+            disabledWhy ??
+            (!activeSlot
+              ? `No saved offset in ${active} yet`
+              : `Recall ${active} into GRBL`)
+          }
         >
           Recall
         </button>

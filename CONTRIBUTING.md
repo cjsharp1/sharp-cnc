@@ -18,6 +18,8 @@ npm run smoke:critical  # PR gate (CI)
 npm run smoke           # full no-hardware suite
 ```
 
+Virtual CNC is not bit-identical to GRBL 1.1h. Read [docs/mock-vs-real-grbl.md](docs/mock-vs-real-grbl.md) before trusting mock-only safety coverage. Use `createMockTransport({ strict: true })` (or `sharpcnc.mock.strictGrbl.v1`) when a smoke must match real hold/jog/error codes; `smoke-real-grbl` already runs both modes.
+
 ## Pull requests
 
 - Branch from latest `main`.

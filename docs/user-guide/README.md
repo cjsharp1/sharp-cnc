@@ -24,7 +24,7 @@ Fresh install bootstrap (connect → home → into Calibrate): [First-run](../se
 
 ## How to use this guide
 
-**First time:** Connect with Virtual CNC → finish [calibration](../setup-visual/calibration.html) → one full Prepare → Verify practice cut (dry-run) → then real USB. Come back to these chapters for short reference tables.
+**First time:** Connect with Virtual CNC → finish [calibration](../setup-visual/calibration.html) → one full Prepare → Verify practice cut (dry-run) → then real USB, starting with **[First real connection](14-first-real-connection.md)**. Come back to these chapters for short reference tables.
 
 Safety notes appear throughout. When something can crash the machine or hurt you, it is called out explicitly — take those seriously.
 
@@ -52,6 +52,8 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 | 11 | [Safety](11-safety.md) | Always-on strip, soft limits, Virtual practice, unlock |
 | 12 | [Hardware soak](12-hardware-soak.md) | Demon Shield home, `$3`, soft limits, probe, buttons, PWM |
 | 13 | [First-test stages](13-first-test-stages.md) | Connect → air jog → no-tool raised Z → scrap; pass/fail each stage |
+| 14 | [First real connection](14-first-real-connection.md) | **Do this first on the real machine:** 14 short steps, no cutting, with what to record |
+| — | [Hardware checklist](../hardware-checklist.md) | Running list of things only the real machine can prove; record results here |
 
 ## Quick start (experienced)
 

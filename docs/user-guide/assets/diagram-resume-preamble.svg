@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 420" role="img" aria-labelledby="t d">
+  <title id="t">Resume setup before mid-file Start</title>
+  <desc id="d">Retract, move over, spin up, plunge, then continue from the chosen line</desc>
+  <defs>
+    <style>
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
+      .title { font-size: 18px; font-weight: 700; }
+      .strong { font-weight: 700; }
+      .tiny { font-size: 12px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; font-size: 13px; }
+      .box { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .c1 { fill: #5a6570; }
+      .c2 { fill: #2f5d7a; }
+      .c3 { fill: #b8862d; }
+      .c4 { fill: #b85c2a; }
+      .c5 { fill: #1f6a4a; }
+      .arrow { stroke: #3a4550; stroke-width: 2.5; fill: none; marker-end: url(#a); }
+      .stock { fill: #d4a574; stroke: #8a5a2b; stroke-width: 1.5; }
+      .path { stroke: #b85c2a; stroke-width: 2.5; fill: none; }
+      .dot { fill: #1f6a4a; }
+    </style>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#3a4550"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="960" height="420" rx="10"/>
+  <text class="lab title" x="28" y="36">Resume setup (start mid-file)</text>
+  <text class="tiny" x="28" y="56">Before the chosen line: restore modal state, then retract → move over → spin up → plunge → continue</text>
+
+  <!-- Five steps -->
+  <g transform="translate(28,90)">
+    <rect class="box" width="150" height="120" rx="10"/>
+    <rect class="c1" width="150" height="30" rx="10"/>
+    <rect class="c1" y="18" width="150" height="12"/>
+    <text class="w" x="75" y="15" text-anchor="middle" dominant-baseline="central">1 · Retract</text>
+    <text class="tiny" x="75" y="58" text-anchor="middle">Raise to clearance</text>
+    <text class="tiny" x="75" y="78" text-anchor="middle">height</text>
+    <text class="tiny" x="75" y="102" text-anchor="middle">Safe Z first</text>
+  </g>
+  <path class="arrow" d="M186 150 H206"/>
+
+  <g transform="translate(214,90)">
+    <rect class="box" width="150" height="120" rx="10"/>
+    <rect class="c2" width="150" height="30" rx="10"/>
+    <rect class="c2" y="18" width="150" height="12"/>
+    <text class="w" x="75" y="15" text-anchor="middle" dominant-baseline="central">2 · Move over</text>
+    <text class="tiny" x="75" y="58" text-anchor="middle">XY to the start</text>
+    <text class="tiny" x="75" y="78" text-anchor="middle">point of that line</text>
+    <text class="tiny" x="75" y="102" text-anchor="middle">Still at clearance</text>
+  </g>
+  <path class="arrow" d="M372 150 H392"/>
+
+  <g transform="translate(400,90)">
+    <rect class="box" width="150" height="120" rx="10"/>
+    <rect class="c3" width="150" height="30" rx="10"/>
+    <rect class="c3" y="18" width="150" height="12"/>
+    <text class="w" x="75" y="15" text-anchor="middle" dominant-baseline="central">3 · Spin up</text>
+    <text class="tiny" x="75" y="58" text-anchor="middle">Restore M3/S</text>
+    <text class="tiny" x="75" y="78" text-anchor="middle">+ 3 s dwell</text>
+    <text class="tiny" x="75" y="102" text-anchor="middle">(skipped in dry run)</text>
+  </g>
+  <path class="arrow" d="M558 150 H578"/>
+
+  <g transform="translate(586,90)">
+    <rect class="box" width="150" height="120" rx="10"/>
+    <rect class="c4" width="150" height="30" rx="10"/>
+    <rect class="c4" y="18" width="150" height="12"/>
+    <text class="w" x="75" y="15" text-anchor="middle" dominant-baseline="central">4 · Plunge</text>
+    <text class="tiny" x="75" y="58" text-anchor="middle">Slow feed down</text>
+    <text class="tiny" x="75" y="78" text-anchor="middle">to the line’s Z</text>
+    <text class="tiny" x="75" y="102" text-anchor="middle">Then continue</text>
+  </g>
+  <path class="arrow" d="M744 150 H764"/>
+
+  <g transform="translate(772,90)">
+    <rect class="box" width="160" height="120" rx="10"/>
+    <rect class="c5" width="160" height="30" rx="10"/>
+    <rect class="c5" y="18" width="160" height="12"/>
+    <text class="w" x="80" y="15" text-anchor="middle" dominant-baseline="central">5 · Continue</text>
+    <text class="tiny" x="80" y="58" text-anchor="middle">Stream from the</text>
+    <text class="tiny" x="80" y="78" text-anchor="middle">chosen line onward</text>
+    <text class="tiny" x="80" y="102" text-anchor="middle">Log shows setup</text>
+  </g>
+
+  <!-- Mini side sketch -->
+  <rect class="stock" x="80" y="280" width="280" height="70" rx="4"/>
+  <path class="path" d="M100 250 L100 300 L200 300 L200 270 L320 270"/>
+  <circle class="dot" cx="200" cy="270" r="7"/>
+  <text class="tiny" x="210" y="255">Start here</text>
+  <path class="arrow" d="M140 230 H140 250"/>
+  <text class="tiny" x="150" y="236">Retract height</text>
+
+  <rect class="box" x="420" y="260" width="500" height="110" rx="10"/>
+  <text class="lab strong" x="440" y="294">Also restores earlier modal state</text>
+  <text class="tiny" x="440" y="322">Units · work offset · plane · feed · spindle · coolant — inferred from lines before the scrubber.</text>
+  <text class="tiny" x="440" y="346">Exact commands go to the activity log. Verify shows a note when Start at line &gt; 1.</text>
+
+  <text class="tiny" x="28" y="400">Mid-file Start is for recovery or practice — always confirm the bit is clear before Start.</text>
+</svg>
