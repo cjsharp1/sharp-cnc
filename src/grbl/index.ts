@@ -286,6 +286,7 @@ export {
   isVirtualCncPath,
   listMockPorts,
   MOCK_HOLD_DURING_JOG_CANCELS_KEY,
+  MOCK_STRICT_GRBL_KEY,
   mockTransportOptionsFromStorage,
   VIRTUAL_CNC_PATH,
 } from "./mockSerial";

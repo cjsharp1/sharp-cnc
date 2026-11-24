@@ -22,7 +22,7 @@ Most of this review was fixed and verified against the Virtual CNC on branch `fi
 | R8 | Pre-flight ignores Z / arcs / G53 | **FIXED** for bounds and checks. Drawing arcs as arcs in the visualizer: **OPEN, optional** |
 | R9 | Probe ALARM 4/5 swapped | **FIXED** in app, mock, docs |
 | T1 | Full suite can't pass | **FIXED** — timed runner; critical includes E-Stop loop-abort Playwright smoke |
-| T2 | Strict GRBL mock mode | **OPEN** |
+| T2 | Strict GRBL mock mode | **FIXED** |
 | M1 | Jog pad in Calibrate | **FIXED** (Soft travel step) |
 | M2 | Z side view | **FIXED** (Z gauge) |
 | M3 | Settings backup / restore | **OPEN** (calibration spec PR 1) |
@@ -144,7 +144,7 @@ Was: pause before `M6` with no spindle stop, no Idle wait, no Z re-probe gate.
 
 ### T2. The mock can't catch the real-hardware bugs
 
-R1, R2 and R9 all slipped through because the Virtual CNC differs from real GRBL in exactly those areas (hold during jog, Z envelope, probe alarm polarity). Add a **"strict GRBL" mode** to `mockSerial.ts` that follows real 1.1h behavior for every row in the "known differences" table, and run the safety smokes against both modes.
+~~R1, R2 and R9 all slipped through because the Virtual CNC differs from real GRBL in exactly those areas (hold during jog, Z envelope, probe alarm polarity). Add a **"strict GRBL" mode** to `mockSerial.ts` that follows real 1.1h behavior for every row in the "known differences" table, and run the safety smokes against both modes.~~ **FIXED** — `createMockTransport({ strict: true })` / `sharpcnc.mock.strictGrbl.v1`; `smoke-real-grbl` runs default + strict; see `docs/mock-vs-real-grbl.md`.
 
 ---
 
@@ -253,10 +253,10 @@ Same rules as before: every PR ships with smoke coverage and its user-guide / vi
 1. ~~**R7 Tool change (M6).**~~ **FIXED** — Idle → `M5` → full-width panel (re-probe Z / same tool length) → restore `M3 S…` + dwell; side-command oks do not steal job-line acks (`smoke-tool-change`).
 2. **X/Y soft envelope sign (R2 follow-up)** — only if hardware check HW-02a/HW-07a shows X/Y read **negative** after homing. Then derive each axis's range from `$23` and the observed sign in `minForAxis`/`maxForAxis` (`machineConfig.ts`), update `bedTravelTest`, `stockPerimeterTest`, the machine view bed frame, and the mock. If X/Y read positive, just record it in `mock-vs-real-grbl.md`.
 3. **Probe continuity step (R4 follow-up).** ~~In Prepare → Z probe, before the Probe button unlocks: "Touch the clip to the plate — the light should come on" using `status.pins.probe`.~~ **DONE** — continuity gate + Probe pin light; Virtual CNC `$ExtProbe` practice.
-4. ~~**E-Stop loop abort smoke.**~~ **DONE** — `scripts/smoke-estop-loop-abort.mts` (critical): Virtual CNC bed travel → E-Stop after first `$J=` → no further `$J=` + latch banner. Seeds `sharpcnc.mock.holdDuringJogCancels.v1` so hold-during-jog → Idle like real GRBL (the bug class Virtual CNC used to hide).
+4. ~~**E-Stop loop abort smoke.**~~ **DONE** — `scripts/smoke-estop-loop-abort.mts` (critical): Virtual CNC bed travel → E-Stop after first `$J=` → no further `$J=` + latch banner. Seeds `sharpcnc.mock.strictGrbl.v1` so hold-during-jog → Idle like real GRBL (the bug class Virtual CNC used to hide).
 
 ### Tests
-5. **T2 strict GRBL mock mode** in `mockSerial.ts`, following real 1.1h for every row in `mock-vs-real-grbl.md` (hold during jog → Idle, soft-limit jog → `error:15`, soft reset at rest keeps MPos, `error:N` codes). Run the safety smokes against both modes.
+5. ~~**T2 strict GRBL mock mode**~~ **DONE** — `createMockTransport({ strict: true })` / `sharpcnc.mock.strictGrbl.v1` follows real 1.1h for every known-diff row in `mock-vs-real-grbl.md` (`error:9`/`error:20`/`error:15`, Idle soft-reset keeps MPos, hold@jog→Idle, hold@Idle→Hold). `smoke-real-grbl` runs default + strict; E-Stop smoke uses strict.
 
 ### Features
 6. Calibration spec PR 1 (backup / restore / undo), PR 3 (speed & accel), PR 4 (homing setup), PR 5 (soft travel polish). PR 0 and parts of PR 2 are done; see that spec's status table.

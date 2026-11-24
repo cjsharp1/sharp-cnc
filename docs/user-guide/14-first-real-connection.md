@@ -132,7 +132,7 @@ This checks behavior the Virtual CNC can't simulate.
 3. Start another 10 mm X jog and click **E-Stop** mid-move.
 
 **Expect**
-- **Hold during a jog cancels the jog**; the machine stops and returns to **Idle** (real GRBL behavior; the Virtual CNC stays in Hold instead).
+- **Hold during a jog cancels the jog**; the machine stops and returns to **Idle** (real GRBL behavior; default Virtual CNC stays in Hold — use strict mock mode in smokes, see [mock vs real](../mock-vs-real-grbl.md)).
 - **E-Stop during a jog** stops the machine, shows the latch banner, and blocks further motion until **Clear E-Stop**. GRBL may also show `ALARM:3` (reset while moving). Position may have shifted, so plan to home again.
 
 **Record:** both behaviors ✓/✗, and any alarm code you saw.

@@ -1,8 +1,20 @@
 # Virtual CNC mock vs real GRBL
 
-SharpCNC’s **Virtual CNC** (`src/grbl/mockSerial.ts`) is a convenience simulator for UI and smoke tests. It is **not** bit-identical to GRBL 1.1h on the Demon Shield. Prefer the checks in `scripts/smoke-real-grbl.mts` (recorded official protocol + mock deltas) over trusting the mock alone before a real cut.
+SharpCNC’s **Virtual CNC** (`src/grbl/mockSerial.ts`) is a convenience simulator for UI and smoke tests. It is **not** bit-identical to GRBL 1.1h on the Demon Shield by default. Prefer the checks in `scripts/smoke-real-grbl.mts` (recorded official protocol + mock deltas + **strict** mode) over trusting the mock alone before a real cut.
 
 Fixtures live in `src/grbl/grblProtocolFixtures.ts` (sourced from [gnea/grbl interface.md](https://github.com/gnea/grbl/blob/master/doc/markdown/interface.md), [commands.md](https://github.com/gnea/grbl/blob/master/doc/markdown/commands.md), and the alarm/error CSVs). Optional future work: drive the same cases through [grbl-sim](https://github.com/grbl/grbl-sim) when a CI binary is available.
+
+## Strict GRBL mode (T2)
+
+Opt in so Virtual CNC follows real 1.1h for every row in the known-differences table below:
+
+```ts
+createMockTransport({ strict: true })
+// or before connect:
+localStorage.setItem("sharpcnc.mock.strictGrbl.v1", "1")
+```
+
+`strict: true` implies hold-during-jog cancel. The older key `sharpcnc.mock.holdDuringJogCancels.v1` / `{ holdDuringJogCancels: true }` remains as a narrow opt-in. `smoke-real-grbl` runs both default and strict; `smoke-estop-loop-abort` seeds strict mode.
 
 ## How to run
 
@@ -25,19 +37,19 @@ npm run smoke:critical
 | Feed hold `!` / resume `~` during **Run** | Enter / leave Hold | Same |
 | Alarm push | `ALARM:n` standalone line | Same for codes it raises |
 
-## Intentional / known differences (do not trust mock here)
+## Intentional / known differences (do not trust default mock here)
 
-| Topic | Real GRBL 1.1 | Virtual CNC | Risk if you only test mock |
-|-------|---------------|-------------|----------------------------|
-| Alarm-lock refusal | `error:9` | `error:Alarm lock` | Parsers that only match `error:N` miss lock |
-| Invalid / unsupported g-code | `error:20` (etc. numeric) | `error:Invalid gcode` | Same |
-| Soft-limit **jog** (`$J=`) | `error:15`, jog ignored, **stays Idle** | `ALARM:2`, enters Alarm | Unlock UX / job gates differ |
-| Soft-reset while **Idle** | **Retains** MPos | **Zeros** MPos/WCO to origin | False “back to zero” after Abort |
-| Feed hold during **Jog** | Cancels jog → **Idle** | Stays in **Hold** (default). Opt-in: `localStorage sharpcnc.mock.holdDuringJogCancels.v1=1` or `createMockTransport({ holdDuringJogCancels: true })` → Idle like real GRBL (used by `smoke-estop-loop-abort`; full strict mode is Remaining T2) | Hold/resume UI differs unless the opt-in is on |
-| Feed hold while **Idle** | Accepted (Hold) | Ignored | External Hold button sim may differ |
-| Force-alarm helpers | N/A | `$Alarm`, `$Alarm2`, `$Alarm5`, … | **Never** send these to USB |
-| External button sim | Hardware pins → `Pn:` | `$ExtHold` / `$ExtResume` / `$ExtAbort` / `$ExtProbe` | Mock-only — never send to USB |
-| Settings / motion fidelity | Planner, accel, EEPROM quirks | Simplified timers + settings map | Timing/streamer edge cases |
+| Topic | Real GRBL 1.1 | Virtual CNC (default) | Strict mode (`strict: true`) | Risk if you only test default mock |
+|-------|---------------|----------------------|------------------------------|-------------------------------------|
+| Alarm-lock refusal | `error:9` | `error:Alarm lock` | `error:9` | Parsers that only match `error:N` miss lock |
+| Invalid / unsupported g-code | `error:20` (etc. numeric) | `error:Invalid gcode` | `error:20` | Same |
+| Soft-limit **jog** (`$J=`) | `error:15`, jog ignored, **stays Idle** | `ALARM:2`, enters Alarm | `error:15`, stays Idle | Unlock UX / job gates differ |
+| Soft-reset while **Idle** | **Retains** MPos | **Zeros** MPos/WCO to origin | Retains MPos/WCO | False “back to zero” after Abort |
+| Feed hold during **Jog** | Cancels jog → **Idle** | Stays in **Hold** | Cancels jog → Idle | Hold/resume UI differs |
+| Feed hold while **Idle** | Accepted (Hold) | Ignored | Accepted (Hold) | External Hold button sim may differ |
+| Force-alarm helpers | N/A | `$Alarm`, `$Alarm2`, `$Alarm5`, … | Same (mock-only) | **Never** send these to USB |
+| External button sim | Hardware pins → `Pn:` | `$ExtHold` / `$ExtResume` / `$ExtAbort` / `$ExtProbe` | Same (mock-only) | Mock-only — never send to USB |
+| Settings / motion fidelity | Planner, accel, EEPROM quirks | Simplified timers + settings map | Same simplified model | Timing/streamer edge cases |
 
 ## Probe alarms 4/5
 
@@ -46,10 +58,10 @@ App, mock, and user guide now use the **official** GRBL 1.1 meanings: **ALARM:4*
 ## Critical controls checklist (covered by smoke-real-grbl)
 
 - [x] Alarms (`ALARM:n` parse + mock raise)
-- [x] Errors (`error:N` catalog + mock human-string delta)
+- [x] Errors (`error:N` catalog + default human-string delta + strict numeric)
 - [x] `ok` / error streaming responses
 - [x] Status reports (`?`)
-- [x] Soft limits (G-code vs jog delta)
-- [x] Feed hold (`!`)
-- [x] Soft-reset (`0x18`)
+- [x] Soft limits (G-code vs jog; strict jog → `error:15`)
+- [x] Feed hold (`!`) — Run, Jog, Idle (strict)
+- [x] Soft-reset (`0x18`) — default zeros vs strict retains Idle MPos
 - [x] Unlock (`$X`)
