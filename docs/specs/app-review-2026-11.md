@@ -18,7 +18,7 @@ Most of this review was fixed and verified against the Virtual CNC on branch `fi
 | R4 | Probe timeout too short | **FIXED** — derived timeout; hold + reset on timeout. Continuity check: **OPEN** (Inputs row now shows the probe pin; a guided check in the Z probe step is still to do) |
 | R5 | Mid-job alarm hang / lost code | **FIXED** |
 | R6 | `error:N` leaves spindle running | **FIXED** (feed hold + message). A "Skip line and continue" option: **OPEN, optional** |
-| R7 | Tool change doesn't make spindle safe | **OPEN** |
+| R7 | Tool change doesn't make spindle safe | **FIXED** (this PR) |
 | R8 | Pre-flight ignores Z / arcs / G53 | **FIXED** for bounds and checks. Drawing arcs as arcs in the visualizer: **OPEN, optional** |
 | R9 | Probe ALARM 4/5 swapped | **FIXED** in app, mock, docs |
 | T1 | Full suite can't pass | **FIXED** — 33/33 with per-script timeout runner |
@@ -109,17 +109,11 @@ On `error:` the streamer stops sending, but GRBL keeps executing whatever is alr
 
 **Fix:** on stream error, send feed hold, then show a clear choice: "Stop job (reset, spindle off)" or "Skip line and continue" (advanced, off by default). Log the offending line number and text.
 
-### R7. Tool change (M6) doesn't make the spindle safe
+### R7. Tool change (M6) doesn't make the spindle safe — FIXED
 
-The streamer pauses **before sending** `M6`, but:
-- Lines already in GRBL's buffer keep executing, so the "Tool change" message appears while the machine is still moving.
-- Nothing stops the spindle. Many GRBL posts don't emit `M5` before `M6`, so the operator is told to change the bit with the spindle possibly still running.
-- There's no prompt to re-zero Z after the bit change, even though every new bit has a different length.
+Was: pause before `M6` with no spindle stop, no Idle wait, no Z re-probe gate.
 
-**Fix:**
-- Wait for Idle, then send `M5`. Show a full-width tool-change panel: "Spindle stopped ✓ · Change the bit · Re-probe Z (button) · Continue".
-- Continue is disabled until Z has been re-probed or the operator explicitly ticks "Same tool length".
-- After Continue, restore spindle state (`M3 S…`) before resuming the program.
+**Now:** wait for Idle → send `M5` → full-width panel (Spindle stopped ✓ · Change the bit · Re-probe Z · Continue). Continue disabled until Z re-probed or "Same tool length". On Continue, restore `M3 S…` from `scanResumeState` with a dwell. Side-command oks during `tool-change` do not steal job-line acks (`sendDuringToolChange` / `smoke-tool-change`).
 
 ### R8. Job pre-flight ignores Z and undercounts arcs
 
@@ -256,7 +250,7 @@ Pick one rule and say it everywhere. Suggested: "Home once after every power-on 
 Same rules as before: every PR ships with smoke coverage and its user-guide / visual-guide / screenshot / diagram updates. Run `npm run smoke` (timed runner) before opening a PR.
 
 ### Safety
-1. **R7 Tool change (M6).** When the streamer pauses for M6: wait for Idle, send `M5`, show a full-width tool-change panel ("Spindle stopped ✓ · Change the bit · Re-probe Z · Continue"). Continue stays disabled until Z is re-probed or "Same tool length" is ticked. On Continue, restore spindle state (`M3 S…` from `scanResumeState`) with a dwell before resuming. Careful: anything sent while the streamer is in `tool-change` must not be counted as a job-line ack (`streamer.ts` `onLine` tool-change branch).
+1. ~~**R7 Tool change (M6).**~~ **FIXED** — Idle → `M5` → full-width panel (re-probe Z / same tool length) → restore `M3 S…` + dwell; side-command oks do not steal job-line acks (`smoke-tool-change`).
 2. **X/Y soft envelope sign (R2 follow-up)** — only if hardware check HW-02a/HW-07a shows X/Y read **negative** after homing. Then derive each axis's range from `$23` and the observed sign in `minForAxis`/`maxForAxis` (`machineConfig.ts`), update `bedTravelTest`, `stockPerimeterTest`, the machine view bed frame, and the mock. If X/Y read positive, just record it in `mock-vs-real-grbl.md`.
 3. **Probe continuity step (R4 follow-up).** In Prepare → Z probe, before the Probe button unlocks: "Touch the clip to the plate — the light should come on" using `status.pins.probe`.
 4. **E-Stop loop abort smoke.** The latch and loop abort are verified by hand in the browser only. Add a Playwright smoke (reuse `scripts/capture-guide-screenshots.mts` setup) that starts the bed travel test on Virtual CNC, presses E-Stop after the first segment, and asserts no further `$J=` is sent and the banner shows.

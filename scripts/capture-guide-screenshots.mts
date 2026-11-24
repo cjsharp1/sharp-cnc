@@ -389,6 +389,55 @@ async function main() {
     await shotWebp(page, "estop.webp");
   });
 
+  // 10) M6 tool-change panel (Idle → M5 strip with Re-probe Z / Continue)
+  await withFreshPage(browser, { calibrated: true }, async (page) => {
+    await connectVirtual(page);
+    await prepareThroughReady(page);
+    await clickPhase(page, "Verify");
+    await page.waitForTimeout(400);
+    // Replace the prepared job with a short M6 sample via the hidden file input.
+    const m6Nc = `G21
+G90
+G0 Z-1
+G0 X1 Y1
+M3 S10000
+G1 X5 F800
+M6
+G1 X10 F800
+M5
+G0 Z-1
+`;
+    const tmp = path.join(OUT, "_capture-tool-change.nc");
+    await writeFile(tmp, m6Nc, "utf8");
+    const fileInput = page.locator('input[type="file"]').first();
+    if (await fileInput.count()) {
+      await fileInput.setInputFiles(tmp);
+      await page.waitForTimeout(600);
+    }
+    // Clear-path checklist + Start
+    const checks = page.locator('.job__checklist input[type="checkbox"]');
+    const n = await checks.count();
+    for (let i = 0; i < n; i++) {
+      const box = checks.nth(i);
+      if (!(await box.isChecked())) {
+        await box.check({ force: true }).catch(() => undefined);
+      }
+    }
+    const start = page.getByRole("button", { name: /^Start/i }).first();
+    if (await start.count() && (await start.isEnabled())) {
+      await start.click();
+      await page.waitForTimeout(1500);
+      await clickPhase(page, "Run");
+      await page.waitForSelector(".job__toolchange-panel", { timeout: 15000 });
+      await page.waitForTimeout(800);
+      await shotWebp(page, "tool-change.webp");
+    } else {
+      console.warn("skip tool-change.webp — Start not available");
+    }
+    const { unlink } = await import("node:fs/promises");
+    await unlink(tmp).catch(() => undefined);
+  });
+
   await browser.close();
   console.log("Done. Assets in", OUT);
 }

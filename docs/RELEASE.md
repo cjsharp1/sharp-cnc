@@ -43,6 +43,7 @@ Critical smokes (pre-test pack):
 | `smoke-first-run` | Wizard order connect→home→calibrate→travel→stock |
 | `smoke-job-recovery` | Mid-job checkpoint persist / resume label |
 | `smoke-app-safety` | Mock connect → home → probe → SVG/sim → dry-run → M6 → overrides → alarm → E-stop |
+| `smoke-tool-change` | M6 Idle→M5, side-ack hygiene, spindle restore + dwell, Continue gate |
 | `smoke-app-update` | package/tauri/Cargo version sync + mocked GitHub Releases check + updater plugin config |
 
 ## 2. Desktop installer

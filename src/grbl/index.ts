@@ -254,6 +254,13 @@ export {
   sliceJobFromLine,
 } from "./jobControls";
 
+export {
+  TOOL_CHANGE_SPINDLE_DWELL_SEC,
+  buildToolChangeSpindleRestore,
+  buildToolChangeSpindleStop,
+  canContinueToolChange,
+} from "./toolChange";
+
 export type {
   AlarmGuide,
   AlarmGuideKind,

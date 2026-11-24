@@ -105,15 +105,28 @@ Start checks the whole job against soft travel in machine coordinates:
 | Feed / spindle overrides | On the safety strip |
 | **Pause** | Feed hold (`!`) |
 | **Resume** | Cycle start (`~`) from Hold |
-| **Resume after tool change** | Continues past an `M6` pause |
+| **Continue** (tool change) | After M6: spindle stop → change bit → re-probe Z (or same length) → restores spindle and continues |
 | **Stop** | Soft reset / cancel stream — treat as abort |
 
 **If GRBL rejects a line mid-job** (`error:N`), SharpCNC stops sending, sends a **feed hold**, and shows which line failed. The spindle may still be running: press **Stop** to cancel the job and turn it off.  
 **If GRBL raises an alarm mid-job**, the job ends and the alarm panel explains the code. Recovery offers to resume about 20 lines before the last line GRBL accepted, because GRBL accepts lines before it finishes cutting them.
 
-Not in Run: probe, calibrate, job load, Advanced.
+Not in Run (except during an M6 pause): probe, calibrate, job load, Advanced.
 
-When the stream hits **`M6`**, SharpCNC pauses for a tool change. Change the bit, then **Resume after tool change**.
+### Tool change (M6)
+
+![Tool-change panel](../setup-visual/assets/run-02-tool-change.svg)
+
+When the stream hits **`M6`**, SharpCNC pauses **before** sending that line, waits until the machine is **Idle**, then sends **`M5`** so the spindle is stopped before you touch the bit.
+
+The Run panel shows a full-width tool-change strip:
+
+1. **Spindle stopped ✓** — automatic after Idle  
+2. **Change the bit**  
+3. **Re-probe Z** — use the button (or tick **Same tool length** if the bit did not change)  
+4. **Continue** — restores `M3 S…` from earlier in the file (with a short dwell), then sends `M6` and resumes
+
+**Continue** stays disabled until Z is re-probed or **Same tool length** is ticked. Jog is allowed only after the spindle has stopped so you can reach the touch plate. Dry-run jobs keep the spindle off after Continue.
 
 Hardware **start / pause / stop** buttons on the Demon Shield stay in sync; Start from hardware respects the same Prepare gate.
 

@@ -37,6 +37,11 @@ export interface StreamProgress {
   /** Set when paused for M6 tool change. */
   toolChangeLine?: number;
   toolChangeMessage?: string;
+  /**
+   * Job lines still waiting for ok/error in the RX buffer.
+   * Side commands (M5 / spindle restore) must wait until this is 0.
+   */
+  pendingLines?: number;
 }
 
 export interface GcodeStreamerOptions {
@@ -85,6 +90,12 @@ export function createGcodeStreamer(
   resume(): Promise<void>;
   /** Continue after an M6 tool-change pause (does not send `~` unless also held). */
   resumeAfterToolChange(): Promise<void>;
+  /**
+   * Send a non-job line while paused for tool change (e.g. M5, spindle restore).
+   * Waits until job pending is drained, then awaits that line's ok without
+   * counting it as a job-line ack.
+   */
+  sendDuringToolChange(line: string): Promise<void>;
   stop(): Promise<void>;
   /** Mirror external feed hold — do not send `!`. */
   syncFromExternalHold(): void;
@@ -120,6 +131,14 @@ export function createGcodeStreamer(
   let settleReject: ((err: Error) => void) | null = null;
   /** Serialize fill loops so concurrent ok callbacks cannot double-send. */
   let sendLock: Promise<void> = Promise.resolve();
+  /**
+   * Expected oks for out-of-band lines sent during tool-change (M5, spindle
+   * restore, dwell). Must not steal job-line acks from `pending`.
+   */
+  let sideAckWaiters: Array<{
+    resolve: () => void;
+    reject: (err: Error) => void;
+  }> = [];
 
   const progress = (): StreamProgress => {
     const total = lines.length;
@@ -136,8 +155,36 @@ export function createGcodeStreamer(
       lastError,
       toolChangeLine,
       toolChangeMessage,
+      pendingLines: pending.length,
     };
   };
+
+  const rejectSideAcks = (reason: string) => {
+    const waiters = sideAckWaiters;
+    sideAckWaiters = [];
+    for (const w of waiters) w.reject(new Error(reason));
+  };
+
+  const waitPendingDrained = (timeoutMs = 60_000): Promise<void> =>
+    new Promise((resolve, reject) => {
+      const started = Date.now();
+      const tick = () => {
+        if (phase !== "tool-change") {
+          reject(new Error("Tool change ended before the buffer drained"));
+          return;
+        }
+        if (pending.length === 0) {
+          resolve();
+          return;
+        }
+        if (Date.now() - started > timeoutMs) {
+          reject(new Error("Timed out waiting for the job buffer to drain"));
+          return;
+        }
+        setTimeout(tick, 25);
+      };
+      tick();
+    });
 
   const emit = () => {
     onProgress?.(progress());
@@ -242,27 +289,41 @@ export function createGcodeStreamer(
       phase === "tool-change"
     ) {
       // Still ack buffer while tool-change if GRBL replies for prior lines.
+      // Side-command oks (M5 / spindle restore) must not steal job-line acks.
       if (
         phase === "tool-change" &&
         (trimmed === "ok" || trimmed.startsWith("error"))
       ) {
-        const item = pending.shift();
-        if (item) {
+        if (pending.length > 0) {
+          const item = pending.shift()!;
           bufferUsed = Math.max(0, bufferUsed - item.chars);
           acked = Math.max(acked, item.index + 1);
           emit();
+          if (trimmed.startsWith("error")) {
+            const jobLine = jobLineFor(item.index);
+            failStream(
+              `${trimmed} ${jobLine === null ? "in the resume setup" : `on line ${jobLine + 1}`}`,
+              true,
+            );
+          }
+          return;
         }
-        if (trimmed.startsWith("error") && item) {
-          const jobLine = jobLineFor(item.index);
-          failStream(
-            `${trimmed} ${jobLine === null ? "in the resume setup" : `on line ${jobLine + 1}`}`,
-            true,
-          );
+        if (sideAckWaiters.length > 0) {
+          const waiter = sideAckWaiters.shift()!;
+          if (trimmed.startsWith("error")) {
+            waiter.reject(new Error(trimmed));
+          } else {
+            waiter.resolve();
+          }
+          emit();
+          return;
         }
+        // Spurious ok (probe cycle, leftover) — ignore; do not invent job acks.
       } else if (
         phase === "tool-change" &&
         /^ALARM:\s*\d+/i.test(trimmed)
       ) {
+        rejectSideAcks(trimmed);
         failStream(trimmed, false);
       }
       return;
@@ -316,6 +377,7 @@ export function createGcodeStreamer(
     lastError = message;
     phase = "error";
     emit();
+    rejectSideAcks(message);
     if (holdMotion) {
       void transport.write("!").catch(() => undefined);
     }
@@ -400,12 +462,37 @@ export function createGcodeStreamer(
 
     async resumeAfterToolChange() {
       if (phase !== "tool-change") return;
+      if (sideAckWaiters.length > 0) {
+        throw new Error("Wait for the spindle command to finish first");
+      }
       // Mark so fillBuffer will send the pending M6 line instead of re-pausing.
       toolChangeLine = jobLineFor(sendIndex) ?? lineOffset;
       toolChangeMessage = undefined;
       phase = "running";
       emit();
       await scheduleFill();
+    },
+
+    async sendDuringToolChange(line: string) {
+      if (phase !== "tool-change") {
+        throw new Error("Not paused for a tool change");
+      }
+      const body = line.trim();
+      if (!body) return;
+      await waitPendingDrained();
+      if (phase !== "tool-change") {
+        throw new Error("Tool change ended before the command was sent");
+      }
+      const payload = body.endsWith("\n") ? body : `${body}\n`;
+      await new Promise<void>((resolve, reject) => {
+        const waiter = { resolve, reject };
+        sideAckWaiters.push(waiter);
+        void transport.write(payload).catch((err) => {
+          const idx = sideAckWaiters.indexOf(waiter);
+          if (idx >= 0) sideAckWaiters.splice(idx, 1);
+          reject(err instanceof Error ? err : new Error(String(err)));
+        });
+      });
     },
 
     async stop() {
@@ -427,6 +514,7 @@ export function createGcodeStreamer(
       }
       pending = [];
       bufferUsed = 0;
+      rejectSideAcks("Job stopped");
       finish("idle");
     },
 
@@ -462,6 +550,7 @@ export function createGcodeStreamer(
       lastError = undefined;
       toolChangeLine = undefined;
       toolChangeMessage = undefined;
+      rejectSideAcks("Job aborted");
       finish("idle");
     },
 
@@ -473,6 +562,7 @@ export function createGcodeStreamer(
       lineOffset = 0;
       preambleCount = 0;
       resetCounters();
+      rejectSideAcks("Streamer disposed");
       phase = "idle";
       settle = null;
       settleReject = null;
