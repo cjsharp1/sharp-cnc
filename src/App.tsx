@@ -3220,8 +3220,11 @@ export default function App() {
                     ? "SVG preview"
                     : null
             }
-            stock={stock}
-            onStockChange={handleStockChange}
+            stock={taskPhase === "calibrate" ? null : stock}
+            onStockChange={
+              taskPhase === "calibrate" ? null : handleStockChange
+            }
+            showMaterialOrigin={taskPhase !== "calibrate"}
             toolDiameterMm={tool.diameterMm}
             trail={trail}
             liveMoving={liveMoving}
