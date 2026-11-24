@@ -553,6 +553,17 @@ export {
   saveUiTheme,
 } from "./themeConfig";
 
+export {
+  DEFAULT_SHELL_RAIL_WIDTH_PX,
+  MAX_SHELL_RAIL_WIDTH_PX,
+  MIN_SHELL_MAIN_WIDTH_PX,
+  MIN_SHELL_RAIL_WIDTH_PX,
+  clampShellRailWidth,
+  clampShellRailWidthForStage,
+  loadShellRailWidth,
+  saveShellRailWidth,
+} from "./layoutConfig";
+
 export type { ParsedAlarm } from "./safety";
 export {
   UNLOCK_COMMAND,
