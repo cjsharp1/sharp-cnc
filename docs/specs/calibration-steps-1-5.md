@@ -11,7 +11,7 @@
 | 2 — Direction + steps | **Done.** Expected-direction wording + Yes/No (No ticks Invert); Z row first + retract warning; `$3`↔`$23` note when `$22=1`; Z steps/mm down 10/20/25; ±20% Write warning; re-test ±0.1 mm; starting-value helper. Smoke: `smoke-calibration.mts`. |
 | 3 — Speed & accel | **Done.** Wizard step + `smoke-rates-test.mts`. |
 | 4 — Homing setup | **Done** on branch (this PR). Wizard step + `smoke-homing-setup.mts`. Limit pin parse, `$ExtLimit*`, `$H`→`error:5` when `$22=0`. |
-| 5 — Soft travel polish | Partly done: the jog pad is now on this step. Rest open |
+| 5 — Soft travel polish | **Done** on branch (this PR). `$22` prerequisite, Z copy, Test the limit, optional `$21`, machine-not-work callout, six-step asset renames. |
 
 Calibrate step 1 is now **Start** (was "Zero context"); use that name below. Steps are `Start → Direction → Steps/mm → Soft travel` today, and become `Start → Direction → Steps/mm → Speed & accel → Homing → Soft travel` after PRs 3–4.
 
@@ -219,9 +219,9 @@ Already works (after the PR 0 fix). Add:
 | 2 — Direction + steps | `05-calibration.md`: expected-direction wording, Z moves down for steps/mm, ±20% warning, re-test | `calibration.html` direction + steps sections | Regenerate `cal-step2-steps.png` and direction step (Z row first) | Revise `diagram-axis-direction.svg` (+Z = up, tool lifts off the work); revise `cal-02-direction.svg`, `cal-03-steps.svg` (Z measured with calipers/indicator) |
 | 3 — Speed & accel | New section in `05-calibration.md` with the Z callout | **New** section on `calibration.html` | **New** `cal-step-rates.png` (X tab and Z tab) | **New** `cal-05-rates.svg`: out-and-back test with indicator, "came back to the mark?" |
 | 4 — Homing | New section in `05-calibration.md`; update the Homing part of `04-jogging-and-zeros.md` (it currently only covers the `$H` button) | **New** section on `calibration.html`; update `first-run.html` if First-run homes | **New** `cal-step-homing-switches.png`, `cal-step-homing-direction.png`, `cal-step-homing-first-home.png` | **New** `cal-06-homing.svg`: switch lights, corner picker, Z homes first; revise `fr-02-home.svg` if it changes |
-| 5 — Soft travel | `05-calibration.md`: prerequisite, verify test, hard limits, "protects the machine, not the work" callout | `calibration.html` travel section | Regenerate `cal-step3-travel.png` (rename to match new step numbering) | Revise `cal-04-travel.svg`, `diagram-calibration-flow.svg`, `order-of-ops.svg`, `overview-flow.svg` for the six-step order |
+| 5 — Soft travel | `05-calibration.md`: prerequisite, verify test, hard limits, "protects the machine, not the work" callout | `calibration.html` travel section | `cal-step6-travel.png` (renamed from `cal-step3-travel.png`) | `cal-06-travel.svg` (was `cal-04`); rates/homing SVGs renumbered `cal-04-rates` / `cal-05-homing`; revise `diagram-calibration-flow.svg`, `order-of-ops.svg`, `overview-flow.svg` for the six-step order |
 
-Rename step-numbered files (e.g. `cal-step3-travel.png`, `cal-04-travel.svg`) to match the new six-step order, and fix every link to them. A broken image on the Pages site counts as a failed PR.
+Rename step-numbered files (e.g. `cal-step3-travel.png` → `cal-step6-travel.png`, `cal-04-travel.svg` → `cal-06-travel.svg`) to match the new six-step order, and fix every link to them. A broken image on the Pages site counts as a failed PR.
 
 ## Returning profiles
 

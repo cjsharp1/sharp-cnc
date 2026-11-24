@@ -40,7 +40,7 @@
     <rect class="cal" y="20" width="150" height="12"/>
     <text class="w" x="75" y="16" text-anchor="middle" dominant-baseline="central">1 · Once</text>
     <text class="lab" x="75" y="62" text-anchor="middle">Calibrate</text>
-    <text class="tiny" x="75" y="86" text-anchor="middle">$3 · steps · travel</text>
+    <text class="tiny" x="75" y="86" text-anchor="middle">6 steps · then Prepare</text>
   </g>
   <path class="arrow" d="M372 155 H392"/>
   <g transform="translate(400,100)">
