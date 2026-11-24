@@ -84,6 +84,10 @@ export {
   SETTING_DIR_PORT_INVERT,
   SETTING_HOMING_CYCLE,
   SETTING_HOMING_DIR_MASK,
+  SETTING_HOMING_FEED,
+  SETTING_HOMING_PULLOFF,
+  SETTING_HOMING_SEEK,
+  SETTING_LIMIT_INVERT,
   SETTING_LABELS,
   SETTING_ACCEL_X,
   SETTING_ACCEL_Y,
@@ -307,6 +311,7 @@ export {
   classifyAlarm,
   guideForAlarm,
   guideFromAlarmLine,
+  homingAlarmPlainDetail,
 } from "./alarmGuide";
 
 export type { DesktopPortInfo } from "./desktopSerial";
@@ -613,6 +618,40 @@ export {
   saveCalNewStepsBannerDismissed,
   savePendingRatesRestore,
 } from "./ratesCalibration";
+
+export type {
+  ExtLimitCommand,
+  HomingDirChoice,
+  HomingXyCorner,
+  HomingZSide,
+  LimitAxis,
+  SwitchCheckAxis,
+  SwitchCheckState,
+} from "./homingCalibration";
+export {
+  EXT_LIMIT_COMMANDS,
+  HOMING_DIR_BIT,
+  HOMING_FEED_SUGGEST_MAX,
+  HOMING_FEED_SUGGEST_MIN,
+  HOMING_PULLOFF_TYPICAL_MAX,
+  HOMING_PULLOFF_TYPICAL_MIN,
+  HOMING_SEEK_RATE_FRACTION,
+  advanceSwitchCheck,
+  allSwitchesVerified,
+  decodeHomingDirMask,
+  decodeLimitInvert,
+  describeHomingDirMask,
+  emptySwitchCheckState,
+  encodeHomingDirMask,
+  encodeLimitInvert,
+  extLimitCommandForAxis,
+  flippedLimitInvert,
+  homingSettingPlainLabel,
+  homingSettingUnit,
+  suggestHomingFeed,
+  suggestHomingPullOff,
+  suggestHomingSeek,
+} from "./homingCalibration";
 
 export type { PhaseGate, TaskPhaseContext, TaskPhaseId } from "./taskPhase";
 export {

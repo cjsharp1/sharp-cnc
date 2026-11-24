@@ -105,6 +105,20 @@ const HOMING_FAIL: AlarmGuide = {
   unlockReadyHint: "Axes free to seek home?",
 };
 
+/** Plain-language detail for homing ALARM codes used in Calibrate Part D. */
+export function homingAlarmPlainDetail(code: number | null): string | null {
+  switch (code) {
+    case 6:
+      return "Reset during homing (ALARM:6) — the cycle was interrupted. Unlock, then try again with your hand on E-Stop.";
+    case 8:
+      return "Couldn't clear the switch on pull-off (ALARM:8) — try a larger pull-off ($27), or check the switch is not stuck.";
+    case 9:
+      return "Couldn't find the switch (ALARM:9) — wrong homing direction ($23), or the switch never closed. Check the corner and wiring.";
+    default:
+      return null;
+  }
+}
+
 const RESET_MOTION: AlarmGuide = {
   kind: "reset-motion",
   headline: "Reset while in motion",

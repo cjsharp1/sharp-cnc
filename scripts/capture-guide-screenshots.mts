@@ -339,7 +339,7 @@ async function main() {
       await page.waitForTimeout(600);
     }
 
-    // zero → direction → steps/mm → speed & accel → soft travel
+    // zero → direction → steps/mm → speed & accel → homing → soft travel
     await confirmAndNext("cal-confirm-zero");
     await page.waitForTimeout(300);
     await shot(page, "cal-step-direction.png");
@@ -359,6 +359,36 @@ async function main() {
     }
 
     await confirmAndNext("cal-confirm-rates");
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step-homing-switches.png");
+
+    // Virtual CNC: toggle each limit on then off so switch-check gets ✓
+    for (const ax of ["X", "Y", "Z"] as const) {
+      const btn = page.getByRole("button", {
+        name: new RegExp(`^${ax} limit$`, "i"),
+      });
+      if (await btn.count()) {
+        await btn.click();
+        await page.waitForTimeout(350);
+        await btn.click();
+        await page.waitForTimeout(350);
+      }
+    }
+    await page
+      .getByText(/All three switches checked/i)
+      .waitFor({ timeout: 10000 })
+      .catch(() => undefined);
+    await page.waitForTimeout(300);
+    await shot(page, "cal-step-homing-direction.png");
+
+    const firstHome = page.getByRole("heading", { name: /First home/i }).first();
+    if (await firstHome.count()) {
+      await firstHome.scrollIntoViewIfNeeded();
+      await page.waitForTimeout(200);
+    }
+    await shot(page, "cal-step-homing-first-home.png");
+
+    await confirmAndNext("cal-confirm-homing");
     await page.waitForTimeout(300);
     await shot(page, "cal-step3-travel.png");
   });

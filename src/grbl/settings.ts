@@ -3,9 +3,13 @@ import type { Axis, GrblMachineState } from "./types";
 
 /** GRBL setting IDs used by SharpCNC calibration / soft travel. */
 export const SETTING_DIR_PORT_INVERT = 3;
+export const SETTING_LIMIT_INVERT = 5;
 export const SETTING_SOFT_LIMITS = 20;
 export const SETTING_HOMING_CYCLE = 22;
 export const SETTING_HOMING_DIR_MASK = 23;
+export const SETTING_HOMING_FEED = 24;
+export const SETTING_HOMING_SEEK = 25;
+export const SETTING_HOMING_PULLOFF = 27;
 export const SETTING_STEPS_X = 100;
 export const SETTING_STEPS_Y = 101;
 export const SETTING_STEPS_Z = 102;
@@ -31,6 +35,7 @@ export const DEFAULT_GRBL_SETTINGS: Record<number, number> = {
   1: 25,
   2: 0,
   3: 0, // direction port invert mask (bit0=X, bit1=Y, bit2=Z)
+  5: 0, // limit pins invert (boolean)
   10: 1,
   11: 0.01,
   12: 0.002,
@@ -87,9 +92,14 @@ export const MAX_TRAVEL_SETTING_FOR_AXIS: Record<Axis, number> = {
 /** Short labels for common settings shown in the editor. */
 export const SETTING_LABELS: Record<number, string> = {
   3: "Direction invert mask",
+  5: "Limit pins invert",
   20: "Soft limits enable",
   21: "Hard limits enable",
   22: "Homing cycle enable",
+  23: "Homing direction invert mask",
+  24: "Homing feed (mm/min)",
+  25: "Homing seek (mm/min)",
+  27: "Homing pull-off (mm)",
   100: "X steps/mm",
   101: "Y steps/mm",
   102: "Z steps/mm",
