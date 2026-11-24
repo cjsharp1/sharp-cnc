@@ -3727,10 +3727,21 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.55rem;
-  align-items: center;
+  align-items: start;
   padding: 0.55rem 0.65rem;
   border: 1px solid var(--line);
   background: var(--inset-bg-soft);
+}
+
+.cal__dir-row--z {
+  border-color: color-mix(in srgb, var(--brass) 45%, var(--line));
+}
+
+.cal__dir-main {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
 }
 
 .cal__dir-toggle {
@@ -3739,12 +3750,74 @@ button {
   font-weight: 600;
 }
 
+.cal__dir-expect {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--muted);
+  line-height: 1.35;
+}
+
+.cal__dir-z-warn {
+  margin: 0.15rem 0 0;
+}
+
+.cal__dir-side {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
 .cal__dir-tests {
   display: flex;
   align-items: center;
   gap: 0.35rem;
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.cal__dir-ask {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
+}
+
+.cal__dir-ask-label {
+  font-size: var(--text-sm);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cal__helper {
+  margin: 0;
+  padding: 0.45rem 0.65rem;
+  border: 1px solid var(--line);
+  background: var(--inset-bg-soft);
+  font-size: var(--text-sm);
+}
+
+.cal__helper summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cal__helper[open] summary {
+  margin-bottom: 0.4rem;
+}
+
+.cal__row--helper {
+  margin-top: 0.35rem;
+}
+
+.cal__pass {
+  margin: 0;
+  font-size: var(--text-sm);
+  color: var(--ok, var(--brass-hot));
+  font-weight: 600;
+  line-height: 1.4;
 }
 
 .cal__table-wrap {

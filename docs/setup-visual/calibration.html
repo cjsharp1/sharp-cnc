@@ -137,12 +137,14 @@
             <span class="step-card__num" aria-hidden="true">2</span>
             <h2>Direction ($3)</h2>
             <p class="step-card__action">
-              Invert wrong axes → <strong>Write $3</strong> → Test ±
+              Z first → Test → <strong>Yes / No</strong> →
+              <strong>Write $3</strong>
             </p>
             <p class="step-card__eli5">
-              Make left mean left. Looking down on the bed (same as the
-              visualizer): +X right, +Y back = up on screen, +Z up. If a button
-              moves the wrong way, flip that axis. ($3 is just the flip switch.)
+              Make left mean left. Start with Z: +Z must lift the tool off the
+              work. Then +X right, +Y away from you. After each test, answer
+              Yes/No — No ticks Invert; you still click Write. ($3 is the flip
+              switch.)
             </p>
           </div>
           <figure class="step-card__figure">
@@ -156,34 +158,38 @@
           <ol class="step-card__do">
             <li>
               <p class="step-card__do-act">
-                Clear the bed. Keep Z high. For each axis, tap
-                <strong>Test +X</strong> / <strong>Test −X</strong> (and Y/Z).
+                Clear the bed. Start on the <strong>Z</strong> row (listed
+                first). Tap <strong>Test +Z</strong> / <strong>Test −Z</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Short ~5 mm jog. Looking down on the bed (matches the
-                visualizer): +X right, +Y back = up on screen, +Z up. Wrong way =
-                that axis needs invert.
+                Short ~5 mm jog. Expected: <strong>+Z → up (tool lifts off the
+                work)</strong>. If +Z goes down, every “safe” retract would drive
+                into the work — fix Z before X/Y.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Check <strong>Invert X</strong> / Y / Z for any reversed axis.
-                Draft mask updates (bits X=1, Y=2, Z=4).
+                Answer <strong>Did it go the expected way? Yes / No</strong>.
+                <strong>No</strong> auto-ticks Invert for that axis. Repeat for
+                X (+X → right) and Y (+Y → away from you).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Draft mask number changes; Write button enables when dirty.
+                Draft mask updates (bits X=1, Y=2, Z=4). Write enables when
+                dirty. You still click Write — Invert is only a draft.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Write $3=…</strong>, then re-run the Test ± buttons.
+                Tap <strong>Write $3=…</strong>, then re-run Test ±. If homing is
+                on (<code>$22=1</code>), read the note about
+                <code>$23</code> / Homing.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Current $3 matches the draft; + jogs now match the bed. Activity
-                log shows the write.
+                Current $3 matches the draft; + jogs match the bed. Activity log
+                shows the write.
               </p>
             </li>
             <li>
@@ -201,8 +207,8 @@
             </li>
           </ol>
           <p class="step-card__aside">
-            Expect: +X right · +Y back (up on screen) · +Z up (looking down on
-            bed)
+            Expect: +Z up (tool lifts) · +X right · +Y away · Yes/No after each
+            test
           </p>
           <a class="step-card__next" href="#c3">Next: Steps/mm →</a>
         </article>
@@ -244,24 +250,30 @@
             <li>
               <p class="step-card__do-act">
                 Tap <strong>Move +…</strong> for X/Y, or
-                <strong>Move Z down …</strong> for Z (10–25 mm — Z homes to the
-                top). Measure the real travel (calipers or a dial indicator for
-                Z); type it in <strong>How far it actually moved (mm)</strong>.
+                <strong>Move Z down …</strong> for Z (10 / 20 / 25 mm — Z homes
+                to the top). Optional: open
+                <strong>Don’t know your starting value?</strong> for a
+                steps/rev × microsteps ÷ mm/rev estimate. Measure the real
+                travel (calipers or dial indicator for Z); type it in
+                <strong>How far it actually moved (mm)</strong>.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
                 Machine moves the commanded distance (approximately). UI shows
-                Before / After steps/mm (formula: old × commanded ÷ measured).
+                Before / After steps/mm (formula: old × commanded ÷ measured). A
+                change over ±20% shows a warning before Write.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Write $1xx=…</strong>. Repeat for X → Y → Z.
+                Tap <strong>Write $1xx=…</strong>, then
+                <strong>Move again to check</strong>. Pass when measured is
+                within ±0.1 mm (✓). Repeat for X → Y → Z.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                Current steps/mm updates to the After value. A second Move +
-                measure should land close to commanded.
+                Current steps/mm updates to the After value. Re-test shows pass
+                when within ±0.1 mm of commanded.
               </p>
             </li>
             <li>
@@ -278,7 +290,8 @@
             </li>
           </ol>
           <p class="step-card__aside">
-            Repeat X → Y → Z. Formula: old × commanded ÷ measured.
+            Z moves down · ±20% warn · re-test ±0.1 mm · formula: old ×
+            commanded ÷ measured.
           </p>
           <a class="step-card__next" href="#c4">Next: Soft travel →</a>
         </article>
