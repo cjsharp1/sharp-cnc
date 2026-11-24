@@ -70,19 +70,32 @@ function seedVirtualCncSettings(target: Map<number, number>): void {
 }
 
 /**
+ * localStorage key: set to `"1"` before connect to enable **strict GRBL 1.1h**
+ * mode on Virtual CNC (see docs/mock-vs-real-grbl.md). Implies hold-during-jog
+ * cancel. Prefer this over the legacy hold-only key below.
+ */
+export const MOCK_STRICT_GRBL_KEY = "sharpcnc.mock.strictGrbl.v1";
+
+/**
  * localStorage key: set to `"1"` before connect so Virtual CNC feed-hold during
- * `$J=` cancels the jog → Idle (real GRBL 1.1). Default Virtual CNC stays Hold
- * (see docs/mock-vs-real-grbl.md). Used by the E-Stop loop-abort Playwright smoke;
- * full strict mode is Remaining T2.
+ * `$J=` cancels the jog → Idle (real GRBL 1.1). Subset of strict mode; kept for
+ * older Playwright seeds. Prefer {@link MOCK_STRICT_GRBL_KEY}.
  */
 export const MOCK_HOLD_DURING_JOG_CANCELS_KEY =
   "sharpcnc.mock.holdDuringJogCancels.v1";
 
 export interface MockTransportOptions {
   /**
+   * When true, follow real GRBL 1.1h for every documented Virtual CNC delta in
+   * docs/mock-vs-real-grbl.md (numeric `error:N`, soft-limit jog → `error:15`,
+   * Idle soft-reset keeps MPos, hold during jog → Idle, hold while Idle → Hold).
+   * Implies {@link holdDuringJogCancels}. Default false = legacy Virtual CNC.
+   */
+  strict?: boolean;
+  /**
    * When true, feed hold (`!` / `$ExtHold`) during Jog cancels the jog and
-   * returns Idle — matching real GRBL 1.1. Default false keeps legacy Virtual
-   * CNC Hold-during-jog behavior.
+   * returns Idle — matching real GRBL 1.1. Implied by {@link strict}. Default
+   * false keeps legacy Virtual CNC Hold-during-jog behavior.
    */
   holdDuringJogCancels?: boolean;
 }
@@ -90,10 +103,11 @@ export interface MockTransportOptions {
 /** Read mock option overrides from localStorage (browser / Playwright seeds). */
 export function mockTransportOptionsFromStorage(): MockTransportOptions {
   try {
-    if (
-      typeof localStorage !== "undefined" &&
-      localStorage.getItem(MOCK_HOLD_DURING_JOG_CANCELS_KEY) === "1"
-    ) {
+    if (typeof localStorage === "undefined") return {};
+    if (localStorage.getItem(MOCK_STRICT_GRBL_KEY) === "1") {
+      return { strict: true };
+    }
+    if (localStorage.getItem(MOCK_HOLD_DURING_JOG_CANCELS_KEY) === "1") {
       return { holdDuringJogCancels: true };
     }
   } catch {
@@ -118,7 +132,10 @@ export function mockTransportOptionsFromStorage(): MockTransportOptions {
 export function createMockTransport(
   options: MockTransportOptions = {},
 ): SerialTransport {
-  const holdDuringJogCancels = options.holdDuringJogCancels === true;
+  const strict = options.strict === true;
+  /** Strict mode implies real hold-during-jog; legacy opt-in still works alone. */
+  const holdDuringJogCancels =
+    strict || options.holdDuringJogCancels === true;
   let open = false;
   let baud = DEFAULT_BAUD;
   const lineHandlers = new Set<(line: string) => void>();
@@ -354,6 +371,11 @@ export function createMockTransport(
     }
 
     if (violatesSoftLimits(target)) {
+      if (strict) {
+        // Real GRBL 1.1: soft-limit jog → error:15, ignored, stays Idle.
+        emitLine("error:15");
+        return;
+      }
       raiseSoftLimitAlarm();
       return;
     }
@@ -497,7 +519,7 @@ export function createMockTransport(
     }
 
     if (state === "Alarm") {
-      emitLine("error:Alarm lock");
+      emitLine(strict ? "error:9" : "error:Alarm lock");
       return;
     }
 
@@ -552,7 +574,7 @@ export function createMockTransport(
               : null;
 
       if (axis === null) {
-        emitLine("error:Invalid gcode");
+        emitLine(strict ? "error:20" : "error:Invalid gcode");
         return;
       }
 
@@ -674,11 +696,17 @@ export function createMockTransport(
 
   const softReset = () => {
     const wasAlarm = state === "Alarm";
+    // Real GRBL 1.1: soft-reset while Idle/Hold retains MPos (+ WCO). Default
+    // Virtual CNC still zeros to origin for a "perfect" practice reset.
+    const retainMachine =
+      strict && !wasAlarm && (state === "Idle" || state === "Hold");
     clearMotion();
     queue.length = 0;
     busy = false;
-    machine = { ...VIRTUAL_ORIGIN };
-    clearWorkOffsets();
+    if (!retainMachine) {
+      machine = { ...VIRTUAL_ORIGIN };
+      clearWorkOffsets();
+    }
     absolute = true;
     spindleOn = false;
     feedOverridePct = 100;
@@ -686,6 +714,7 @@ export function createMockTransport(
     spindleOverridePct = 100;
     // Soft reset from Alarm stays locked until `$X` (matches GRBL alarm lock UX).
     state = wasAlarm ? "Alarm" : "Idle";
+    heldFrom = "Idle";
     emitLine("Grbl 1.1h ['$' for help]");
     if (wasAlarm) {
       emitLine("ALARM:3");
@@ -752,12 +781,18 @@ export function createMockTransport(
       if (state === "Run" || state === "Jog") {
         heldFrom = state;
         state = "Hold";
+        return;
+      }
+      // Real GRBL accepts feed hold while Idle; default Virtual CNC ignores it.
+      if (strict && state === "Idle") {
+        heldFrom = "Idle";
+        state = "Hold";
       }
       return;
     }
     if (data === "~") {
       if (state === "Hold") {
-        state = heldFrom === "Jog" ? "Jog" : "Run";
+        state = heldFrom === "Jog" ? "Jog" : heldFrom === "Idle" ? "Idle" : "Run";
         pump();
       }
       return;
@@ -785,6 +820,9 @@ export function createMockTransport(
       } else if (state === "Run" || state === "Jog") {
         heldFrom = state;
         state = "Hold";
+      } else if (strict && state === "Idle") {
+        heldFrom = "Idle";
+        state = "Hold";
       }
       emitLine("ok");
       return;
@@ -792,7 +830,8 @@ export function createMockTransport(
     if (/^\$ExtResume$/i.test(trimmed)) {
       pulsePin("S");
       if (state === "Hold") {
-        state = heldFrom === "Jog" ? "Jog" : "Run";
+        state =
+          heldFrom === "Jog" ? "Jog" : heldFrom === "Idle" ? "Idle" : "Run";
         pump();
       }
       emitLine("ok");

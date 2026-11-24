@@ -1,9 +1,9 @@
 /**
  * Smoke: E-Stop aborts the bed travel loop (app-review Remaining #4 / R1).
  *
- * 1) Unit: mock hold-during-jog → Idle (real GRBL path the Virtual CNC hid).
- * 2) Playwright: start bed travel on Virtual CNC, E-Stop after the first `$J=`,
- *    assert no further `$J=` writes and the latch banner shows.
+ * 1) Unit: strict GRBL mock hold-during-jog → Idle (real path Virtual CNC hid).
+ * 2) Playwright: start bed travel on Virtual CNC (strict mode), E-Stop after
+ *    the first `$J=`, assert no further `$J=` writes and the latch banner shows.
  *
  * Reuses the Playwright bootstrap style of scripts/capture-guide-screenshots.mts.
  * Run: npx --yes tsx scripts/smoke-estop-loop-abort.mts
@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { chromium, type Page } from "playwright";
 import { createGrblClient } from "../src/grbl/client.ts";
 import {
-  MOCK_HOLD_DURING_JOG_CANCELS_KEY,
+  MOCK_STRICT_GRBL_KEY,
   createMockTransport,
 } from "../src/grbl/mockSerial.ts";
 import { SMOKE_TX_LOG_KEY } from "../src/grbl/instrumentTransport.ts";
@@ -38,7 +38,7 @@ function pass(label: string): void {
 console.log("smoke-estop-loop-abort: mock hold-during-jog");
 
 {
-  const t = createMockTransport({ holdDuringJogCancels: true });
+  const t = createMockTransport({ strict: true });
   const client = createGrblClient(t, {
     softResetOnConnect: true,
     statusPollMs: 40,
@@ -70,7 +70,7 @@ console.log("smoke-estop-loop-abort: mock hold-during-jog");
     latest?.state === "Idle",
     `hold during jog → Idle (real GRBL), got ${latest?.state}`,
   );
-  pass("createMockTransport({ holdDuringJogCancels }) → Idle on ! during Jog");
+  pass("createMockTransport({ strict: true }) → Idle on ! during Jog");
 
   // Default mock still stays Hold (documented Virtual CNC delta).
   unsub();
@@ -191,7 +191,7 @@ async function startVite(): Promise<{ base: string; child: ChildProcess }> {
 
 async function seedStorage(page: Page): Promise<void> {
   await page.addInitScript(
-    ({ holdKey, txKey }) => {
+    ({ strictKey, txKey }) => {
       localStorage.setItem(
         "sharpcnc.firstRun.v1",
         JSON.stringify({ completed: true, completedAt: Date.now() }),
@@ -214,12 +214,12 @@ async function seedStorage(page: Page): Promise<void> {
       );
       localStorage.setItem("sharpcnc.debugMode.v1", JSON.stringify(true));
       localStorage.setItem("sharpcnc.uiTheme.v1", JSON.stringify("dark"));
-      // Real GRBL hold-during-jog path + TX probe for $J= counting.
-      localStorage.setItem(holdKey, "1");
+      // Strict GRBL (hold-during-jog → Idle) + TX probe for $J= counting.
+      localStorage.setItem(strictKey, "1");
       localStorage.setItem(txKey, "1");
     },
     {
-      holdKey: MOCK_HOLD_DURING_JOG_CANCELS_KEY,
+      strictKey: MOCK_STRICT_GRBL_KEY,
       txKey: SMOKE_TX_LOG_KEY,
     },
   );
