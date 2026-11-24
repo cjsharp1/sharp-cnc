@@ -15,16 +15,22 @@ import {
   RATES_RECOMMEND_DEFAULT,
   RATES_RECOMMEND_MAX,
   RATES_RECOMMEND_MIN,
+  HARD_LIMITS_OPTIONAL_COPY,
   SETTING_DIR_PORT_INVERT,
+  SETTING_HARD_LIMITS,
   SETTING_HOMING_CYCLE,
   SETTING_HOMING_DIR_MASK,
   SETTING_HOMING_FEED,
   SETTING_HOMING_PULLOFF,
   SETTING_HOMING_SEEK,
   SETTING_LIMIT_INVERT,
+  SOFT_LIMITS_WORKING_COPY,
+  SOFT_TRAVEL_MACHINE_NOT_WORK_COPY,
+  SOFT_TRAVEL_NEEDS_HOMING_COPY,
   STEPS_MM_LARGE_CHANGE_FRACTION,
   STEPS_RETEST_TOLERANCE_MM,
   STEPS_SETTING_FOR_AXIS,
+  Z_TRAVEL_POSITIVE_COPY,
   advanceSwitchCheck,
   allSwitchesVerified,
   buildJogCommand,
@@ -43,6 +49,7 @@ import {
   encodeLimitInvert,
   estimateStepsPerMm,
   flippedLimitInvert,
+  hardLimitsEnabled,
   homingEnabled,
   homingSettingPlainLabel,
   homingSettingUnit,
@@ -145,7 +152,16 @@ interface CalibrationPanelProps {
   onCalibrateMove: (axis: Axis, distanceMm: number) => void;
   onWriteSteps: (axis: Axis, before: number, after: number) => void;
   onWriteDirInvert: (mask: number) => void;
-  onApplySoftTravel: (limits: SoftTravelLimits, enableSoft: boolean) => void;
+  onApplySoftTravel: (
+    limits: SoftTravelLimits,
+    enableSoft: boolean,
+    enableHard?: boolean,
+  ) => void;
+  /**
+   * Intentional overshoot jog to verify soft limits (expects error:15).
+   * Bypasses app-side soft clamp.
+   */
+  onVerifySoftLimit?: (axis: Axis) => void;
   /**
    * Run an out-and-back G1 rates/accel trial (temp setting write + restore
    * bookkeeping). Resolves when Idle (or rejects / aborts).
@@ -252,6 +268,7 @@ export function CalibrationPanel({
   onWriteSteps,
   onWriteDirInvert,
   onApplySoftTravel,
+  onVerifySoftLimit,
   onRatesTrial,
   onWriteRates,
   onRatesCancelRestore,
@@ -313,6 +330,7 @@ export function CalibrationPanel({
     softTravel.maxZ !== null ? String(softTravel.maxZ) : "",
   );
   const [enableSoft, setEnableSoft] = useState(true);
+  const [enableHard, setEnableHard] = useState(false);
   const [travelError, setTravelError] = useState<string | null>(null);
 
   // Speed & accel (rates)
@@ -403,6 +421,8 @@ export function CalibrationPanel({
   }, [helperMotorSteps, helperMicrosteps, helperMmPerRev]);
 
   const softOn = settings ? softLimitsEnabled(settings) : false;
+  const hardOn = settings ? hardLimitsEnabled(settings) : false;
+  const homingStepIndex = WIZARD_STEPS.findIndex((s) => s.id === "homing");
 
   const resetStepsMeasure = () => {
     setMoved(false);
@@ -2118,6 +2138,30 @@ export function CalibrationPanel({
             For Z, jog <strong>down</strong> to the lowest safe point. Writes
             $130–$132 and turns on soft limits ($20).
           </p>
+
+          {!homingOn ? (
+            <div className="cal__warn cal__warn--callout" role="alert">
+              <p className="cal__hint">{SOFT_TRAVEL_NEEDS_HOMING_COPY}</p>
+              {homingStepIndex >= 0 && canVisit(homingStepIndex) ? (
+                <button
+                  type="button"
+                  className="cal__link"
+                  onClick={() => goTo(homingStepIndex)}
+                >
+                  Open Homing step
+                </button>
+              ) : (
+                <p className="cal__hint">
+                  Use <strong>Back</strong> to finish Homing (enable $22) first.
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          <p className="cal__warn cal__warn--callout" role="note">
+            {SOFT_TRAVEL_MACHINE_NOT_WORK_COPY}
+          </p>
+
           {jogPad ? <div className="cal__jog">{jogPad}</div> : null}
 
           <div className="cal__travel">
@@ -2141,7 +2185,7 @@ export function CalibrationPanel({
                     min="1"
                     placeholder={ax === "Z" ? "optional" : "e.g. 1000"}
                     value={value}
-                    disabled={!canAct}
+                    disabled={!canAct || !homingOn}
                     onChange={(e) => {
                       clearConfirm();
                       setter(e.target.value);
@@ -2151,7 +2195,7 @@ export function CalibrationPanel({
                 <button
                   type="button"
                   className="cal__btn cal__btn--ghost"
-                  disabled={!canAct}
+                  disabled={!canAct || !homingOn}
                   title={
                     ax === "Z"
                       ? `Use how far Z is below home now (${Math.abs(mpos).toFixed(2)} mm)`
@@ -2171,11 +2215,13 @@ export function CalibrationPanel({
             ))}
           </div>
 
+          <p className="cal__hint">{Z_TRAVEL_POSITIVE_COPY}</p>
+
           <label className="cal__check">
             <input
               type="checkbox"
               checked={enableSoft}
-              disabled={!canAct}
+              disabled={!canAct || !homingOn}
               onChange={(e) => {
                 clearConfirm();
                 setEnableSoft(e.target.checked);
@@ -2184,11 +2230,27 @@ export function CalibrationPanel({
             <span>Enable soft limits ($20=1)</span>
           </label>
 
+          <label className="cal__check">
+            <input
+              type="checkbox"
+              checked={enableHard}
+              disabled={!canAct || !homingOn}
+              onChange={(e) => {
+                clearConfirm();
+                setEnableHard(e.target.checked);
+              }}
+            />
+            <span>
+              Hard limits optional (${SETTING_HARD_LIMITS}
+              {hardOn ? ", currently on" : ""}) — {HARD_LIMITS_OPTIONAL_COPY}
+            </span>
+          </label>
+
           <div className="cal__actions">
             <button
               type="button"
               className="cal__btn"
-              disabled={!canAct}
+              disabled={!canAct || !homingOn}
               onClick={() => {
                 const next: SoftTravelLimits = {
                   maxX: parseTravel(maxX),
@@ -2212,7 +2274,7 @@ export function CalibrationPanel({
                   return;
                 }
                 setTravelError(null);
-                onApplySoftTravel(next, enableSoft);
+                onApplySoftTravel(next, enableSoft, enableHard);
               }}
             >
               Write travel + $20
@@ -2224,10 +2286,39 @@ export function CalibrationPanel({
             </p>
           ) : null}
 
+          {onVerifySoftLimit && softOn ? (
+            <div className="cal__homing-part" aria-label="Test soft limits">
+              <h4 className="cal__homing-part-title">Test the limit</h4>
+              <p className="cal__hint">
+                Jogs just past the soft edge. Real GRBL answers{" "}
+                <code>error:15</code> and stays Idle — that means the fence
+                works.
+              </p>
+              <div className="cal__actions">
+                {(["Z", "X", "Y"] as const).map((ax) => (
+                  <button
+                    key={ax}
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct || !homingOn}
+                    onClick={() => onVerifySoftLimit(ax)}
+                  >
+                    Test {ax} limit
+                  </button>
+                ))}
+              </div>
+              {message && /Soft limits working/i.test(message) ? (
+                <p className="cal__pass" role="status">
+                  {SOFT_LIMITS_WORKING_COPY}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
+
           <WizardStepConfirm
             id="cal-confirm-travel"
             checked={isConfirmed}
-            disabled={!canAct}
+            disabled={!canAct || !homingOn}
             label={STEP_CONFIRM_LABELS.travel}
             onChange={setStepConfirmed}
           />
@@ -2237,7 +2328,7 @@ export function CalibrationPanel({
               <button
                 type="button"
                 className="cal__btn cal__btn--ghost"
-                disabled={!canAct}
+                disabled={!canAct || !homingOn}
                 onClick={onOpenBedTravelTest}
               >
                 Bed travel test…

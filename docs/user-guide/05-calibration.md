@@ -17,7 +17,7 @@ Phase switcher → **Calibrate** (also from First-run). Connect first.
 | 3 | Steps/mm | Move a known distance (X/Y: 50–200 mm; **Z: 10/20/25 mm down**) → measure → if change &gt; ±20% read the warning → **Write** → **Move again to check** (±0.1 mm) |
 | 4 | Speed & accel | Per axis: mark a reference → Ready → G1 out-and-back trials → Yes / off / stall → recommend ×0.75 → **Write** max rate then accel |
 | 5 | Homing | Press each limit switch (lights) → pick XY corner → speeds/pull-off → enable `$22` → arm E-Stop → **Home ($H)** → Z repeatability ×3 |
-| 6 | Soft travel | Use the jog pad on this step to reach the far end of each axis (Z: the lowest safe point) → **Use MPos** → **Write travel + $20** → **Continue to Prepare** |
+| 6 | Soft travel | Homing must be on ($22). Jog to far end (Z: lowest safe) → **Use MPos** → **Write travel + $20** → **Test the limit** (expects error:15) → optional hard limits ($21) → **Continue to Prepare** |
 
 Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibrate step). **Bed travel test…** after Soft travel is recommended, not required to mark calibrated.
 
@@ -85,13 +85,29 @@ On **Virtual CNC**, use the step’s limit toggles (`$ExtLimitX/Y/Z`, mock-only 
 
 Screenshots: [switches](assets/cal-step-homing-switches.png) · [direction](assets/cal-step-homing-direction.png) · [first home](assets/cal-step-homing-first-home.png)
 
+## Soft travel (step 6)
+
+Soft limits are invisible fences on the **far** side of travel (home switches only cover the near side).
+
+**Prerequisite:** `$22` (homing) must be on. If it isn’t, the step shows “Soft limits need homing turned on. Finish the Homing step first” with a link back. Real GRBL returns **error:10** if you try `$20=1` without homing — the wizard surfaces that in plain English.
+
+1. Jog each axis to the far end (stop a few mm short). Z: jog **down** to the lowest safe point. Use the jog pad on this step.
+2. **Use MPos** (or type Max X/Y/Z). Enter Z as a **positive** travel length (e.g. 80). Because Z homes to the top, GRBL allows Z from 0 down to −80.
+3. Enable soft limits (`$20=1`). Optional hard limits (`$21`): “Extra backstop: stops instantly if a home-side switch is hit mid-job. Can false-trigger on noisy wiring.” Default off.
+4. **Write travel + $20**, then **Test the limit** for Z / X / Y. The app jogs just past the soft edge and expects real GRBL’s **error:15** (jog refused, stays Idle) → “Soft limits working ✓”.
+5. Confirm the step → **Continue to Prepare**. Optional **Bed travel test…** walks XY corners.
+
+> Soft limits protect the **machine**, not your **work**. They know how far each axis can travel, but not where your stock or spoilboard is. If your Z zero is set wrong, the machine will still plunge into the spoilboard. Your Z probe in Prepare is what protects the work.
+
+Screenshot: [soft travel](assets/cal-step6-travel.png)
+
 ## Quick reference
 
 - `$3` bits: X=1, Y=2, Z=4 (sum to invert). Expect +X right, +Y away (up on the visualizer), +Z up (tool lifts).
 - Steps formula: `new = old × commanded ÷ measured`.
 - Max rate `$110`–`$112` (mm/min); accel `$120`–`$122` (mm/sec²). Recommend ≈ last passing × 0.75.
 - Homing: `$22` enable, `$23` direction (bit set = toward negative), `$24` feed, `$25` seek, `$27` pull-off, `$5` limit polarity.
-- Soft travel: `$130`–`$132` + `$20=1`. Far rails are software on this machine.
+- Soft travel: `$130`–`$132` + `$20=1` (needs `$22=1`). Optional `$21` hard limits. **Test the limit** expects `error:15`.
 - **Z is negative below home.** Z homes to the top, so with `$132=80` the allowed range is 0 down to −80. Enter `$132` as a positive travel length; **Use MPos** on Z converts it for you.
 - Invalid travel values (zero, negative, text) show an error under **Write travel + $20** instead of silently doing nothing.
 - Back up / restore / Undo — see above; Advanced restore is for bringing an earlier snapshot back after many changes.
@@ -106,6 +122,6 @@ After steps/mm look close, cut a known size and measure:
 
 Also available: **50×50 mm** square and **100 mm line**. Details: [Jobs & SVG — cut-size samples](08-jobs-and-svg.md#cut-size-samples).
 
-Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [direction](assets/cal-step-direction.png) · [steps](assets/cal-step2-steps.png) · [speed & accel](assets/cal-step-rates.png) · [homing switches](assets/cal-step-homing-switches.png) · [travel](assets/cal-step3-travel.png)
+Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [direction](assets/cal-step-direction.png) · [steps](assets/cal-step2-steps.png) · [speed & accel](assets/cal-step-rates.png) · [homing switches](assets/cal-step-homing-switches.png) · [travel](assets/cal-step6-travel.png)
 
 Next (every job): [Prepare & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html)

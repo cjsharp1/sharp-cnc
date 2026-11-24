@@ -390,7 +390,7 @@ async function main() {
 
     await confirmAndNext("cal-confirm-homing");
     await page.waitForTimeout(300);
-    await shot(page, "cal-step3-travel.png");
+    await shot(page, "cal-step6-travel.png");
   });
 
   // 5b) Advanced restore diff (after a Calibrate auto-backup + one manual write)

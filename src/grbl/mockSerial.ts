@@ -550,6 +550,15 @@ export function createMockTransport(
 
     const settingWrite = parseSettingLine(trimmed);
     if (settingWrite) {
+      // Real GRBL 1.1: `$20=1` without `$22=1` → error:10.
+      if (
+        settingWrite.id === 20 &&
+        settingWrite.value >= 1 &&
+        (settings.get(22) ?? 0) === 0
+      ) {
+        emitLine("error:10");
+        return;
+      }
       settings.set(settingWrite.id, settingWrite.value);
       emitLine("ok");
       return;

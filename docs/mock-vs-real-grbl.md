@@ -50,6 +50,7 @@ npm run smoke:critical
 | Force-alarm helpers | N/A | `$Alarm`, `$Alarm2`, `$Alarm5`, … | Same (mock-only) | **Never** send these to USB |
 | External button sim | Hardware pins → `Pn:` | `$ExtHold` / `$ExtResume` / `$ExtAbort` / `$ExtProbe` / `$ExtLimitX|Y|Z` | Same (mock-only) | Mock-only — never send to USB |
 | `$H` with `$22=0` | `error:5` (setting disabled) | Same (`error:5`) | Same | Homing setup must enable `$22` first |
+| `$20=1` with `$22=0` | `error:10` (soft limits need homing) | Same (`error:10`) | Same | Soft travel step shows prerequisite + plain English |
 | Settings / motion fidelity | Planner, accel, EEPROM quirks | Simplified timers + settings map | Same simplified model | Timing/streamer edge cases |
 
 ## Probe alarms 4/5

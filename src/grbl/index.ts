@@ -82,6 +82,7 @@ export {
   DIR_TEST_JOG_MM,
   MAX_TRAVEL_SETTING_FOR_AXIS,
   SETTING_DIR_PORT_INVERT,
+  SETTING_HARD_LIMITS,
   SETTING_HOMING_CYCLE,
   SETTING_HOMING_DIR_MASK,
   SETTING_HOMING_FEED,
@@ -112,6 +113,7 @@ export {
   encodeDirInvertMask,
   estimateStepsPerMm,
   formatSettingWrite,
+  hardLimitsEnabled,
   homingEnabled,
   parseSettingLine,
   parseSettingsDump,
@@ -652,6 +654,21 @@ export {
   suggestHomingPullOff,
   suggestHomingSeek,
 } from "./homingCalibration";
+
+export type { SoftLimitVerifyOutcome } from "./softTravelCalibration";
+export {
+  HARD_LIMITS_OPTIONAL_COPY,
+  SOFT_LIMITS_WORKING_COPY,
+  SOFT_LIMIT_VERIFY_OVERSHOOT_MM,
+  SOFT_TRAVEL_MACHINE_NOT_WORK_COPY,
+  SOFT_TRAVEL_NEEDS_HOMING_COPY,
+  Z_TRAVEL_POSITIVE_COPY,
+  isSoftLimitJogAlarm,
+  isSoftLimitJogError,
+  plainSoftLimitsNeedHoming,
+  runSoftLimitVerifyJog,
+  softLimitVerifyDelta,
+} from "./softTravelCalibration";
 
 export type { PhaseGate, TaskPhaseContext, TaskPhaseId } from "./taskPhase";
 export {

@@ -5,6 +5,7 @@ import type { Axis, GrblMachineState } from "./types";
 export const SETTING_DIR_PORT_INVERT = 3;
 export const SETTING_LIMIT_INVERT = 5;
 export const SETTING_SOFT_LIMITS = 20;
+export const SETTING_HARD_LIMITS = 21;
 export const SETTING_HOMING_CYCLE = 22;
 export const SETTING_HOMING_DIR_MASK = 23;
 export const SETTING_HOMING_FEED = 24;
@@ -271,6 +272,11 @@ export function softLimitsEnabled(settings: Map<number, GrblSetting>): boolean {
   return (settings.get(SETTING_SOFT_LIMITS)?.value ?? 0) !== 0;
 }
 
+/** Hard-limits enable value: 1 = on, 0 = off (`$21`). */
+export function hardLimitsEnabled(settings: Map<number, GrblSetting>): boolean {
+  return (settings.get(SETTING_HARD_LIMITS)?.value ?? 0) !== 0;
+}
+
 /** Build soft-travel app state from GRBL $130–$132 (null when unset / zero). */
 export function softTravelFromSettings(
   settings: Map<number, GrblSetting>,
@@ -289,10 +295,11 @@ export function softTravelFromSettings(
   };
 }
 
-/** Writes needed to push soft travel + enable $20 into GRBL. */
+/** Writes needed to push soft travel + enable $20 (and optional $21) into GRBL. */
 export function softTravelWriteCommands(
   limits: SoftTravelLimits,
   enableSoftLimits = true,
+  enableHardLimits = false,
 ): string[] {
   const cmds: string[] = [];
   if (limits.maxX !== null && limits.maxX > 0) {
@@ -306,6 +313,9 @@ export function softTravelWriteCommands(
   }
   if (enableSoftLimits) {
     cmds.push(formatSettingWrite(SETTING_SOFT_LIMITS, 1));
+  }
+  if (enableHardLimits) {
+    cmds.push(formatSettingWrite(SETTING_HARD_LIMITS, 1));
   }
   return cmds;
 }

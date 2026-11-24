@@ -49,8 +49,14 @@ import {
   DEFAULT_JOG_FEED_MM_MIN,
   JOG_STEP_OPTIONS_MM,
   SETTING_DIR_PORT_INVERT,
+  SETTING_HARD_LIMITS,
   SETTING_SOFT_LIMITS,
+  SOFT_LIMITS_WORKING_COPY,
   STEPS_SETTING_FOR_AXIS,
+  buildJogCommand,
+  plainSoftLimitsNeedHoming,
+  runSoftLimitVerifyJog,
+  softLimitVerifyDelta,
   buildRatesTrialLines,
   canFitRatesTest,
   clearPendingRatesRestore,
@@ -81,7 +87,6 @@ import {
   dryRunLiftMm,
   scanResumeState,
   buildJobFromSvg,
-  buildJogCommand,
   buildProbeRetractCommand,
   buildRecallOffsetCommands,
   buildSelectWcsCommand,
@@ -2566,6 +2571,7 @@ export default function App() {
   const handleApplySoftTravel = async (
     limits: SoftTravelLimits,
     enableSoft: boolean,
+    enableHard = false,
   ) => {
     const client = clientRef.current;
     if (!client || !client.transport.isOpen) return;
@@ -2586,6 +2592,7 @@ export default function App() {
       if (limits.maxY !== null) entries.push({ id: 131, value: limits.maxY });
       if (limits.maxZ !== null) entries.push({ id: 132, value: limits.maxZ });
       if (enableSoft) entries.push({ id: SETTING_SOFT_LIMITS, value: 1 });
+      if (enableHard) entries.push({ id: SETTING_HARD_LIMITS, value: 1 });
 
       const undoEntries = entries
         .map((e) => {
@@ -2616,11 +2623,71 @@ export default function App() {
 
       activityLog.append(
         "event",
-        `Soft travel X${merged.maxX ?? "—"} Y${merged.maxY ?? "—"} Z${merged.maxZ ?? "—"} · $20=${enableSoft ? 1 : "unchanged"}`,
+        `Soft travel X${merged.maxX ?? "—"} Y${merged.maxY ?? "—"} Z${merged.maxZ ?? "—"} · $20=${enableSoft ? 1 : "unchanged"} · $21=${enableHard ? 1 : "unchanged"}`,
       );
       setCalMessage(
-        `Wrote max travel${enableSoft ? " and enabled soft limits ($20=1)" : ""}. Bed updated.`,
+        `Wrote max travel${enableSoft ? " and enabled soft limits ($20=1)" : ""}${enableHard ? " · hard limits ($21=1)" : ""}. Bed updated.`,
       );
+    } catch (err) {
+      const raw = err instanceof Error ? err.message : String(err);
+      const plain = plainSoftLimitsNeedHoming(raw);
+      const message = plain ?? raw;
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleVerifySoftLimit = async (axis: Axis) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canJogOrZero(gateStateLive(), connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot test soft limit");
+      return;
+    }
+    if (!grblSettings || !softLimitsEnabled(grblSettings)) {
+      setCalMessage("Enable soft limits ($20=1) before testing.");
+      return;
+    }
+    const delta = softLimitVerifyDelta(
+      axis,
+      statusRef.current.machine,
+      softTravelRef.current,
+    );
+    if (!delta) {
+      setCalMessage(
+        `Set max ${axis} travel first, then write soft limits before testing.`,
+      );
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await stopContinuousJog();
+      const cmd = buildJogCommand(delta, Math.min(feedMmMin, 500));
+      const outcome = await runSoftLimitVerifyJog(client, cmd, {
+        timeoutMs: usingMock ? 2000 : 4000,
+      });
+      if (!outcome.ok) {
+        setCalMessage(outcome.reason);
+        return;
+      }
+      if (outcome.kind === "ALARM:2") {
+        // Default Virtual CNC soft-limit jog raises Alarm — unlock so the
+        // operator can keep calibrating. Real / strict path stays Idle.
+        try {
+          await client.sendLine(UNLOCK_COMMAND);
+        } catch {
+          /* ignore unlock failure; message still reports success */
+        }
+      }
+      activityLog.append(
+        "event",
+        `Soft-limit verify ${axis}: ${outcome.kind}`,
+      );
+      setCalMessage(`${SOFT_LIMITS_WORKING_COPY} (${axis})`);
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       setCalMessage(message);
@@ -4347,8 +4414,15 @@ export default function App() {
                     onWriteDirInvert={(mask) => {
                       void handleWriteDirInvert(mask);
                     }}
-                    onApplySoftTravel={(limits, enableSoft) => {
-                      void handleApplySoftTravel(limits, enableSoft);
+                    onApplySoftTravel={(limits, enableSoft, enableHard) => {
+                      void handleApplySoftTravel(
+                        limits,
+                        enableSoft,
+                        enableHard,
+                      );
+                    }}
+                    onVerifySoftLimit={(axis) => {
+                      void handleVerifySoftLimit(axis);
                     }}
                     onRatesTrial={handleRatesTrial}
                     onWriteRates={(kind, axis, before, after) => {
@@ -4917,8 +4991,11 @@ export default function App() {
                 onWriteDirInvert={(mask) => {
                   void handleWriteDirInvert(mask);
                 }}
-                onApplySoftTravel={(limits, enableSoft) => {
-                  void handleApplySoftTravel(limits, enableSoft);
+                onApplySoftTravel={(limits, enableSoft, enableHard) => {
+                  void handleApplySoftTravel(limits, enableSoft, enableHard);
+                }}
+                onVerifySoftLimit={(axis) => {
+                  void handleVerifySoftLimit(axis);
                 }}
                 onRatesTrial={handleRatesTrial}
                 onWriteRates={(kind, axis, before, after) => {

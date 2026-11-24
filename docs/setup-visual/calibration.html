@@ -314,7 +314,7 @@
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-05-rates.svg"
+              src="assets/cal-04-rates.svg"
               alt="Out-and-back rates test with indicator and Yes/off/stall"
               width="960"
               height="520"
@@ -404,7 +404,7 @@
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-06-homing.svg"
+              src="assets/cal-05-homing.svg"
               alt="Homing setup: switch lights, corner picker, Z first, E-Stop arm"
               width="960"
               height="520"
@@ -485,26 +485,40 @@
             <span class="step-card__num" aria-hidden="true">6</span>
             <h2>Soft travel (+ bed test)</h2>
             <p class="step-card__action">
-              Jog to far end (margin) → Use MPos →
-              <strong>Write travel + $20</strong> · optional
-              <strong>Bed travel test</strong>
+              Homing on ($22) → Jog to far end → Use MPos →
+              <strong>Write travel + $20</strong> →
+              <strong>Test the limit</strong> · optional hard limits ($21) ·
+              optional <strong>Bed travel test</strong>
             </p>
             <p class="step-card__eli5">
               Bed travel = how far the machine can go before it runs out of
               room. Soft limits are invisible fences on the far side (your home
-              switches only cover the near side). The bed test walks the edges
-              safely to prove the fences.
+              switches only cover the near side). They protect the
+              <strong>machine</strong>, not your stock — Z probe in Prepare
+              protects the work. The bed test walks the edges safely to prove
+              the fences.
             </p>
           </div>
           <figure class="step-card__figure">
             <img
-              src="assets/cal-04-travel.svg"
-              alt="Soft-limit envelope on bed and write travel button"
+              src="assets/cal-06-travel.svg"
+              alt="Soft-limit envelope on bed, write travel, and test the limit"
               width="960"
               height="520"
             />
           </figure>
           <ol class="step-card__do">
+            <li>
+              <p class="step-card__do-act">
+                Soft limits need homing on (<code>$22=1</code>). If the step
+                shows the prerequisite banner, finish Homing first.
+              </p>
+              <p class="step-card__do-see">
+                <span class="step-card__do-label">Expect</span>
+                Homing enabled. Writing <code>$20=1</code> without it returns
+                <code>error:10</code> (plain English in the wizard).
+              </p>
+            </li>
             <li>
               <p class="step-card__do-act">
                 Home first. With Z high, use the jog pad on this step to move
@@ -520,23 +534,26 @@
             <li>
               <p class="step-card__do-act">
                 For each axis, tap <strong>Use MPos</strong> (or type Max X/Y/Z
-                mm). Z fills in as a positive travel length even though machine
-                Z is negative. Enable <strong>Enable soft limits ($20=1)</strong>.
+                mm). Enter Z as a <strong>positive</strong> travel length (e.g.
+                80 → GRBL allows 0 down to −80). Enable
+                <strong>Enable soft limits ($20=1)</strong>. Optional: hard
+                limits (<code>$21</code>) as an extra home-side backstop.
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
                 Max fields fill from machine position; soft-limits checkbox is
-                on.
+                on; hard limits stay off unless you opt in.
               </p>
             </li>
             <li>
               <p class="step-card__do-act">
-                Tap <strong>Write travel + $20</strong>.
+                Tap <strong>Write travel + $20</strong>, then
+                <strong>Test the limit</strong> for Z / X / Y (expects
+                <code>error:15</code>, stays Idle).
               </p>
               <p class="step-card__do-see">
                 <span class="step-card__do-label">Expect</span>
-                $130–$132 and $20 write to GRBL; visualizer bed matches; soft
-                limits show ON after Read $$.
+                $130–$132 and $20 write; “Soft limits working ✓”.
               </p>
             </li>
             <li>
