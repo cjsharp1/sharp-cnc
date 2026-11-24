@@ -42,7 +42,8 @@ const CRITICAL = [
   "smoke-tool-change.mts",
   "smoke-stock-tool.mts",
   "smoke-app-update.mts",
-  "smoke-layout.mts"
+  "smoke-layout.mts",
+  "smoke-docs-assets.mts"
 ];
 
 /** Full no-hardware suite — required before a tagged release. */
@@ -85,7 +86,8 @@ const FULL = [
   "smoke-full-control.mts",
   "smoke-app-safety.mts",
   "smoke-tool-change.mts",
-  "smoke-app-update.mts"
+  "smoke-app-update.mts",
+  "smoke-docs-assets.mts"
 ];
 
 const suite = process.argv[2] ?? "critical";

@@ -39,7 +39,7 @@ Most of this review was fixed and verified against the Virtual CNC on branch `fi
 | C4 | Raw GRBL text in errors | **FIXED** for job errors/alarms |
 | D1 | Software E-Stop callout | **FIXED** |
 | D2 | UI chapter outdated | **FIXED** |
-| D3 | Docs for behavior changes | **FIXED** (text). Screenshots regenerated. New diagrams/screenshots: **OPEN** (see Remaining work) |
+| D3 | Docs for behavior changes | **FIXED** — text + Remaining #12–13 screenshots/diagrams (`smoke-docs-assets`) |
 | D4 | mock-vs-real rows | **PARTLY** — probe row updated; X/Y sign row after hardware check |
 
 Also added on the branch (not in the original review): **dry run lifts Z** so it's actually an air cut (it used to only turn the spindle off), a live **Inputs** row (limit switches, probe, buttons) under Position, Z steps/mm test moving **down**, and the [First real connection](../user-guide/14-first-real-connection.md) guide + [hardware checklist](../hardware-checklist.md).
@@ -269,13 +269,5 @@ Same rules as before: every PR ships with smoke coverage and its user-guide / vi
 11. ~~**C3 jargon pass:**~~ **DONE** — primary buttons/step titles lead with plain words; GRBL codes secondary.
 
 ### Docs, screenshots, diagrams
-12. **Screenshots** (regenerate with `CHROME_PATH=… npx tsx scripts/capture-guide-screenshots.mts`, then extend the script for new ones):
-    - rename `cal-step1-zero.png` → `cal-step1-start.png` (and fix links)
-    - new: E-Stop latch banner, Inputs row with a pin lit, Z gauge with material Z0 and a job range, First-run three steps, Calibrate Soft travel with the jog pad, Verify with dry run + resume note.
-13. **Diagrams** (steel + brass style of the existing SVGs):
-    - revise `docs/user-guide/assets/diagram-soft-limits.svg` to show Z as 0 at the top down to −`$132`
-    - new `diagram-z-machine-coords.svg`: Z home at top, pull-off, negative travel, material Z0 on the stock, the Z gauge
-    - new `diagram-dry-run-lift.svg`: original path vs lifted path, 5 mm above Z0
-    - new `diagram-resume-preamble.svg`: retract → move over → spin up → plunge → continue
-    - revise `docs/setup-visual/assets/cal-01-zero.svg` (rename to `cal-01-start.svg`) for the Start step
-    - delete `fr-04-travel.svg` and `fr-05-stock.svg` (First-run no longer has those steps); revise `order-of-ops.svg` and `overview-flow.svg` if they show five First-run steps
+12. ~~**Screenshots**~~ **DONE** — regenerated via `scripts/capture-guide-screenshots.mts`; `cal-step1-start.png`; new `estop-latch.png`, `inputs-pin-lit.png`, `z-gauge-material.png`, `first-run-three-steps.png`, `verify-dry-run.png`; soft travel shot includes jog pad (`cal-step6-travel.png`).
+13. ~~**Diagrams**~~ **DONE** — `diagram-soft-limits.svg` shows Z 0→−`$132`; new `diagram-z-machine-coords.svg`, `diagram-dry-run-lift.svg`, `diagram-resume-preamble.svg`; `cal-01-start.svg`; removed `fr-04-travel.svg` / `fr-05-stock.svg`; `order-of-ops.svg` / `overview-flow.svg` already show three-step First-run (left as-is). `smoke-docs-assets` guards links.

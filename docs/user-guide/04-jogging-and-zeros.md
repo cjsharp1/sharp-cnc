@@ -48,6 +48,8 @@ SharpCNC refuses jogs that would push past known soft travel (when max X/Y/Z are
 
 ![Home switches vs soft limits](assets/diagram-soft-limits.svg)
 
+![Z machine coordinates and the Z gauge](assets/diagram-z-machine-coords.svg)
+
 Your machine has **physical switches only on the zero side**. The far end of each axis is protected by **software** soft limits (`$130`–`$132` + `$20`). Calibrate those — do not rely on crashing into the far rail.
 
 > **Safety:** Soft limits only help when travel values are correct and `$20` is on. Until you finish [Calibration](05-calibration.md), treat far-end travel as unprotected. Practice refusals on **Virtual CNC** first.

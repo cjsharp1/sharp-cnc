@@ -36,7 +36,7 @@ Calibrate never writes without a click, and every write can be undone in the sam
 3. **Undo** — after a successful write, the result line shows **Undo $n (new → old)**. That writes the previous value back and logs to the activity log. The undo stack is session-only (cleared on disconnect).
 4. **Restore** — **Menu → Advanced… → Restore settings** lists saved snapshots, shows only settings that differ from the live controller (live → backup), then writes those one at a time and re-reads `$$` to confirm.
 
-Screenshots: [meta bar with Back up settings](assets/cal-step1-zero.png) · [restore diff in Advanced](assets/cal-restore-diff.png)
+Screenshots: [meta bar with Back up settings](assets/cal-step1-start.png) · [restore diff in Advanced](assets/cal-restore-diff.png)
 
 ## Direction (step 2)
 
@@ -122,6 +122,6 @@ After steps/mm look close, cut a known size and measure:
 
 Also available: **50×50 mm** square and **100 mm line**. Details: [Jobs & SVG — cut-size samples](08-jobs-and-svg.md#cut-size-samples).
 
-Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [direction](assets/cal-step-direction.png) · [steps](assets/cal-step2-steps.png) · [speed & accel](assets/cal-step-rates.png) · [homing switches](assets/cal-step-homing-switches.png) · [travel](assets/cal-step6-travel.png)
+Screenshots (wizard UI): [step 1](assets/cal-step1-start.png) · [direction](assets/cal-step-direction.png) · [steps](assets/cal-step2-steps.png) · [speed & accel](assets/cal-step-rates.png) · [homing switches](assets/cal-step-homing-switches.png) · [travel with jog pad](assets/cal-step6-travel.png)
 
 Next (every job): [Prepare & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html)

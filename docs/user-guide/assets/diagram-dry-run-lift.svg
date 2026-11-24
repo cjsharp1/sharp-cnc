@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 480" role="img" aria-labelledby="t d">
+  <title id="t">Dry run Z lift</title>
+  <desc id="d">Original cutting path versus dry-run path lifted so the deepest point stays 5 mm above material Z0</desc>
+  <defs>
+    <style>
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
+      .title { font-size: 18px; font-weight: 700; }
+      .strong { font-weight: 700; }
+      .tiny { font-size: 12px; fill: #5a6570; }
+      .stock { fill: #d4a574; stroke: #8a5a2b; stroke-width: 1.5; }
+      .bed { fill: #cfd6dd; stroke: #7a8694; stroke-width: 1.5; }
+      .cut { stroke: #b85c2a; stroke-width: 3; fill: none; }
+      .lift { stroke: #1f6a4a; stroke-width: 3; fill: none; stroke-dasharray: 8 5; }
+      .z0 { stroke: #b8862d; stroke-width: 2.5; }
+      .box { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .ok { fill: #1f6a4a; }
+      .warn { fill: #b85c2a; }
+      .brass { fill: #b8862d; }
+      .arrow { stroke: #b8862d; stroke-width: 2; fill: none; marker-end: url(#a); }
+    </style>
+    <marker id="a" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+      <path d="M0,0 L6,3 L0,6 Z" fill="#b8862d"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" width="920" height="480" rx="10"/>
+  <text class="lab title" x="28" y="36">Dry run — Z lifted above the stock</text>
+  <text class="tiny" x="28" y="56">Spindle off · deepest cut stays 5 mm above material Z0</text>
+
+  <rect class="bed" x="60" y="360" width="480" height="24" rx="3"/>
+  <rect class="stock" x="100" y="280" width="400" height="80" rx="4"/>
+  <line class="z0" x1="80" y1="280" x2="520" y2="280"/>
+  <text class="lab strong brass" x="530" y="284">Material Z0</text>
+
+  <!-- Original path into the stock -->
+  <path class="cut" d="M140 200 L140 320 L260 320 L260 240 L380 240 L380 340 L460 340 L460 200"/>
+  <text class="lab strong warn" x="140" y="180">Original path</text>
+  <text class="tiny" x="140" y="198">Cuts into the stock</text>
+
+  <!-- Lifted path -->
+  <path class="lift" d="M140 160 L140 250 L260 250 L260 170 L380 170 L380 270 L460 270 L460 160"/>
+  <text class="lab strong ok" x="300" y="140">Dry-run path</text>
+  <text class="tiny" x="300" y="158">Same XY · every Z raised</text>
+
+  <!-- 5 mm callout -->
+  <path class="arrow" d="M500 280 V250"/>
+  <text class="lab strong brass" x="510" y="268">+5 mm</text>
+  <text class="tiny" x="510" y="286">clearance above Z0</text>
+  <text class="tiny" x="510" y="304">at the deepest point</text>
+
+  <rect class="box" x="620" y="100" width="260" height="280" rx="12"/>
+  <text class="lab strong" x="640" y="140">What dry run does</text>
+  <text class="tiny" x="640" y="172">M3 / M4 → M5</text>
+  <text class="tiny" x="640" y="196">S words stripped</text>
+  <text class="tiny" x="640" y="220">Absolute Z lifted so</text>
+  <text class="tiny" x="640" y="240">deepest point ≥ Z0+5</text>
+  <text class="tiny" x="640" y="280">Watch the whole path</text>
+  <text class="tiny" x="640" y="300">in the air first.</text>
+  <text class="tiny warn" x="640" y="340">Refused if the lift</text>
+  <text class="tiny warn" x="640" y="360">would go above Z home.</text>
+
+  <text class="tiny" x="28" y="450">Use Verify → Dry run before the first real cut on a new file.</text>
+</svg>

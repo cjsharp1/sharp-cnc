@@ -10,6 +10,8 @@ The **safety strip** stays visible in every phase — including before connect (
 
 ![Safety strip with E-Stop (every phase)](assets/estop.webp)
 
+![E-Stop latch banner](assets/estop-latch.png)
+
 ## Controls on the safety strip
 
 | Control | Use when |

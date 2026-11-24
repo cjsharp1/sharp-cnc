@@ -1,6 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 620" role="img" aria-labelledby="t d">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 920 640" role="img" aria-labelledby="t d">
   <title id="t">Home switches vs soft limits</title>
-  <desc id="d">Zero-side physical switches and software max travel on the far side of a square bed</desc>
+  <desc id="d">Zero-side physical switches, XY soft envelope, and Z travel from 0 at home down to −$132</desc>
   <defs>
     <style>
       /* SharpCNC diagram type: UI stack on all text; avoid SVG Times default on .tiny/etc. */
@@ -11,68 +11,70 @@
       .sw { fill: #1f6a4a; }
       .panel { fill: #fff4eb; stroke: #b85c2a; stroke-width: 2; }
       .callout { fill: #ffffff; stroke: #b85c2a; stroke-width: 2; }
+      .zbar { fill: #cfd6dd; stroke: #3a4550; stroke-width: 2; }
       .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 14px; }
       .title { font-size: 18px; font-weight: 700; }
       .strong { font-weight: 700; }
       .tiny { font-size: 12px; fill: #5a6570; }
       .ok { fill: #1f6a4a; }
       .warn { fill: #b85c2a; }
+      .brass { fill: #b8862d; }
       .dot { fill: #3a4550; }
       .leader { stroke: #b85c2a; stroke-width: 1.75; fill: none; }
       .leader-ok { stroke: #1f6a4a; stroke-width: 1.5; fill: none; }
+      .zline { stroke: #1f6a4a; stroke-width: 2; fill: none; }
     </style>
   </defs>
 
-  <rect class="bg" width="920" height="620" rx="10"/>
+  <rect class="bg" width="920" height="640" rx="10"/>
   <text class="lab title" x="32" y="40">Home switches vs soft limits</text>
-  <text class="tiny" x="32" y="62">Physical home on the zero corner · software max travel on the far sides</text>
+  <text class="tiny" x="32" y="62">XY: switches on the zero corner · Z: 0 at home (top) down to −$132</text>
 
   <!-- Square bed -->
-  <rect class="bed" x="100" y="110" width="300" height="300" rx="8"/>
-  <!-- Label in the top margin between bed stroke and soft envelope -->
-  <text class="tiny" x="116" y="134">Machine bed</text>
+  <rect class="bed" x="80" y="100" width="260" height="260" rx="8"/>
+  <text class="tiny" x="96" y="124">Machine bed (XY)</text>
 
-  <!-- Soft-limit envelope: start below bed label -->
-  <rect class="soft" x="128" y="150" width="244" height="244" rx="4"/>
-  <text class="tiny warn" x="250" y="178" text-anchor="middle">Soft-limit envelope</text>
-  <text class="tiny" x="250" y="300" text-anchor="middle">Far side</text>
-  <text class="tiny" x="250" y="318" text-anchor="middle">(no switches)</text>
+  <rect class="soft" x="104" y="136" width="212" height="208" rx="4"/>
+  <text class="tiny warn" x="210" y="164" text-anchor="middle">Soft-limit envelope</text>
+  <text class="tiny" x="210" y="250" text-anchor="middle">Far side</text>
+  <text class="tiny" x="210" y="268" text-anchor="middle">(no switches)</text>
 
-  <!-- Origin marker near soft bottom-left, clear of dashed stroke -->
-  <circle class="dot" cx="148" cy="370" r="7"/>
-  <text class="lab strong" x="162" y="358">0,0</text>
+  <circle class="dot" cx="124" cy="324" r="7"/>
+  <text class="lab strong" x="138" y="312">0,0</text>
 
-  <!-- Soft-limit callout -->
-  <path class="leader" d="M372 170 H440"/>
-  <circle class="warn" cx="372" cy="170" r="4.5"/>
-  <rect class="callout" x="440" y="110" width="220" height="130" rx="10"/>
-  <text class="lab strong warn" x="464" y="146">Max travel</text>
-  <text class="tiny" x="464" y="172">$130 / $131 (XY)</text>
-  <text class="tiny" x="464" y="194">No switch — software stop</text>
-  <text class="tiny" x="464" y="216">Enable with $20 = 1</text>
+  <path class="leader" d="M316 156 H360"/>
+  <circle class="warn" cx="316" cy="156" r="4.5"/>
+  <rect class="callout" x="360" y="100" width="200" height="110" rx="10"/>
+  <text class="lab strong warn" x="380" y="132">Max XY travel</text>
+  <text class="tiny" x="380" y="156">$130 / $131</text>
+  <text class="tiny" x="380" y="178">Software stop · $20 = 1</text>
+  <text class="tiny" x="380" y="198">Default bed 1000 × 1000</text>
 
-  <!-- Home switches fully outside bed -->
-  <rect class="sw" x="72" y="360" width="18" height="52" rx="3"/>
-  <rect class="sw" x="100" y="426" width="52" height="18" rx="3"/>
-  <path class="leader-ok" d="M148 370 V450"/>
-  <text class="lab strong" x="168" y="468">Machine 0,0</text>
-  <text class="tiny" x="168" y="488">Home / zero corner</text>
-  <text class="lab strong ok" x="100" y="528">Home / limit switches</text>
-  <text class="tiny" x="100" y="548">Physical switches only on the zero side</text>
+  <rect class="sw" x="52" y="314" width="18" height="46" rx="3"/>
+  <rect class="sw" x="80" y="370" width="46" height="18" rx="3"/>
+  <path class="leader-ok" d="M124 324 V392"/>
+  <text class="lab strong ok" x="80" y="430">Home / limit switches</text>
+  <text class="tiny" x="80" y="450">Physical switches only on the zero side</text>
 
-  <!-- Remember panel with generous padding -->
-  <rect class="panel" x="690" y="110" width="200" height="360" rx="12"/>
-  <text class="lab strong" x="714" y="150">Remember</text>
-  <text class="tiny" x="714" y="190">Zero side = hard</text>
-  <text class="tiny" x="714" y="210">switches (home)</text>
-  <text class="tiny" x="714" y="250">Far side = soft</text>
-  <text class="tiny" x="714" y="270">limits you set</text>
-  <text class="tiny" x="714" y="310">Default bed:</text>
-  <text class="lab strong" x="714" y="336">1000 × 1000 mm</text>
-  <text class="tiny" x="714" y="372">Z travel unset until</text>
-  <text class="tiny" x="714" y="392">you measure ($132)</text>
-  <text class="tiny" x="714" y="428">Calibrate before</text>
-  <text class="tiny" x="714" y="448">trusting far-end</text>
+  <!-- Z column: 0 at top → −$132 -->
+  <text class="lab strong" x="600" y="100">Z travel</text>
+  <text class="tiny" x="600" y="120">Machine Z (home = top)</text>
+  <rect class="zbar" x="640" y="140" width="36" height="280" rx="4"/>
+  <line class="zline" x1="630" y1="140" x2="686" y2="140"/>
+  <line class="zline" x1="630" y1="420" x2="686" y2="420"/>
+  <text class="lab strong ok" x="700" y="148">0 · Z home</text>
+  <text class="tiny" x="700" y="168">Top of travel</text>
+  <text class="tiny brass" x="700" y="280">Negative below home</text>
+  <text class="lab strong warn" x="700" y="424">−$132</text>
+  <text class="tiny" x="700" y="444">Bottom of soft travel</text>
+  <path class="leader" d="M658 150 V400" stroke-dasharray="4 4"/>
+  <polygon fill="#b8862d" points="658,400 652,386 664,386"/>
 
-  <text class="tiny" x="32" y="590">Soft limits only help when travel values are correct and $20 is on.</text>
+  <rect class="panel" x="580" y="480" width="300" height="120" rx="12"/>
+  <text class="lab strong" x="600" y="512">Remember</text>
+  <text class="tiny" x="600" y="538">XY: zero side = hard switches</text>
+  <text class="tiny" x="600" y="558">XY far / Z bottom = soft limits</text>
+  <text class="tiny" x="600" y="578">Set $132 as a positive length</text>
+
+  <text class="tiny" x="32" y="610">Soft limits only help when travel values are correct and $20 is on.</text>
 </svg>
