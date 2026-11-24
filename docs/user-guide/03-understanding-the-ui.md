@@ -10,7 +10,7 @@ The window always shows **connection**, **Material / Machine position**, and **s
 
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
-- **Connection chip** — compact Linked / Offline / Virtual status, port, Connect / Disconnect / Reset
+- **Connection chip** — compact Linked / Offline / Virtual status, port, Connect / Disconnect. After you link, this is the only Connect/Disconnect control (the Connect rail and First-run hide their duplicates). **Reset** lives on the Safety strip only.
 - **Version chip** — opens **About & updates**; Update badge when a newer GitHub Release exists
 - **Menu** — Material & tool, External jobs, Calibrate, Bed travel test, Trace stock perimeter, Prepare, **Advanced…**, **Appearance**, **Debug mode**, **About & updates…**
 
@@ -26,7 +26,7 @@ Above the visualizer (every phase, including before connect):
 | **Machine XYZ** | MPos — bed / soft-travel frame |
 | **Material XYZ** | Job origin on the blank (WPos under the hood). Label **Material**, never “Work” |
 | **State** | Idle / Jog / Run / Hold / Alarm |
-| **Stop / Hold / Resume / Unlock** | E-Stop primary; Unlock after alarm |
+| **Stop / Hold / Resume / Reset / Unlock** | E-Stop primary; Hold also via **Space**; Reset only here; Unlock after alarm |
 | **Live overrides** | Feed % / spindle % — emphasized in Run / Hold |
 
 **Machine XYZ** = where the machine thinks the tool is on the bed.  

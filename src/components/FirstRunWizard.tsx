@@ -169,19 +169,21 @@ export function FirstRunWizard({
               >
                 Refresh ports
               </button>
-              <button
-                type="button"
-                className="firstrun__btn"
-                disabled={connected}
-                onClick={onConnect}
-              >
-                {connected ? "Linked" : "Connect"}
-              </button>
+              {/* After link, only the header chip keeps Connect/Disconnect (O4). */}
+              {!connected ? (
+                <button
+                  type="button"
+                  className="firstrun__btn"
+                  onClick={onConnect}
+                >
+                  Connect
+                </button>
+              ) : null}
             </div>
             <p className="firstrun__status" role="status">
               {connected
-                ? "Linked — Next unlocked."
-                : "Not linked yet — Next stays locked."}
+                ? "Linked in the header — Next unlocked."
+                : "Not linked yet — use Connect here or in the header chip."}
             </p>
           </div>
         )}
@@ -203,7 +205,11 @@ export function FirstRunWizard({
                 disabled={!connected || homeBusy || !!homeBlockedReason}
                 onClick={onHome}
               >
-                {homeBusy ? "Homing…" : homed ? "Home again" : "Home ($H)"}
+                {homeBusy
+                  ? "Homing…"
+                  : homed
+                    ? "Home again ($H)"
+                    : "Home ($H)"}
               </button>
             </div>
             {homeBlockedReason ? (

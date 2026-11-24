@@ -157,7 +157,7 @@ Skip to step 8 if homing isn't enabled (`$22=0`); come back after setting it up.
 
 **Do**
 1. Move the gantry back near the middle.
-2. **Calibrate → 1 · Start → Home ($H)**, hand on E-Stop.
+2. **Calibrate → 1 · Start → Home** (`$H`), hand on E-Stop.
 3. Watch: **Z should go up first**, then X and Y head to their home corner.
 
 **Expect**
@@ -193,10 +193,10 @@ Skip to step 8 if homing isn't enabled (`$22=0`); come back after setting it up.
 Needs homing (step 7) done this session.
 
 **Do** (Calibrate → **5 · Soft travel**):
-1. Using the jog pad on that step, move **X toward the far end**, slow down near it, and stop **about 5 mm short** of the hard stop. **Use MPos** for X.
+1. Using the jog pad on that step, move **X toward the far end**, slow down near it, and stop **about 5 mm short** of the hard stop. **Use machine pos** for X.
 2. Same for **Y**.
-3. Jog **Z down** to the lowest point you'd ever want the spindle (well above the bed with no bit) → **Use MPos** for Z. It fills in as a positive number; that's correct.
-4. Keep **Enable soft limits ($20=1)** ticked → **Write travel + $20**.
+3. Jog **Z down** to the lowest point you'd ever want the spindle (well above the bed with no bit) → **Use machine pos** for Z. It fills in as a positive number; that's correct.
+4. Keep **Enable soft limits ($20=1)** ticked → **Save bed travel & soft limits**.
 5. Jog toward the far end of X past the value you entered.
 
 **Expect**

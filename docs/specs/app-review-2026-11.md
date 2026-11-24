@@ -26,16 +26,16 @@ Most of this review was fixed and verified against the Virtual CNC on branch `fi
 | M1 | Jog pad in Calibrate | **FIXED** (Soft travel step) |
 | M2 | Z side view | **FIXED** (Z gauge) |
 | M3 | Settings backup / restore | **FIXED** (calibration spec PR 1) |
-| M4 | Keyboard shortcuts for Hold / E-Stop | **OPEN** |
+| M4 | Keyboard shortcuts for Hold / E-Stop | **FIXED** — Space = Hold (not in fields/buttons); Escape stays dialog-close |
 | M5, M6 | Homing setup, speed & accel steps | **OPEN** (calibration spec PR 3, PR 4) |
 | O1 | Overlapping setup wizards | **FIXED** — First-run is Connect → Home → Calibrate |
 | O2 | "Zero context" step | **FIXED** — renamed **Start**, copy refocused on homing |
 | O3 | Home story inconsistent | **FIXED** (copy). "Not homed" header chip: **OPEN, optional** |
-| O4 | Duplicate controls | **PARTLY** — E-Stop/Reset tooltips explain the difference. Removing duplicate Connect/Reset buttons and the duplicated position readouts: **OPEN** |
+| O4 | Duplicate controls | **FIXED** — one Connect after link (header); Reset on Safety only; Material/Machine tables removed from Calibrate Start + Prepare |
 | O5 | Practice faults in the Safety strip | **FIXED** — labeled "Virtual CNC only · practice" |
 | C1 | Back/Next below the fold | **FIXED** — pinned footer, verified at 1366×768 |
-| C2 | Silent failures | **FIXED** for Soft travel. Sweep other panels: **OPEN** |
-| C3 | Jargon in primary copy | **OPEN** |
+| C2 | Silent failures | **FIXED** — Soft travel + Prepare / Verify / Advanced / bed travel / stock perimeter show why when disabled or refused |
+| C3 | Jargon in primary copy | **FIXED** — primary buttons/step titles lead with plain words; GRBL codes secondary |
 | C4 | Raw GRBL text in errors | **FIXED** for job errors/alarms |
 | D1 | Software E-Stop callout | **FIXED** |
 | D2 | UI chapter outdated | **FIXED** |
@@ -260,13 +260,13 @@ Same rules as before: every PR ships with smoke coverage and its user-guide / vi
 
 ### Features
 6. ~~Calibration spec PR 1 (backup / restore / undo)~~ **DONE**, PR 3 (speed & accel), PR 4 (homing setup), PR 5 (soft travel polish). PR 0, PR 1, and parts of PR 2 are done; see that spec's status table.
-7. **M4 keyboard shortcuts:** e.g. Space = Hold when focus isn't in a text field or on a button; document them. Don't use Escape for E-Stop.
+7. ~~**M4 keyboard shortcuts:**~~ **DONE** — Space = Hold (ignored in fields/buttons); Escape stays dialog-close; documented in `11-safety.md`.
 8. **Optional:** "Not homed" header chip when `$22=1` and the session isn't homed; draw G2/G3 as arcs in the visualizer and simulation; "Skip line and continue" after a stream error.
 
 ### UX cleanup
-9. **O4:** one Connect button (header chip) once linked — hide the rail's and First-run's duplicate after connect; drop **Reset** from either the header chip or the Safety strip; remove the duplicated Material/Machine table inside Calibrate Start and Prepare panels (the Position panel is always visible).
-10. **C2 sweep:** every disabled or refused action shows why inline (check Prepare, Verify, Advanced, bed travel, stock perimeter).
-11. **C3 jargon pass:** plain words first, GRBL codes as secondary text, in primary buttons and step titles.
+9. ~~**O4:**~~ **DONE** — header Connect only after link; Reset on Safety only; Calibrate Start + Prepare no longer duplicate the Material/Machine table (`smoke-ux-cleanup`).
+10. ~~**C2 sweep:**~~ **DONE** — Prepare / Verify / Advanced offsets / bed travel / stock perimeter show why when disabled or refused.
+11. ~~**C3 jargon pass:**~~ **DONE** — primary buttons/step titles lead with plain words; GRBL codes secondary.
 
 ### Docs, screenshots, diagrams
 12. **Screenshots** (regenerate with `CHROME_PATH=… npx tsx scripts/capture-guide-screenshots.mts`, then extend the script for new ones):

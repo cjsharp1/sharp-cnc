@@ -44,10 +44,20 @@ export function HomingPanel({
           type="button"
           className="homing__btn"
           disabled={!enabled || busy}
-          title={blockedReason ?? "Cycle home ($H)"}
+          title={
+            !enabled
+              ? (blockedReason ?? "Homing unavailable")
+              : (blockedReason ?? "Cycle home ($H)")
+          }
           onClick={onHome}
         >
-          {busy ? "Homing…" : "Home ($H)"}
+          {busy ? (
+            "Homing…"
+          ) : (
+            <>
+              Home <span className="cal__btn-code">$H</span>
+            </>
+          )}
         </button>
         <button
           type="button"

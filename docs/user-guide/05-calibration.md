@@ -12,12 +12,12 @@ Phase switcher → **Calibrate** (also from First-run). Connect first.
 
 | # | Step | Action |
 |---|------|--------|
-| 1 | Start | Clear the bed → **Home ($H)** once per power-on (if homing is set up) → confirm → **Next**. Material zero here is optional. |
+| 1 | Start | Clear the bed → **Home** (`$H`) once per power-on (if homing is set up) → confirm → **Next**. Material zero here is optional. Position is the always-on chrome panel — not repeated inside this step. |
 | 2 | Direction | **Z first** (expected: +Z up / tool lifts) → Test ±5 mm → **Yes / No** (No ticks Invert) → same for X/Y → **Write $3** |
 | 3 | Steps/mm | Move a known distance (X/Y: 50–200 mm; **Z: 10/20/25 mm down**) → measure → if change &gt; ±20% read the warning → **Write** → **Move again to check** (±0.1 mm) |
 | 4 | Speed & accel | Per axis: mark a reference → Ready → G1 out-and-back trials → Yes / off / stall → recommend ×0.75 → **Write** max rate then accel |
-| 5 | Homing | Press each limit switch (lights) → pick XY corner → speeds/pull-off → enable `$22` → arm E-Stop → **Home ($H)** → Z repeatability ×3 |
-| 6 | Soft travel | Homing must be on ($22). Jog to far end (Z: lowest safe) → **Use MPos** → **Write travel + $20** → **Test the limit** (expects error:15) → optional hard limits ($21) → **Continue to Prepare** |
+| 5 | Homing | Press each limit switch (lights) → pick XY corner → speeds/pull-off → **Enable homing** (`$22=1`) → arm E-Stop → **Home** (`$H`) → Z repeatability ×3 |
+| 6 | Soft travel | Homing must be on ($22). Jog to far end (Z: lowest safe) → **Use machine pos** → **Save bed travel & soft limits** → **Test the limit** (expects error:15) → optional hard limits ($21) → **Continue to Prepare** |
 
 Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibrate step). **Bed travel test…** after Soft travel is recommended, not required to mark calibrated.
 
@@ -78,7 +78,7 @@ This machine has **physical switches on the zero side only**. The Homing step se
 1. **Check the switches (no motion)** — press each limit by hand. The X/Y/Z lights (same `Pn:` parsing as Position → Inputs) should come on, then go off when you release. Each axis needs on → off for ✓. You can’t continue until all three are ✓. If a light is on with nothing pressed, the switch reads backwards — flip limit polarity (`$5`) with Before → After.
 2. **Homing direction (`$23`)** — click the bed corner where the X/Y switches sit (map: NW NE / SW SE). Confirm **Z switch is at the top** (only option). GRBL homes **Z first**, so the tool lifts clear before X and Y move.
 3. **Speeds and pull-off** — seek (`$25`, how fast it looks for the switch; suggest ≤ 50% of the slowest max rate), final touch (`$24`, 25–50 mm/min; slower = more repeatable), pull-off (`$27`, 1–2 mm typical). Each Write shows Before → After.
-4. **First home** — enable `$22=1`, tick “hand on E-Stop”, then **Home ($H)**. Failures map to plain language (ALARM:6 reset during homing, ALARM:8 couldn’t clear switch on pull-off, ALARM:9 couldn’t find the switch). After a successful home, Z on a real machine reads about **−1 mm** (pull-off); every useful Z is negative below the top.
+4. **First home** — **Enable homing** (`$22=1`), tick “hand on E-Stop”, then **Home** (`$H`). Failures map to plain language (ALARM:6 reset during homing, ALARM:8 couldn’t clear switch on pull-off, ALARM:9 couldn’t find the switch). After a successful home, Z on a real machine reads about **−1 mm** (pull-off); every useful Z is negative below the top.
 5. **Z repeatability** — home 3 times and Yes/No after each. If Z drifts, try a slower final touch (shortcut lowers `$24`).
 
 On **Virtual CNC**, use the step’s limit toggles (`$ExtLimitX/Y/Z`, mock-only — never sent to USB) to practice the lights.
@@ -92,9 +92,9 @@ Soft limits are invisible fences on the **far** side of travel (home switches on
 **Prerequisite:** `$22` (homing) must be on. If it isn’t, the step shows “Soft limits need homing turned on. Finish the Homing step first” with a link back. Real GRBL returns **error:10** if you try `$20=1` without homing — the wizard surfaces that in plain English.
 
 1. Jog each axis to the far end (stop a few mm short). Z: jog **down** to the lowest safe point. Use the jog pad on this step.
-2. **Use MPos** (or type Max X/Y/Z). Enter Z as a **positive** travel length (e.g. 80). Because Z homes to the top, GRBL allows Z from 0 down to −80.
+2. **Use machine pos** (or type Max X/Y/Z). Enter Z as a **positive** travel length (e.g. 80). Because Z homes to the top, GRBL allows Z from 0 down to −80.
 3. Enable soft limits (`$20=1`). Optional hard limits (`$21`): “Extra backstop: stops instantly if a home-side switch is hit mid-job. Can false-trigger on noisy wiring.” Default off.
-4. **Write travel + $20**, then **Test the limit** for Z / X / Y. The app jogs just past the soft edge and expects real GRBL’s **error:15** (jog refused, stays Idle) → “Soft limits working ✓”.
+4. **Save bed travel & soft limits**, then **Test the limit** for Z / X / Y. The app jogs just past the soft edge and expects real GRBL’s **error:15** (jog refused, stays Idle) → “Soft limits working ✓”.
 5. Confirm the step → **Continue to Prepare**. Optional **Bed travel test…** walks XY corners.
 
 > Soft limits protect the **machine**, not your **work**. They know how far each axis can travel, but not where your stock or spoilboard is. If your Z zero is set wrong, the machine will still plunge into the spoilboard. Your Z probe in Prepare is what protects the work.
@@ -108,8 +108,8 @@ Screenshot: [soft travel](assets/cal-step6-travel.png)
 - Max rate `$110`–`$112` (mm/min); accel `$120`–`$122` (mm/sec²). Recommend ≈ last passing × 0.75.
 - Homing: `$22` enable, `$23` direction (bit set = toward negative), `$24` feed, `$25` seek, `$27` pull-off, `$5` limit polarity.
 - Soft travel: `$130`–`$132` + `$20=1` (needs `$22=1`). Optional `$21` hard limits. **Test the limit** expects `error:15`.
-- **Z is negative below home.** Z homes to the top, so with `$132=80` the allowed range is 0 down to −80. Enter `$132` as a positive travel length; **Use MPos** on Z converts it for you.
-- Invalid travel values (zero, negative, text) show an error under **Write travel + $20** instead of silently doing nothing.
+- **Z is negative below home.** Z homes to the top, so with `$132=80` the allowed range is 0 down to −80. Enter `$132` as a positive travel length; **Use machine pos** on Z converts it for you.
+- Invalid travel values (zero, negative, text) show an error under **Save bed travel & soft limits** instead of silently doing nothing.
 - Back up / restore / Undo — see above; Advanced restore is for bringing an earlier snapshot back after many changes.
 
 ## Verify with a cut-size sample

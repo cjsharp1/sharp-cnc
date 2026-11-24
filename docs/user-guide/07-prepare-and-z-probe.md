@@ -6,7 +6,7 @@
 
 **Session order:** Connect → (Calibrate if needed) → **Prepare** → **Mark ready → Verify** → Simulate → **Start** → **Run**.
 
-The **Prepare** phase is a stepped inline wizard (one screen per step — no tall scroll stack). It confirms stock and tool, sets **Material XY**, runs a Z probe (or manual Z zero), loads the path, then **Mark ready** unlocks **Verify** (not Start). Opening a new file or disconnecting clears Prepared.
+The **Prepare** phase is a stepped inline wizard (one screen per step — no tall scroll stack). It confirms stock and tool, sets **Material XY**, runs a Z probe (or manual Z zero), loads the path, then **Mark ready** unlocks **Verify** (not Start). Opening a new file or disconnecting clears Prepared. Material/Machine numbers stay in the always-on **Coordinates** panel — Prepare does not repeat that table. Disabled actions (Mark ready, Retract, Next, perimeter Start, …) show why inline or on the button title.
 
 ![Prepare wizard steps](assets/diagram-prepare-flow.svg)
 
