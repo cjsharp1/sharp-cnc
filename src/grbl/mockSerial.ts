@@ -163,21 +163,39 @@ export function createMockTransport(
   const wcsOffsets = new Map<number, Position3>([
     [1, { ...VIRTUAL_ORIGIN }],
   ]);
-  /** Active control pins for `Pn:` (Demon Shield button simulation). */
-  let activePins = "";
+  /**
+   * Sticky limit pins (`X`/`Y`/`Z`) toggled by `$ExtLimit*` — survive until
+   * toggled off. Momentary control/probe letters are layered on top via pulse.
+   */
+  let stickyLimitPins = "";
+  let pulsePins = "";
   let pinClearTimer: ReturnType<typeof setTimeout> | null = null;
   const queue: string[] = [];
   /** Mutable GRBL EEPROM settings for `$$` / `$n=` calibration smoke tests. */
   const settings = new Map<number, number>();
   seedVirtualCncSettings(settings);
 
+  const composeActivePins = (): string => {
+    const letters = new Set<string>();
+    for (const ch of stickyLimitPins + pulsePins) letters.add(ch);
+    return [...letters].join("");
+  };
+
   const pulsePin = (letter: string, holdMs = 120) => {
-    if (!activePins.includes(letter)) activePins += letter;
+    if (!pulsePins.includes(letter)) pulsePins += letter;
     if (pinClearTimer !== null) clearTimeout(pinClearTimer);
     pinClearTimer = setTimeout(() => {
-      activePins = "";
+      pulsePins = "";
       pinClearTimer = null;
     }, holdMs);
+  };
+
+  const toggleStickyLimit = (letter: "X" | "Y" | "Z") => {
+    if (stickyLimitPins.includes(letter)) {
+      stickyLimitPins = stickyLimitPins.replace(letter, "");
+    } else {
+      stickyLimitPins += letter;
+    }
   };
 
   const emit = (event: TransportEvent) => {
@@ -214,6 +232,7 @@ export function createMockTransport(
       body += `|Ov:${feedOverridePct},${rapidOverridePct},${spindleOverridePct}`;
     }
     // Match GRBL: only include Pn: while pins are active.
+    const activePins = composeActivePins();
     if (activePins) body += `|Pn:${activePins}`;
     emitLine(`${body}>`);
   };
@@ -547,7 +566,12 @@ export function createMockTransport(
     }
 
     // Homing cycle ($H) — Virtual CNC lands at Machine 0 / Work 0.
+    // Real GRBL 1.1: `$H` with `$22=0` → error:5 (setting disabled).
     if (/^\$H$/i.test(trimmed)) {
+      if ((settings.get(22) ?? 0) === 0) {
+        emitLine("error:5");
+        return;
+      }
       busy = true;
       state = "Home";
       animateTo({ ...VIRTUAL_ORIGIN }, 2000, "Home", () => {
@@ -849,6 +873,22 @@ export function createMockTransport(
       emitLine("ok");
       return;
     }
+    // Virtual CNC: toggle sticky limit pins for Homing setup switch lights.
+    if (/^\$ExtLimitX$/i.test(trimmed)) {
+      toggleStickyLimit("X");
+      emitLine("ok");
+      return;
+    }
+    if (/^\$ExtLimitY$/i.test(trimmed)) {
+      toggleStickyLimit("Y");
+      emitLine("ok");
+      return;
+    }
+    if (/^\$ExtLimitZ$/i.test(trimmed)) {
+      toggleStickyLimit("Z");
+      emitLine("ok");
+      return;
+    }
 
     queue.push(trimmed);
     pump();
@@ -882,6 +922,12 @@ export function createMockTransport(
       rapidOverridePct = 100;
       spindleOverridePct = 100;
       seedVirtualCncSettings(settings);
+      stickyLimitPins = "";
+      pulsePins = "";
+      if (pinClearTimer !== null) {
+        clearTimeout(pinClearTimer);
+        pinClearTimer = null;
+      }
       emit({ type: "open" });
       emitLine("Grbl 1.1h ['$' for help]");
     },
@@ -889,6 +935,12 @@ export function createMockTransport(
       clearMotion();
       queue.length = 0;
       busy = false;
+      stickyLimitPins = "";
+      pulsePins = "";
+      if (pinClearTimer !== null) {
+        clearTimeout(pinClearTimer);
+        pinClearTimer = null;
+      }
       open = false;
       emit({ type: "close", reason: "mock" });
     },

@@ -3624,6 +3624,76 @@ button {
   padding-left: 0.55rem;
 }
 
+.cal__homing-part {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding-top: 0.35rem;
+  border-top: 1px solid var(--border-soft);
+}
+
+.cal__homing-part:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.cal__homing-part-title {
+  margin: 0;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  color: var(--ink);
+  letter-spacing: 0.02em;
+}
+
+.cal__switch-lights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem 0.85rem;
+  align-items: center;
+}
+
+.cal__switch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.cal__switch-meta {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  font-family: var(--font-mono);
+}
+
+.cal__switch.is-ok .cal__switch-meta {
+  color: var(--ok-text, var(--ink));
+  font-weight: 700;
+}
+
+.cal__mock-limits {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
+.cal__mock-limits-label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.cal__z-repeat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.cal__z-repeat-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem 0.5rem;
+}
+
 .cal__body {
   display: flex;
   flex-direction: column;

@@ -9,7 +9,7 @@ export const CALIBRATION_GUIDED_STEPS = [
   "direction",
   "steps",
   "rates",
-  // Homing arrives in PR 4; Soft travel stays last until then.
+  "homing",
   "travel",
 ] as const;
 

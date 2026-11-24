@@ -160,6 +160,12 @@ async function runMockBehaviorChecks(mode: MockMode): Promise<void> {
     MOCK_ONLY_COMMANDS.includes("$Alarm"),
     "$Alarm is mock-only (never send to Demon Shield)",
   );
+  assert(
+    MOCK_ONLY_COMMANDS.includes("$ExtLimitX") &&
+      MOCK_ONLY_COMMANDS.includes("$ExtLimitY") &&
+      MOCK_ONLY_COMMANDS.includes("$ExtLimitZ"),
+    "$ExtLimit* are mock-only (never send to Demon Shield)",
+  );
 
   rxBuffer.length = 0;
   await client.sendLine("G0 X1");

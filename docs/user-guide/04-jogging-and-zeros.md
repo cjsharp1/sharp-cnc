@@ -77,7 +77,9 @@ Typical touch-off (Prepare phase):
 
 ## Homing
 
-**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. **Rule of thumb: home once after every power-on, and again after an E-Stop or reset mid-move.** Everything else (soft limits, saved zeros, the Z gauge) depends on it. Home is offered in First-run, in Calibrate's **Start** step, and in Prepare step 1. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+**Home ($H)** runs GRBL’s homing cycle against the **zero-side limit switches** (needs `$22=1`) — not the touch plate. **Rule of thumb: home once after every power-on, and again after an E-Stop or reset mid-move.** Everything else (soft limits, saved zeros, the Z gauge) depends on it. Home is offered in First-run, in Calibrate's **Start** and **Homing** steps, and in Prepare step 1. SharpCNC marks the session **Homed** after a successful cycle. **Clear home** only drops that session flag — it does not wipe GRBL EEPROM.
+
+**First-time setup** lives in Calibrate → **Homing**: check each switch by hand (Position **Inputs** lights / same `Pn:` letters), pick the XY corner where the switches sit, set seek/feed/pull-off, enable `$22`, then run a first home with your hand on E-Stop. See [Calibration — Homing setup](05-calibration.md#homing-setup-step-5).
 
 After homing on stock GRBL, Z reads about **−1 mm** (minus the pull-off `$27`), not exactly 0: the switch trigger point is 0.
 

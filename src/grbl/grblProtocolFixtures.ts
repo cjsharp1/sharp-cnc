@@ -50,6 +50,7 @@ export const REAL_ERROR_CODES: Record<number, string> = {
   1: "Expected command letter",
   2: "Bad number format",
   3: "Invalid statement / unsupported $ command",
+  5: "Homing cycle is not enabled via settings ($22=0)",
   8: "Not idle ($ command while not Idle)",
   9: "G-code locked out during alarm or jog state",
   15: "Jog target exceeds machine travel (command ignored)",
@@ -108,6 +109,7 @@ export const REAL_ERROR_LINES: readonly string[] = [
   "error:1",
   "error:2",
   "error:3",
+  "error:5",
   "error:8",
   "error:9",
   "error:15",
@@ -152,4 +154,7 @@ export const MOCK_ONLY_COMMANDS = [
   "$ExtResume",
   "$ExtAbort",
   "$ExtProbe",
+  "$ExtLimitX",
+  "$ExtLimitY",
+  "$ExtLimitZ",
 ] as const;

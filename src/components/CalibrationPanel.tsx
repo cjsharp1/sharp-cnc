@@ -6,25 +6,46 @@ import {
   DEFAULT_CALIBRATION_DISTANCE_MM,
   DEFAULT_JOG_FEED_MM_MIN,
   DIR_TEST_JOG_MM,
+  HOMING_FEED_SUGGEST_MAX,
+  HOMING_FEED_SUGGEST_MIN,
+  HOMING_PULLOFF_TYPICAL_MAX,
+  HOMING_PULLOFF_TYPICAL_MIN,
   MAX_TRAVEL_SETTING_FOR_AXIS,
   RATE_SETTING_FOR_AXIS,
   RATES_RECOMMEND_DEFAULT,
   RATES_RECOMMEND_MAX,
   RATES_RECOMMEND_MIN,
   SETTING_DIR_PORT_INVERT,
+  SETTING_HOMING_CYCLE,
+  SETTING_HOMING_DIR_MASK,
+  SETTING_HOMING_FEED,
+  SETTING_HOMING_PULLOFF,
+  SETTING_HOMING_SEEK,
+  SETTING_LIMIT_INVERT,
   STEPS_MM_LARGE_CHANGE_FRACTION,
   STEPS_RETEST_TOLERANCE_MM,
   STEPS_SETTING_FOR_AXIS,
+  advanceSwitchCheck,
+  allSwitchesVerified,
   buildJogCommand,
   canFitRatesTest,
   computeStepsPerMm,
   decodeDirInvertMask,
+  decodeHomingDirMask,
+  decodeLimitInvert,
   defaultRatesCycles,
   defaultRatesDistanceMm,
   describeDirInvertMask,
+  describeHomingDirMask,
+  emptySwitchCheckState,
   encodeDirInvertMask,
+  encodeHomingDirMask,
+  encodeLimitInvert,
   estimateStepsPerMm,
+  flippedLimitInvert,
   homingEnabled,
+  homingSettingPlainLabel,
+  homingSettingUnit,
   loadCalNewStepsBannerDismissed,
   loadCalibrationState,
   nextRatesTrialValue,
@@ -37,14 +58,20 @@ import {
   saveCalNewStepsBannerDismissed,
   softLimitsEnabled,
   stepsPerMmChangeFraction,
+  suggestHomingFeed,
+  suggestHomingPullOff,
+  suggestHomingSeek,
   type Axis,
   type AxisDirInvert,
   type CalibrationGuidedStepId,
   type GrblSetting,
   type GrblStatus,
+  type HomingXyCorner,
+  type LimitAxis,
   type RatesKind,
   type RatesTrialResult,
   type SoftTravelLimits,
+  type SwitchCheckState,
   type ZeroAxisSelection,
 } from "../grbl";
 import { useWizardStepGate, WizardStepConfirm } from "./wizardStepGate";
@@ -59,7 +86,8 @@ const STEP_CHROME: Record<
   direction: { label: "Direction", short: "2 · Dir" },
   steps: { label: "Steps/mm", short: "3 · Steps" },
   rates: { label: "Speed & accel", short: "4 · Rates" },
-  travel: { label: "Soft travel", short: "5 · Travel" },
+  homing: { label: "Homing", short: "5 · Home" },
+  travel: { label: "Soft travel", short: "6 · Travel" },
 };
 
 const WIZARD_STEPS = CALIBRATION_GUIDED_STEPS.map((id) => ({
@@ -72,10 +100,25 @@ const STEP_CONFIRM_LABELS: Record<CalibrationStepId, string> = {
   direction: "Jog direction matches the machine — I completed this step",
   steps: "Measured and wrote steps/mm — I completed this step",
   rates: "Max speed and acceleration checked — I completed this step",
+  homing: "Switches checked, first home done, Z repeatable — I completed this step",
   travel: "Soft travel / bed extents set — I completed this step",
 };
 
 const RATES_AXIS_TABS: Axis[] = ["X", "Y", "Z"];
+
+/** Map layout: NW NE top row, SW SE bottom. */
+const HOMING_CORNERS: {
+  id: HomingXyCorner;
+  label: string;
+  title: string;
+}[] = [
+  { id: "NW", label: "NW", title: "Back-left (min X, max Y)" },
+  { id: "NE", label: "NE", title: "Back-right (max X, max Y)" },
+  { id: "SW", label: "SW", title: "Front-left (min X, min Y)" },
+  { id: "SE", label: "SE", title: "Front-right (max X, min Y)" },
+];
+
+const LIMIT_AXES: LimitAxis[] = ["X", "Y", "Z"];
 
 /** Compact Home ($H) offered on Zero context — recommended, not a hard gate. */
 export interface CalibrationHomingProps {
@@ -124,6 +167,13 @@ interface CalibrationPanelProps {
   ) => void;
   /** Leave/cancel rates step — restore any temp trial writes. */
   onRatesCancelRestore?: () => void;
+  /** Write one homing-related setting with old → new (undoable). */
+  onWriteHomingSetting?: (id: number, before: number, after: number) => void;
+  /**
+   * Virtual CNC only: toggle `$ExtLimitX/Y/Z` so switch lights can be practiced.
+   * Never wired on a real USB port.
+   */
+  onToggleLimitPin?: ((axis: LimitAxis) => void) | null;
   onZero: (axes: ZeroAxisSelection) => void;
   onClose?: () => void;
   /** Soft travel confirmed — persist calibrated and advance (phase shell). */
@@ -205,6 +255,8 @@ export function CalibrationPanel({
   onRatesTrial,
   onWriteRates,
   onRatesCancelRestore,
+  onWriteHomingSetting,
+  onToggleLimitPin = null,
   onZero,
   onClose,
   onComplete,
@@ -278,6 +330,23 @@ export function CalibrationPanel({
   const [ratesFailed, setRatesFailed] = useState(false);
   const [ratesFactor, setRatesFactor] = useState(RATES_RECOMMEND_DEFAULT);
   const [ratesGateError, setRatesGateError] = useState<string | null>(null);
+
+  // Homing setup (PR 4)
+  const [switchCheck, setSwitchCheck] = useState<SwitchCheckState>(
+    emptySwitchCheckState,
+  );
+  const [homingCorner, setHomingCorner] = useState<HomingXyCorner>("SW");
+  const [seekDraft, setSeekDraft] = useState("");
+  const [feedDraft, setFeedDraft] = useState("");
+  const [pullOffDraft, setPullOffDraft] = useState("");
+  const [firstHomeArmed, setFirstHomeArmed] = useState(false);
+  const [firstHomeDone, setFirstHomeDone] = useState(false);
+  const [zRepeatAnswers, setZRepeatAnswers] = useState<(boolean | null)[]>([
+    null,
+    null,
+    null,
+  ]);
+
   const [showNewStepsBanner, setShowNewStepsBanner] = useState(() => {
     try {
       return (
@@ -389,6 +458,55 @@ export function CalibrationPanel({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- seed when entering rates
   }, [step.id]);
 
+  // Advance switch lights: on → off ⇒ ✓
+  useEffect(() => {
+    if (step.id !== "homing") return;
+    const pins = status.pins;
+    setSwitchCheck((prev) =>
+      advanceSwitchCheck(prev, {
+        X: pins?.limitX === true,
+        Y: pins?.limitY === true,
+        Z: pins?.limitZ === true,
+      }),
+    );
+  }, [
+    step.id,
+    status.pins?.limitX,
+    status.pins?.limitY,
+    status.pins?.limitZ,
+    status.pins?.raw,
+  ]);
+
+  // Seed homing form from loaded settings when entering the step.
+  useEffect(() => {
+    if (step.id !== "homing") return;
+    const dir = settingValue(settings, SETTING_HOMING_DIR_MASK);
+    if (dir !== null) setHomingCorner(decodeHomingDirMask(dir).xyCorner);
+    const seek = settingValue(settings, SETTING_HOMING_SEEK);
+    const feed = settingValue(settings, SETTING_HOMING_FEED);
+    const pull = settingValue(settings, SETTING_HOMING_PULLOFF);
+    setSeekDraft(
+      String(
+        suggestHomingSeek(seek, {
+          x: settingValue(settings, RATE_SETTING_FOR_AXIS.X),
+          y: settingValue(settings, RATE_SETTING_FOR_AXIS.Y),
+          z: settingValue(settings, RATE_SETTING_FOR_AXIS.Z),
+        }) ?? seek ?? 500,
+      ),
+    );
+    setFeedDraft(String(suggestHomingFeed(feed)));
+    setPullOffDraft(String(suggestHomingPullOff(pull)));
+    setFirstHomeArmed(false);
+    // Keep firstHomeDone / switchCheck / zRepeat across re-entry in session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed on enter
+  }, [step.id, settings]);
+
+  useEffect(() => {
+    if (homing?.homed && firstHomeArmed) {
+      setFirstHomeDone(true);
+    }
+  }, [homing?.homed, firstHomeArmed]);
+
   const parseTravel = (raw: string): number | null => {
     const t = raw.trim();
     if (!t) return null;
@@ -400,6 +518,28 @@ export function CalibrationPanel({
   const canAct = enabled && !busy && !ratesTrialRunning;
 
   const clearConfirm = () => setStepConfirmed(false);
+
+  const switchesOk = allSwitchesVerified(switchCheck);
+  const limitInvertNow = settingValue(settings, SETTING_LIMIT_INVERT) ?? 0;
+  const homingDirNow = settingValue(settings, SETTING_HOMING_DIR_MASK);
+  const homingCycleNow = settingValue(settings, SETTING_HOMING_CYCLE);
+  const draftHomingMask = encodeHomingDirMask({
+    xyCorner: homingCorner,
+    zSide: "top",
+  });
+  const homingDirDirty =
+    homingDirNow === null || draftHomingMask !== Math.trunc(homingDirNow);
+  const zRepeatDone = zRepeatAnswers.every((a) => a !== null);
+  const zRepeatDrift = zRepeatAnswers.some((a) => a === false);
+  const limOn = {
+    X: status.pins?.limitX === true,
+    Y: status.pins?.limitY === true,
+    Z: status.pins?.limitZ === true,
+  };
+  /** Light on while not yet ✓ — may mean polarity is inverted if nothing is pressed. */
+  const maybeInvertedAxis = LIMIT_AXES.find(
+    (ax) => limOn[ax] && !switchCheck[ax].verified,
+  );
 
   const ratesSettingNow = settingValue(
     settings,
@@ -1470,6 +1610,494 @@ export function CalibrationPanel({
             checked={isConfirmed}
             disabled={!canAct}
             label={STEP_CONFIRM_LABELS.rates}
+            onChange={setStepConfirmed}
+          />
+        </div>
+      )}
+
+      {step.id === "homing" && (
+        <div
+          className="cal__body"
+          role="group"
+          aria-labelledby="cal-step-homing"
+        >
+          <h3 id="cal-step-homing" className="cal__step-title">
+            Homing setup
+          </h3>
+          <p className="cal__hint">
+            This machine has switches on the <strong>zero side only</strong>.
+            Check each switch by hand, set which corner they sit on, then run a
+            first home with your hand near E-Stop. GRBL homes{" "}
+            <strong>Z first</strong>, so the tool lifts clear before X and Y
+            move.
+          </p>
+
+          {/* Part A — switch lights */}
+          <section className="cal__homing-part" aria-labelledby="cal-home-a">
+            <h4 id="cal-home-a" className="cal__homing-part-title">
+              1 · Check the switches
+            </h4>
+            <p className="cal__hint">
+              Press each limit switch by hand. Its light should come on. Release
+              — light goes off. Each axis needs on → off for ✓.
+            </p>
+            <div className="cal__switch-lights" role="group" aria-label="Limit switches">
+              {LIMIT_AXES.map((ax) => {
+                const on = limOn[ax];
+                const st = switchCheck[ax];
+                return (
+                  <div
+                    key={ax}
+                    className={`cal__switch${on ? " is-on" : ""}${st.verified ? " is-ok" : ""}`}
+                  >
+                    <span
+                      className={`coords__pin${on ? " is-on" : ""}`}
+                      title={`${ax} limit: ${on ? "ACTIVE" : "not active"}`}
+                    >
+                      {ax} lim
+                    </span>
+                    <span className="cal__switch-meta">
+                      {st.verified ? "✓" : st.seenOn ? "release…" : "press"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            {onToggleLimitPin ? (
+              <div
+                className="cal__mock-limits"
+                role="group"
+                aria-label="Virtual CNC limit toggles"
+              >
+                <span className="cal__mock-limits-label">
+                  Virtual CNC only · toggle:
+                </span>
+                {LIMIT_AXES.map((ax) => (
+                  <button
+                    key={ax}
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct}
+                    title={`Toggle $ExtLimit${ax} (never sent to USB)`}
+                    onClick={() => onToggleLimitPin(ax)}
+                  >
+                    {ax} limit
+                  </button>
+                ))}
+              </div>
+            ) : null}
+            {maybeInvertedAxis ? (
+              <div className="cal__warn cal__warn--callout" role="status">
+                <p>
+                  {maybeInvertedAxis} switch light is on. If you aren&apos;t
+                  pressing it, this switch reads backwards.
+                </p>
+                <p className="cal__hint">
+                  {homingSettingPlainLabel(SETTING_LIMIT_INVERT)}{" "}
+                  <code>${SETTING_LIMIT_INVERT}</code>: Before:{" "}
+                  <strong>{encodeLimitInvert(decodeLimitInvert(limitInvertNow))}</strong>{" "}
+                  → After:{" "}
+                  <strong>{flippedLimitInvert(limitInvertNow)}</strong>
+                </p>
+                <button
+                  type="button"
+                  className="cal__btn"
+                  disabled={!canAct || !onWriteHomingSetting}
+                  onClick={() => {
+                    clearConfirm();
+                    onWriteHomingSetting?.(
+                      SETTING_LIMIT_INVERT,
+                      encodeLimitInvert(decodeLimitInvert(limitInvertNow)),
+                      flippedLimitInvert(limitInvertNow),
+                    );
+                  }}
+                >
+                  Write ${SETTING_LIMIT_INVERT}=
+                  {flippedLimitInvert(limitInvertNow)}
+                </button>
+              </div>
+            ) : null}
+            {!switchesOk ? (
+              <p className="cal__hint">
+                Can&apos;t continue until X, Y, and Z each show ✓.
+              </p>
+            ) : (
+              <p className="cal__hint">All three switches checked ✓</p>
+            )}
+          </section>
+
+          {switchesOk ? (
+            <>
+              {/* Part B — direction */}
+              <section className="cal__homing-part" aria-labelledby="cal-home-b">
+                <h4 id="cal-home-b" className="cal__homing-part-title">
+                  2 · Homing direction
+                </h4>
+                <p className="cal__hint">
+                  Click the corner where the X/Y switches are (map: NW NE / SW
+                  SE). Z switch is at the <strong>top</strong> — the only option
+                  on this machine.
+                </p>
+                <div className="prep__corners" role="group" aria-label="XY home corner">
+                  {HOMING_CORNERS.map((c) => (
+                    <button
+                      key={c.id}
+                      type="button"
+                      className={`cal__btn cal__btn--ghost${homingCorner === c.id ? " is-active" : ""}`}
+                      title={c.title}
+                      disabled={!canAct}
+                      onClick={() => {
+                        clearConfirm();
+                        setHomingCorner(c.id);
+                      }}
+                    >
+                      {c.label}
+                    </button>
+                  ))}
+                </div>
+                <label className="cal__check">
+                  <input type="checkbox" checked readOnly disabled />
+                  <span>Z switch is at the top</span>
+                </label>
+                <p className="cal__hint">
+                  Not supported: Z switch at the bottom of travel.
+                </p>
+                <p className="cal__current">
+                  {homingSettingPlainLabel(SETTING_HOMING_DIR_MASK)}{" "}
+                  <code>${SETTING_HOMING_DIR_MASK}</code>
+                  {homingDirNow !== null
+                    ? `: Before: ${homingDirNow} (${describeHomingDirMask(homingDirNow)})`
+                    : ""}
+                  {" → "}
+                  After: <strong>{draftHomingMask}</strong> (
+                  {describeHomingDirMask(draftHomingMask)})
+                </p>
+                <div className="cal__actions">
+                  <button
+                    type="button"
+                    className="cal__btn"
+                    disabled={
+                      !canAct || !homingDirDirty || !onWriteHomingSetting
+                    }
+                    onClick={() => {
+                      clearConfirm();
+                      onWriteHomingSetting?.(
+                        SETTING_HOMING_DIR_MASK,
+                        homingDirNow ?? 0,
+                        draftHomingMask,
+                      );
+                    }}
+                  >
+                    Write ${SETTING_HOMING_DIR_MASK}={draftHomingMask}
+                  </button>
+                </div>
+              </section>
+
+              {/* Part C — speeds / pull-off */}
+              <section className="cal__homing-part" aria-labelledby="cal-home-c">
+                <h4 id="cal-home-c" className="cal__homing-part-title">
+                  3 · Speeds and pull-off
+                </h4>
+                <div className="cal__travel">
+                  <label className="cal__field">
+                    <span className="cal__field-label">
+                      {homingSettingPlainLabel(SETTING_HOMING_SEEK)} ($
+                      {SETTING_HOMING_SEEK})
+                    </span>
+                    <input
+                      className="cal__input"
+                      type="number"
+                      min={1}
+                      step={10}
+                      value={seekDraft}
+                      disabled={!canAct}
+                      onChange={(e) => {
+                        clearConfirm();
+                        setSeekDraft(e.target.value);
+                      }}
+                    />
+                    <span className="cal__hint">
+                      Suggest ≤ 50% of the slowest axis max rate.{" "}
+                      {homingSettingUnit(SETTING_HOMING_SEEK)}
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct || !onWriteHomingSetting}
+                    onClick={() => {
+                      const after = Number(seekDraft);
+                      const before =
+                        settingValue(settings, SETTING_HOMING_SEEK) ?? after;
+                      if (!Number.isFinite(after) || after <= 0) return;
+                      clearConfirm();
+                      onWriteHomingSetting?.(SETTING_HOMING_SEEK, before, after);
+                    }}
+                  >
+                    Write ${SETTING_HOMING_SEEK}={seekDraft || "…"}
+                  </button>
+                  <label className="cal__field">
+                    <span className="cal__field-label">
+                      {homingSettingPlainLabel(SETTING_HOMING_FEED)} ($
+                      {SETTING_HOMING_FEED})
+                    </span>
+                    <input
+                      className="cal__input"
+                      type="number"
+                      min={1}
+                      step={1}
+                      value={feedDraft}
+                      disabled={!canAct}
+                      onChange={(e) => {
+                        clearConfirm();
+                        setFeedDraft(e.target.value);
+                      }}
+                    />
+                    <span className="cal__hint">
+                      How slowly it makes the final touch. Suggest{" "}
+                      {HOMING_FEED_SUGGEST_MIN}–{HOMING_FEED_SUGGEST_MAX}{" "}
+                      {homingSettingUnit(SETTING_HOMING_FEED)}. Slower = more
+                      repeatable.
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct || !onWriteHomingSetting}
+                    onClick={() => {
+                      const after = Number(feedDraft);
+                      const before =
+                        settingValue(settings, SETTING_HOMING_FEED) ?? after;
+                      if (!Number.isFinite(after) || after <= 0) return;
+                      clearConfirm();
+                      onWriteHomingSetting?.(SETTING_HOMING_FEED, before, after);
+                    }}
+                  >
+                    Write ${SETTING_HOMING_FEED}={feedDraft || "…"}
+                  </button>
+                  <label className="cal__field">
+                    <span className="cal__field-label">
+                      {homingSettingPlainLabel(SETTING_HOMING_PULLOFF)} ($
+                      {SETTING_HOMING_PULLOFF})
+                    </span>
+                    <input
+                      className="cal__input"
+                      type="number"
+                      min={0.1}
+                      step={0.1}
+                      value={pullOffDraft}
+                      disabled={!canAct}
+                      onChange={(e) => {
+                        clearConfirm();
+                        setPullOffDraft(e.target.value);
+                      }}
+                    />
+                    <span className="cal__hint">
+                      How far it backs off after touching.{" "}
+                      {HOMING_PULLOFF_TYPICAL_MIN}–{HOMING_PULLOFF_TYPICAL_MAX}{" "}
+                      mm is typical.
+                    </span>
+                  </label>
+                  <button
+                    type="button"
+                    className="cal__btn cal__btn--ghost"
+                    disabled={!canAct || !onWriteHomingSetting}
+                    onClick={() => {
+                      const after = Number(pullOffDraft);
+                      const before =
+                        settingValue(settings, SETTING_HOMING_PULLOFF) ?? after;
+                      if (!Number.isFinite(after) || after <= 0) return;
+                      clearConfirm();
+                      onWriteHomingSetting?.(
+                        SETTING_HOMING_PULLOFF,
+                        before,
+                        after,
+                      );
+                    }}
+                  >
+                    Write ${SETTING_HOMING_PULLOFF}={pullOffDraft || "…"}
+                  </button>
+                </div>
+              </section>
+
+              {/* Part D — first home */}
+              <section className="cal__homing-part" aria-labelledby="cal-home-d">
+                <h4 id="cal-home-d" className="cal__homing-part-title">
+                  4 · First home
+                </h4>
+                {homingCycleNow !== 1 ? (
+                  <div className="cal__actions">
+                    <p className="cal__current">
+                      {homingSettingPlainLabel(SETTING_HOMING_CYCLE)}{" "}
+                      <code>${SETTING_HOMING_CYCLE}</code>: Before:{" "}
+                      <strong>{homingCycleNow ?? 0}</strong> → After:{" "}
+                      <strong>1</strong>
+                    </p>
+                    <button
+                      type="button"
+                      className="cal__btn"
+                      disabled={!canAct || !onWriteHomingSetting}
+                      onClick={() => {
+                        clearConfirm();
+                        onWriteHomingSetting?.(
+                          SETTING_HOMING_CYCLE,
+                          homingCycleNow ?? 0,
+                          1,
+                        );
+                      }}
+                    >
+                      Write ${SETTING_HOMING_CYCLE}=1
+                    </button>
+                  </div>
+                ) : (
+                  <p className="cal__hint">Homing enabled ($22=1) ✓</p>
+                )}
+                <div className="cal__warn cal__warn--callout" role="alert">
+                  <p>
+                    Keep your hand near E-Stop. If any axis heads the wrong way,
+                    hit it.
+                  </p>
+                  <label className="cal__check">
+                    <input
+                      type="checkbox"
+                      checked={firstHomeArmed}
+                      disabled={!canAct || homingCycleNow !== 1}
+                      onChange={(e) => {
+                        clearConfirm();
+                        setFirstHomeArmed(e.target.checked);
+                      }}
+                    />
+                    <span>I have my hand on E-Stop — arm Home</span>
+                  </label>
+                </div>
+                {homing ? (
+                  <div className="cal__actions">
+                    <button
+                      type="button"
+                      className="cal__btn"
+                      disabled={
+                        !canAct ||
+                        !firstHomeArmed ||
+                        !homing.enabled ||
+                        !!homing.busy ||
+                        homingCycleNow !== 1
+                      }
+                      title={
+                        !firstHomeArmed
+                          ? "Tick the E-Stop warning first"
+                          : (homing.blockedReason ?? "Run $H")
+                      }
+                      onClick={() => {
+                        clearConfirm();
+                        homing.onHome();
+                      }}
+                    >
+                      {homing.busy ? "Homing…" : "Home ($H)"}
+                    </button>
+                    {homing.message ? (
+                      <p className="cal__hint" role="status">
+                        {homing.message}
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+                {(firstHomeDone || homing?.homed) && (
+                  <p className="cal__hint">
+                    MPos now X {formatMm(machinePos.x)}, Y{" "}
+                    {formatMm(machinePos.y)}, Z {formatMm(machinePos.z)}. On a
+                    real machine Z reads about −1 mm after homing — that&apos;s
+                    the pull-off; the switch trigger point is 0. Every Z position
+                    below the top is negative, which is normal.
+                  </p>
+                )}
+              </section>
+
+              {/* Part E — Z repeatability */}
+              <section className="cal__homing-part" aria-labelledby="cal-home-e">
+                <h4 id="cal-home-e" className="cal__homing-part-title">
+                  5 · Z repeatability
+                </h4>
+                <p className="cal__hint">
+                  Home 3 times. After each, check your dial indicator or mark.
+                </p>
+                <div className="cal__z-repeat">
+                  {zRepeatAnswers.map((ans, i) => (
+                    <div key={i} className="cal__z-repeat-row">
+                      <span className="cal__field-label">Run {i + 1}</span>
+                      <button
+                        type="button"
+                        className={`cal__btn cal__btn--ghost${ans === true ? " is-active" : ""}`}
+                        disabled={!canAct}
+                        onClick={() => {
+                          clearConfirm();
+                          setZRepeatAnswers((prev) => {
+                            const next = [...prev];
+                            next[i] = true;
+                            return next;
+                          });
+                        }}
+                      >
+                        Yes, same
+                      </button>
+                      <button
+                        type="button"
+                        className={`cal__btn cal__btn--ghost${ans === false ? " is-active" : ""}`}
+                        disabled={!canAct}
+                        onClick={() => {
+                          clearConfirm();
+                          setZRepeatAnswers((prev) => {
+                            const next = [...prev];
+                            next[i] = false;
+                            return next;
+                          });
+                        }}
+                      >
+                        Drifted
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                {zRepeatDrift ? (
+                  <div className="cal__warn cal__warn--callout" role="status">
+                    <p>Try a slower final touch.</p>
+                    <button
+                      type="button"
+                      className="cal__btn cal__btn--ghost"
+                      disabled={!canAct || !onWriteHomingSetting}
+                      onClick={() => {
+                        const before =
+                          settingValue(settings, SETTING_HOMING_FEED) ??
+                          Number(feedDraft) ??
+                          25;
+                        const after = Math.max(
+                          HOMING_FEED_SUGGEST_MIN,
+                          Math.round(before * 0.7),
+                        );
+                        clearConfirm();
+                        setFeedDraft(String(after));
+                        onWriteHomingSetting?.(
+                          SETTING_HOMING_FEED,
+                          before,
+                          after,
+                        );
+                      }}
+                    >
+                      Lower ${SETTING_HOMING_FEED} (slower touch)
+                    </button>
+                  </div>
+                ) : null}
+                {zRepeatDone && !zRepeatDrift ? (
+                  <p className="cal__hint">Z came back to the mark on all 3 ✓</p>
+                ) : null}
+              </section>
+            </>
+          ) : null}
+
+          <WizardStepConfirm
+            id="cal-confirm-homing"
+            checked={isConfirmed}
+            disabled={!canAct || !switchesOk}
+            label={STEP_CONFIRM_LABELS.homing}
             onChange={setStepConfirmed}
           />
         </div>

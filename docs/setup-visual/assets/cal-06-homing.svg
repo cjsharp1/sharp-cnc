@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 520" role="img" aria-labelledby="t d">
+  <title id="t">Calibration 5 — Homing setup</title>
+  <desc id="d">Switch lights, XY corner picker, Z homes first, E-Stop arm for first home</desc>
+  <defs>
+    <style>
+      text, tspan { font-family: "Sora", system-ui, "Segoe UI", sans-serif; }
+      .bg { fill: #f1f3f5; }
+      .card { fill: #ffffff; stroke: #3a4550; stroke-width: 2.5; }
+      .num { fill: #b8862d; }
+      .ok { fill: #1f6a4a; }
+      .lab { font-family: "Sora", system-ui, "Segoe UI", sans-serif; fill: #1a2332; font-size: 16px; }
+      .big { font-size: 28px; font-weight: 700; }
+      .act { font-size: 18px; font-weight: 700; }
+      .tiny { font-size: 13px; fill: #5a6570; }
+      .w { fill: #ffffff; font-family: "Sora", system-ui, "Segoe UI", sans-serif; font-weight: 700; }
+      .arrow { stroke: #3a4550; stroke-width: 3; fill: none; marker-end: url(#a); }
+      .pin { fill: #f7e8c8; stroke: #b8862d; stroke-width: 2; }
+      .pin-off { fill: #e8ecf0; stroke: #3a4550; stroke-width: 2; }
+      .bed { fill: #e8ecf0; stroke: #3a4550; stroke-width: 2; }
+      .corner { fill: #ffffff; stroke: #3a4550; stroke-width: 2; }
+      .corner-on { fill: #b8862d; stroke: #3a4550; stroke-width: 2; }
+    </style>
+    <marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3.5" orient="auto">
+      <path d="M0,0 L8,3.5 L0,7 Z" fill="#3a4550"/>
+    </marker>
+  </defs>
+  <rect class="bg" width="960" height="520" rx="12"/>
+  <circle class="num" cx="56" cy="56" r="28"/>
+  <text class="w" x="56" y="56" text-anchor="middle" dominant-baseline="central" font-size="24">5</text>
+  <text class="lab big" x="100" y="50" font-size="28">Homing setup</text>
+  <text class="lab act" x="100" y="84">Switch lights → corner → first home (Z lifts first)</text>
+
+  <rect class="card" x="40" y="120" width="280" height="340" rx="12"/>
+  <circle class="num" cx="80" cy="160" r="18"/>
+  <text class="w" x="80" y="160" text-anchor="middle" dominant-baseline="central" font-size="14">A</text>
+  <text class="lab" x="110" y="166" font-weight="700">Switch lights</text>
+  <text class="tiny" x="60" y="200">Press by hand · on then off → ✓</text>
+  <rect class="pin" x="60" y="230" width="64" height="28" rx="4"/>
+  <text class="lab" x="92" y="250" text-anchor="middle" font-size="13" font-weight="700">X lim</text>
+  <text class="ok" x="140" y="250" font-size="16" font-weight="700">✓</text>
+  <rect class="pin" x="60" y="275" width="64" height="28" rx="4"/>
+  <text class="lab" x="92" y="295" text-anchor="middle" font-size="13" font-weight="700">Y lim</text>
+  <text class="ok" x="140" y="295" font-size="16" font-weight="700">✓</text>
+  <rect class="pin-off" x="60" y="320" width="64" height="28" rx="4"/>
+  <text class="lab" x="92" y="340" text-anchor="middle" font-size="13" font-weight="700">Z lim</text>
+  <text class="tiny" x="140" y="340">press…</text>
+  <text class="tiny" x="60" y="390">Stuck on? Flip $5 polarity</text>
+  <text class="tiny" x="60" y="415">Virtual CNC: $ExtLimitX/Y/Z</text>
+
+  <path class="arrow" d="M335 290 H375"/>
+
+  <rect class="card" x="390" y="120" width="250" height="340" rx="12"/>
+  <circle class="num" cx="430" cy="160" r="18"/>
+  <text class="w" x="430" y="160" text-anchor="middle" dominant-baseline="central" font-size="14">B</text>
+  <text class="lab" x="460" y="166" font-weight="700">XY corner</text>
+  <text class="tiny" x="410" y="200">Where the switches sit</text>
+  <rect class="bed" x="430" y="230" width="160" height="120" rx="6"/>
+  <rect class="corner" x="440" y="240" width="44" height="36" rx="4"/>
+  <text class="lab" x="462" y="263" text-anchor="middle" font-size="12">NW</text>
+  <rect class="corner" x="536" y="240" width="44" height="36" rx="4"/>
+  <text class="lab" x="558" y="263" text-anchor="middle" font-size="12">NE</text>
+  <rect class="corner-on" x="440" y="304" width="44" height="36" rx="4"/>
+  <text class="w" x="462" y="327" text-anchor="middle" font-size="12">SW</text>
+  <rect class="corner" x="536" y="304" width="44" height="36" rx="4"/>
+  <text class="lab" x="558" y="327" text-anchor="middle" font-size="12">SE</text>
+  <text class="tiny" x="510" y="380" text-anchor="middle">Z switch at top only</text>
+  <text class="tiny" x="510" y="405" text-anchor="middle">Write $23 · Z bit clear</text>
+  <text class="tiny" x="510" y="430" text-anchor="middle">$25 seek · $24 feed · $27</text>
+
+  <path class="arrow" d="M655 290 H695"/>
+
+  <rect class="card" x="710" y="120" width="210" height="340" rx="12"/>
+  <circle class="num" cx="750" cy="160" r="18"/>
+  <text class="w" x="750" y="160" text-anchor="middle" dominant-baseline="central" font-size="14">C</text>
+  <text class="lab" x="780" y="166" font-weight="700">First home</text>
+  <text class="tiny" x="730" y="205">Enable $22=1</text>
+  <text class="lab" x="815" y="250" text-anchor="middle" font-weight="700" font-size="15">Hand on E-Stop</text>
+  <text class="tiny" x="815" y="275" text-anchor="middle">arm → Home ($H)</text>
+  <text class="tiny" x="815" y="310" text-anchor="middle">Z lifts first</text>
+  <text class="tiny" x="815" y="335" text-anchor="middle">then X / Y seek</text>
+  <text class="tiny" x="815" y="375" text-anchor="middle">Z ≈ −1 mm after</text>
+  <text class="tiny" x="815" y="400" text-anchor="middle">(pull-off) · ×3 check</text>
+  <circle class="ok" cx="815" cy="430" r="16"/>
+  <text class="w" x="815" y="430" text-anchor="middle" dominant-baseline="central" font-size="14">✓</text>
+</svg>

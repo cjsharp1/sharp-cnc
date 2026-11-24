@@ -4,7 +4,7 @@
 
 **After done:** next sessions skip Calibrate and open on **Prepare**. Re-enter anytime from the phase switcher or Menu → Calibrate….
 
-**Prefer pictures:** [Calibration visual guide](../setup-visual/calibration.html) (start · `$3` · steps/mm · speed & accel · soft travel · bed test).
+**Prefer pictures:** [Calibration visual guide](../setup-visual/calibration.html) (start · `$3` · steps/mm · speed & accel · homing · soft travel · bed test).
 
 **First time on the real machine?** Follow [First real connection](14-first-real-connection.md) — it walks through these steps in a safe order and says what to record.
 
@@ -16,9 +16,10 @@ Phase switcher → **Calibrate** (also from First-run). Connect first.
 | 2 | Direction | **Z first** (expected: +Z up / tool lifts) → Test ±5 mm → **Yes / No** (No ticks Invert) → same for X/Y → **Write $3** |
 | 3 | Steps/mm | Move a known distance (X/Y: 50–200 mm; **Z: 10/20/25 mm down**) → measure → if change &gt; ±20% read the warning → **Write** → **Move again to check** (±0.1 mm) |
 | 4 | Speed & accel | Per axis: mark a reference → Ready → G1 out-and-back trials → Yes / off / stall → recommend ×0.75 → **Write** max rate then accel |
-| 5 | Soft travel | Use the jog pad on this step to reach the far end of each axis (Z: the lowest safe point) → **Use MPos** → **Write travel + $20** → **Continue to Prepare** |
+| 5 | Homing | Press each limit switch (lights) → pick XY corner → speeds/pull-off → enable `$22` → arm E-Stop → **Home ($H)** → Z repeatability ×3 |
+| 6 | Soft travel | Use the jog pad on this step to reach the far end of each axis (Z: the lowest safe point) → **Use MPos** → **Write travel + $20** → **Continue to Prepare** |
 
-Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibrate step). Homing setup arrives in a later Calibrate step; today **Home ($H)** on Start and **Bed travel test…** are recommended, not required to mark calibrated.
+Raw `$$` / `$x=value` edits live under **Menu → Advanced…** (not a Calibrate step). **Bed travel test…** after Soft travel is recommended, not required to mark calibrated.
 
 Finishing Soft travel (all guided steps confirmed) — or explicitly confirming “Machine already calibrated” on a returning profile — marks the machine calibrated and offers **Continue to Prepare**. Optional **Bed travel test…** (or Menu → Bed travel test…) walks all XY soft-limit corners after travel is written.
 
@@ -70,11 +71,26 @@ Guardrails: refuse if the distance leaves soft travel or the machine isn’t Idl
 
 Screenshots: [X tab](assets/cal-step-rates.png) · [Z tab](assets/cal-step-rates-z.png)
 
+## Homing setup (step 5)
+
+This machine has **physical switches on the zero side only**. The Homing step sets them up before Soft travel.
+
+1. **Check the switches (no motion)** — press each limit by hand. The X/Y/Z lights (same `Pn:` parsing as Position → Inputs) should come on, then go off when you release. Each axis needs on → off for ✓. You can’t continue until all three are ✓. If a light is on with nothing pressed, the switch reads backwards — flip limit polarity (`$5`) with Before → After.
+2. **Homing direction (`$23`)** — click the bed corner where the X/Y switches sit (map: NW NE / SW SE). Confirm **Z switch is at the top** (only option). GRBL homes **Z first**, so the tool lifts clear before X and Y move.
+3. **Speeds and pull-off** — seek (`$25`, how fast it looks for the switch; suggest ≤ 50% of the slowest max rate), final touch (`$24`, 25–50 mm/min; slower = more repeatable), pull-off (`$27`, 1–2 mm typical). Each Write shows Before → After.
+4. **First home** — enable `$22=1`, tick “hand on E-Stop”, then **Home ($H)**. Failures map to plain language (ALARM:6 reset during homing, ALARM:8 couldn’t clear switch on pull-off, ALARM:9 couldn’t find the switch). After a successful home, Z on a real machine reads about **−1 mm** (pull-off); every useful Z is negative below the top.
+5. **Z repeatability** — home 3 times and Yes/No after each. If Z drifts, try a slower final touch (shortcut lowers `$24`).
+
+On **Virtual CNC**, use the step’s limit toggles (`$ExtLimitX/Y/Z`, mock-only — never sent to USB) to practice the lights.
+
+Screenshots: [switches](assets/cal-step-homing-switches.png) · [direction](assets/cal-step-homing-direction.png) · [first home](assets/cal-step-homing-first-home.png)
+
 ## Quick reference
 
 - `$3` bits: X=1, Y=2, Z=4 (sum to invert). Expect +X right, +Y away (up on the visualizer), +Z up (tool lifts).
 - Steps formula: `new = old × commanded ÷ measured`.
 - Max rate `$110`–`$112` (mm/min); accel `$120`–`$122` (mm/sec²). Recommend ≈ last passing × 0.75.
+- Homing: `$22` enable, `$23` direction (bit set = toward negative), `$24` feed, `$25` seek, `$27` pull-off, `$5` limit polarity.
 - Soft travel: `$130`–`$132` + `$20=1`. Far rails are software on this machine.
 - **Z is negative below home.** Z homes to the top, so with `$132=80` the allowed range is 0 down to −80. Enter `$132` as a positive travel length; **Use MPos** on Z converts it for you.
 - Invalid travel values (zero, negative, text) show an error under **Write travel + $20** instead of silently doing nothing.
@@ -90,6 +106,6 @@ After steps/mm look close, cut a known size and measure:
 
 Also available: **50×50 mm** square and **100 mm line**. Details: [Jobs & SVG — cut-size samples](08-jobs-and-svg.md#cut-size-samples).
 
-Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [direction](assets/cal-step-direction.png) · [steps](assets/cal-step2-steps.png) · [speed & accel](assets/cal-step-rates.png) · [travel](assets/cal-step3-travel.png)
+Screenshots (wizard UI): [step 1](assets/cal-step1-zero.png) · [direction](assets/cal-step-direction.png) · [steps](assets/cal-step2-steps.png) · [speed & accel](assets/cal-step-rates.png) · [homing switches](assets/cal-step-homing-switches.png) · [travel](assets/cal-step3-travel.png)
 
 Next (every job): [Prepare & Z probe](07-prepare-and-z-probe.md) · [Prepare visual](../setup-visual/prepare.html)

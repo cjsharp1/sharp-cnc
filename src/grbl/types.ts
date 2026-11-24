@@ -41,6 +41,12 @@ export interface GrblActivePins {
   door: boolean;
   /** Probe input active (`P` in `Pn:`). */
   probe: boolean;
+  /** X limit switch active (`X` in `Pn:`). */
+  limitX: boolean;
+  /** Y limit switch active (`Y` in `Pn:`). */
+  limitY: boolean;
+  /** Z limit switch active (`Z` in `Pn:`). */
+  limitZ: boolean;
   /** Raw letters after `Pn:` (may also include XYZ limits / P probe). */
   raw: string;
 }

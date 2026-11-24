@@ -54,6 +54,10 @@ import {
   buildRatesTrialLines,
   canFitRatesTest,
   clearPendingRatesRestore,
+  extLimitCommandForAxis,
+  homingAlarmPlainDetail,
+  homingSettingPlainLabel,
+  homingSettingUnit,
   loadPendingRatesRestore,
   mergePendingRatesRestore,
   ratesSettingId,
@@ -206,6 +210,7 @@ import {
   saveSettingsBackupFile,
   type Axis,
   type CalibrateWriteEntry,
+  type LimitAxis,
   type SettingsSnapshot,
   type DebugBridgeStatus,
   type DesktopPortInfo,
@@ -1619,13 +1624,23 @@ export default function App() {
         const st = statusRef.current.state;
         if (st === "Home") sawHome = true;
         if (st === "Alarm") {
-          throw new Error(alarmMessage ?? "Homing failed (Alarm)");
+          const code = parseAlarmLine(alarmMessage ?? "")?.code ?? null;
+          throw new Error(
+            homingAlarmPlainDetail(code) ??
+              alarmMessage ??
+              "Homing failed (Alarm)",
+          );
         }
         if (st === "Idle" && (sawHome || usingMock)) break;
         await new Promise((r) => setTimeout(r, usingMock ? 80 : 250));
       }
       if (statusRef.current.state === "Alarm") {
-        throw new Error(alarmMessage ?? "Homing failed (Alarm)");
+        const code = parseAlarmLine(alarmMessage ?? "")?.code ?? null;
+        throw new Error(
+          homingAlarmPlainDetail(code) ??
+            alarmMessage ??
+            "Homing failed (Alarm)",
+        );
       }
       setHomed(true);
       setHomeMessage("Homed — machine coordinates at home switches.");
@@ -1637,6 +1652,66 @@ export default function App() {
       setHomed(false);
     } finally {
       setHomeBusy(false);
+    }
+  };
+
+  const handleWriteHomingSetting = async (
+    id: number,
+    before: number,
+    after: number,
+  ) => {
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    const gate = canWriteSettings(statusRef.current.state, connected, streaming);
+    if (!gate.ok) {
+      setCalMessage(gate.reason ?? "Cannot write settings");
+      return;
+    }
+    setCalBusy(true);
+    setCalMessage(null);
+    try {
+      await writeGrblSetting(client, id, after, {
+        timeoutMs: usingMock ? 1500 : 4000,
+      });
+      setGrblSettings((prev) => {
+        const next = new Map(prev ?? []);
+        next.set(id, { id, value: after });
+        return next;
+      });
+      recordCalibrateWrites([{ id, before, after }]);
+      const unit = homingSettingUnit(id);
+      const unitSuffix = unit ? ` ${unit}` : "";
+      activityLog.append(
+        "event",
+        `Wrote $${id}=${after} (was ${before}) ${homingSettingPlainLabel(id)}`,
+      );
+      setCalMessage(
+        `${homingSettingPlainLabel(id)}: ${before} → ${after}${unitSuffix} ($${id})`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
+      setErrorMessage(message);
+    } finally {
+      setCalBusy(false);
+    }
+  };
+
+  const handleToggleLimitPin = async (axis: LimitAxis) => {
+    // Mock-only — never send $ExtLimit* to a real Demon Shield port.
+    if (!usingMock) return;
+    const client = clientRef.current;
+    if (!client || !client.transport.isOpen) return;
+    try {
+      await client.sendLine(extLimitCommandForAxis(axis));
+      activityLog.append(
+        "event",
+        `Toggled ${axis} limit pin (Virtual CNC $ExtLimit${axis})`,
+      );
+      await client.requestStatus();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      setCalMessage(message);
     }
   };
 
@@ -4283,6 +4358,16 @@ export default function App() {
                       void handleRestoreRatesPending("cancel/leave");
                     }}
                     ratesTrialRunning={ratesTrialRunning}
+                    onWriteHomingSetting={(id, before, after) => {
+                      void handleWriteHomingSetting(id, before, after);
+                    }}
+                    onToggleLimitPin={
+                      usingMock
+                        ? (axis) => {
+                            void handleToggleLimitPin(axis);
+                          }
+                        : null
+                    }
                     onZero={(axes) => {
                       void handleZero(axes);
                     }}
@@ -4843,12 +4928,34 @@ export default function App() {
                   void handleRestoreRatesPending("cancel/leave");
                 }}
                 ratesTrialRunning={ratesTrialRunning}
+                onWriteHomingSetting={(id, before, after) => {
+                  void handleWriteHomingSetting(id, before, after);
+                }}
+                onToggleLimitPin={
+                  usingMock
+                    ? (axis) => {
+                        void handleToggleLimitPin(axis);
+                      }
+                    : null
+                }
                 onZero={(axes) => {
                   void handleZero(axes);
                 }}
                 onClose={() => setCalOpen(false)}
                 onComplete={handleCalibrationComplete}
                 onOpenBedTravelTest={openBedTravelTest}
+                homing={{
+                  enabled:
+                    canHome(gateState, connected, streaming).ok && !homeBusy,
+                  blockedReason:
+                    canHome(gateState, connected, streaming).reason ?? null,
+                  homed,
+                  busy: homeBusy,
+                  message: homeMessage,
+                  onHome: () => {
+                    void handleHome();
+                  },
+                }}
               />
             </div>
           </div>
