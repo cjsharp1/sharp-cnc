@@ -4,13 +4,23 @@
  */
 import {
   DEFAULT_STOCK,
+  DEFAULT_STOCK_DISPLAY_UNIT,
+  MM_PER_INCH,
   applyStockSizeKeepingOrigin,
   clampStockToBed,
   hitTestStock,
+  loadStockDisplayUnit,
   moveStockBy,
   resizeStockFromHandle,
+  roundStockDisplay,
+  saveStockDisplayUnit,
+  stockDisplayToMm,
+  stockMmToDisplay,
   stockOffsetForCorner,
   stockOffsetForWorkOriginCorner,
+  stockUnitLabel,
+  stockUnitMin,
+  stockUnitStep,
   type StockConfig,
 } from "../src/grbl/stockConfig.ts";
 import {
@@ -25,6 +35,10 @@ import {
 
 function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
+}
+
+function assertClose(a: number, b: number, eps: number, msg: string): void {
+  assert(Math.abs(a - b) <= eps, `${msg} (got ${a}, expected ${b})`);
 }
 
 assert(DEFAULT_STOCK.widthMm === 300, "default stock width");
@@ -202,5 +216,59 @@ const gcode = generateSvgGcode(
   { ...DEFAULT_SVG_TOOLPATH, toolDiameterMm: tool.diameterMm },
 );
 assert(gcode.includes("Tool Ø 6.35 mm"), `tool header: ${gcode.slice(0, 120)}`);
+
+// --- Stock display units (mm / in) — entry only; machine stays mm -------------
+assert(DEFAULT_STOCK_DISPLAY_UNIT === "mm", "default stock unit is mm");
+assert(MM_PER_INCH === 25.4, "inch factor");
+assert(stockUnitLabel("mm") === "mm" && stockUnitLabel("in") === "in", "labels");
+assert(stockUnitStep("mm", "xy") === 1, "mm xy step");
+assert(stockUnitStep("in", "xy") === 0.125, "in xy step");
+assert(stockUnitStep("in", "thickness") === 0.0625, "in thickness step");
+assert(stockUnitMin("in") > 0 && stockUnitMin("in") < 0.05, "in min");
+
+assertClose(stockDisplayToMm(1, "in"), 25.4, 1e-9, "1 in → mm");
+assertClose(stockDisplayToMm(12, "in"), 304.8, 1e-9, "12 in → mm");
+assertClose(stockDisplayToMm(100, "mm"), 100, 1e-9, "mm passthrough");
+assertClose(stockMmToDisplay(25.4, "in"), 1, 1e-9, "25.4 mm → 1 in");
+assertClose(stockMmToDisplay(304.8, "in"), 12, 1e-9, "304.8 mm → 12 in");
+assertClose(stockMmToDisplay(300, "mm"), 300, 1e-9, "mm display");
+assertClose(roundStockDisplay(25.4004, "in"), 1, 1e-9, "round inch display");
+
+// Round-trip: type 11.811 in → mm → display ≈ 11.811
+const typedIn = 11.811;
+const asMm = stockDisplayToMm(typedIn, "in");
+assertClose(asMm, typedIn * MM_PER_INCH, 1e-9, "typed in → mm");
+assertClose(stockMmToDisplay(asMm, "in"), typedIn, 1e-3, "round-trip in");
+
+// Switching unit preference must not mutate stored stock mm.
+const beforeW = DEFAULT_STOCK.widthMm;
+assertClose(
+  stockDisplayToMm(stockMmToDisplay(beforeW, "in"), "in"),
+  beforeW,
+  0.05,
+  "unit toggle preserves mm within rounding",
+);
+
+const store = new Map<string, string>();
+(globalThis as { localStorage?: Storage }).localStorage = {
+  getItem: (k) => store.get(k) ?? null,
+  setItem: (k, v) => {
+    store.set(k, String(v));
+  },
+  removeItem: (k) => {
+    store.delete(k);
+  },
+  clear: () => store.clear(),
+  key: () => null,
+  get length() {
+    return store.size;
+  },
+} as Storage;
+
+assert(loadStockDisplayUnit() === "mm", "load default unit");
+saveStockDisplayUnit("in");
+assert(loadStockDisplayUnit() === "in", "persist inches preference");
+saveStockDisplayUnit("mm");
+assert(loadStockDisplayUnit() === "mm", "persist mm preference");
 
 console.log("smoke-stock-tool: ok");

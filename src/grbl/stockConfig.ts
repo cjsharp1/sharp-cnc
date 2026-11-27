@@ -1,9 +1,20 @@
 /**
  * Workpiece / stock size and placement on the bed.
  * Persisted locally so the visualizer remembers the blank between sessions.
+ *
+ * Internal sizes / offsets are always millimetres (GRBL / visualizer).
+ * Entry UI may show mm or inches via {@link StockDisplayUnit}.
  */
 
 export type StockCorner = "sw" | "se" | "nw" | "ne";
+
+/** Display unit for stock material size entry (machine stays mm). */
+export type StockDisplayUnit = "mm" | "in";
+
+/** Exact inches→mm factor used for stock display conversion. */
+export const MM_PER_INCH = 25.4;
+
+export const DEFAULT_STOCK_DISPLAY_UNIT: StockDisplayUnit = "mm";
 
 export interface StockConfig {
   /** Stock width along X (mm). */
@@ -46,9 +57,86 @@ function parseCorner(v: unknown): StockCorner | undefined {
 }
 
 const STOCK_STORAGE_KEY = "sharpcnc.stock.v1";
+const STOCK_DISPLAY_UNIT_KEY = "sharpcnc.stockDisplayUnit.v1";
 
 function isPositiveFinite(v: unknown): v is number {
   return typeof v === "number" && Number.isFinite(v) && v > 0;
+}
+
+function isStockDisplayUnit(v: unknown): v is StockDisplayUnit {
+  return v === "mm" || v === "in";
+}
+
+/** Load preferred stock entry unit (default mm). Machine coords stay mm. */
+export function loadStockDisplayUnit(): StockDisplayUnit {
+  try {
+    const raw = localStorage.getItem(STOCK_DISPLAY_UNIT_KEY);
+    if (raw === null) return DEFAULT_STOCK_DISPLAY_UNIT;
+    const parsed = JSON.parse(raw) as unknown;
+    return isStockDisplayUnit(parsed)
+      ? parsed
+      : DEFAULT_STOCK_DISPLAY_UNIT;
+  } catch {
+    return DEFAULT_STOCK_DISPLAY_UNIT;
+  }
+}
+
+/** Persist stock entry unit preference across sessions. */
+export function saveStockDisplayUnit(unit: StockDisplayUnit): void {
+  try {
+    localStorage.setItem(STOCK_DISPLAY_UNIT_KEY, JSON.stringify(unit));
+  } catch {
+    /* private mode / quota — ignore */
+  }
+}
+
+/** Short label for field suffixes (“mm” / “in”). */
+export function stockUnitLabel(unit: StockDisplayUnit): string {
+  return unit === "in" ? "in" : "mm";
+}
+
+/**
+ * Round a stock length for the active display unit.
+ * mm → 0.1; inches → 0.001 (tape-measure friendly).
+ */
+export function roundStockDisplay(mm: number, unit: StockDisplayUnit): number {
+  if (!Number.isFinite(mm)) return 0;
+  if (unit === "mm") return roundStockMm(mm);
+  return Math.round((mm / MM_PER_INCH) * 1000) / 1000;
+}
+
+/** Convert stored mm → value shown in the stock size fields. */
+export function stockMmToDisplay(mm: number, unit: StockDisplayUnit): number {
+  return roundStockDisplay(mm, unit);
+}
+
+/** Convert a typed stock field value → stored mm for GRBL / visualizer. */
+export function stockDisplayToMm(
+  display: number,
+  unit: StockDisplayUnit,
+): number {
+  if (!Number.isFinite(display)) return 0;
+  if (unit === "mm") return display;
+  return display * MM_PER_INCH;
+}
+
+/** Number-input step for stock W/L/T/offset in the active unit. */
+export function stockUnitStep(
+  unit: StockDisplayUnit,
+  kind: "xy" | "thickness" | "offset" = "xy",
+): number {
+  if (unit === "mm") {
+    if (kind === "thickness") return 0.5;
+    return 1;
+  }
+  if (kind === "thickness") return 0.0625;
+  return 0.125;
+}
+
+/** Number-input min for positive stock size fields. */
+export function stockUnitMin(unit: StockDisplayUnit): number {
+  if (unit === "mm") return 0.1;
+  return Math.round((MIN_STOCK_XY_MM / MM_PER_INCH) * 1000) / 1000;
 }
 
 function isFiniteNum(v: unknown): v is number {
