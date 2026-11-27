@@ -31,7 +31,7 @@ Most of this review was fixed and verified against the Virtual CNC on branch `fi
 | O1 | Overlapping setup wizards | **FIXED** — First-run is Connect → Home → Calibrate |
 | O2 | "Zero context" step | **FIXED** — renamed **Start**, copy refocused on homing |
 | O3 | Home story inconsistent | **FIXED** (copy). "Not homed" header chip: **OPEN, optional** |
-| O4 | Duplicate controls | **FIXED** — one Connect after link (header); Reset on Safety only; Material/Machine tables removed from Calibrate Start + Prepare |
+| O4 | Duplicate controls | **FIXED** — header Connect (rail Connect tab removed); Reset on Safety only; Material/Machine tables removed from Calibrate Start + Prepare |
 | O5 | Practice faults in the Safety strip | **FIXED** — labeled "Virtual CNC only · practice" |
 | C1 | Back/Next below the fold | **FIXED** — pinned footer, verified at 1366×768 |
 | C2 | Silent failures | **FIXED** — Soft travel + Prepare / Verify / Advanced / bed travel / stock perimeter show why when disabled or refused |
@@ -264,7 +264,7 @@ Same rules as before: every PR ships with smoke coverage and its user-guide / vi
 8. **Optional:** "Not homed" header chip when `$22=1` and the session isn't homed; draw G2/G3 as arcs in the visualizer and simulation; "Skip line and continue" after a stream error.
 
 ### UX cleanup
-9. ~~**O4:**~~ **DONE** — header Connect only after link; Reset on Safety only; Calibrate Start + Prepare no longer duplicate the Material/Machine table (`smoke-ux-cleanup`).
+9. ~~**O4:**~~ **DONE** — header Connect only (right-rail Connect tab removed); Reset on Safety only; Calibrate Start + Prepare no longer duplicate the Material/Machine table (`smoke-ux-cleanup`).
 10. ~~**C2 sweep:**~~ **DONE** — Prepare / Verify / Advanced offsets / bed travel / stock perimeter show why when disabled or refused.
 11. ~~**C3 jargon pass:**~~ **DONE** — primary buttons/step titles lead with plain words; GRBL codes secondary.
 

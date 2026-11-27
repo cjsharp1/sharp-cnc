@@ -4343,38 +4343,14 @@ export default function App() {
               {taskPhase === "connect" && (
                 <div
                   className="workspace__panel workspace__panel--phase"
-                  role="tabpanel"
-                  id="phase-panel-connect"
-                  aria-labelledby="phase-tab-connect"
+                  role="region"
+                  aria-label="Waiting to connect"
                 >
                   <p className="workspace__intro">
                     Connect in the header — USB Demon Shield or{" "}
-                    <strong>Virtual CNC</strong> to practice first.
+                    <strong>Virtual CNC</strong> to practice first. Soft limits
+                    and alarms work on Virtual CNC.
                   </p>
-                  {!connected ? (
-                    <div className="phase-connect">
-                      <p className="phase-connect__hint">
-                        Practice here before the real machine. Soft limits and
-                        alarms work on Virtual CNC.
-                      </p>
-                      <button
-                        type="button"
-                        className="job__btn"
-                        disabled={!selectedPath || phase === "connecting"}
-                        onClick={() => {
-                          void handleConnect();
-                        }}
-                      >
-                        {phase === "connecting" ? "Connecting…" : "Connect"}
-                      </button>
-                    </div>
-                  ) : (
-                    <p className="workspace__intro workspace__intro--compact">
-                      Linked
-                      {usingVirtualCnc ? " · Virtual CNC" : ""}. Use the phase
-                      switcher to continue.
-                    </p>
-                  )}
                 </div>
               )}
 

@@ -683,6 +683,7 @@ export {
 
 export type { PhaseGate, TaskPhaseContext, TaskPhaseId } from "./taskPhase";
 export {
+  CONNECT_OFFLINE_PURPOSE,
   TASK_PHASES,
   canStartFromVerify,
   gateForPhase,

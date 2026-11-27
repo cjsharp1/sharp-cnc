@@ -1,5 +1,7 @@
 /**
- * Task-phase shell: Connect → Calibrate → Prepare → Verify → Run.
+ * Task-phase shell: Calibrate → Prepare → Verify → Run on the right rail.
+ * Connect lives in the header chip (and First-run) — not a rail tab.
+ * Internal id `"connect"` is the offline shell state until linked.
  * Gates decide which phases are selectable; Calibrate stays re-enterable after done.
  */
 
@@ -10,16 +12,12 @@ export type TaskPhaseId =
   | "verify"
   | "run";
 
+/** Right-rail phase tabs (Connect is header-only, never listed here). */
 export const TASK_PHASES: {
-  id: TaskPhaseId;
+  id: Exclude<TaskPhaseId, "connect">;
   label: string;
   purpose: string;
 }[] = [
-  {
-    id: "connect",
-    label: "Connect",
-    purpose: "Link the machine (USB or Virtual CNC) before anything else",
-  },
   {
     id: "calibrate",
     label: "Calibrate",
@@ -41,6 +39,10 @@ export const TASK_PHASES: {
     purpose: "Watch progress; feed/spindle overrides and stop only",
   },
 ];
+
+/** Purpose line while offline (no rail tab selected). */
+export const CONNECT_OFFLINE_PURPOSE =
+  "Connect in the header (USB or Virtual CNC) before using the phase rail";
 
 export interface TaskPhaseContext {
   connected: boolean;

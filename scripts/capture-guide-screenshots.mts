@@ -76,15 +76,18 @@ async function connectVirtual(page: Page) {
     );
     if (idx >= 0) await select.selectOption({ index: idx });
   }
-  const connectBtn = page.getByRole("button", { name: /^Connect$/i }).first();
-  if (await connectBtn.isEnabled()) {
-    await connectBtn.click();
+  // Header chip (or First-run) owns Connect — no right-rail Connect tab.
+  const firstRunConnect = page
+    .locator(".firstrun")
+    .getByRole("button", { name: /^Connect$/i });
+  if (await firstRunConnect.count()) {
+    await firstRunConnect.click();
   } else {
-    // Header may already expose Connect differently — try phase panel Connect.
-    const phaseConnect = page.locator("#phase-panel-connect").getByRole("button", {
-      name: /Connect/i,
-    });
-    if (await phaseConnect.count()) await phaseConnect.click();
+    const connectBtn = page
+      .locator(".connect")
+      .getByRole("button", { name: /^Connect$/i })
+      .first();
+    await connectBtn.click();
   }
   await page.waitForTimeout(800);
   // Linked / Virtual status should appear.
