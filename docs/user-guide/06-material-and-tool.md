@@ -21,17 +21,21 @@ That one action sets material XY zero (`G10 L20`) and stock origin together so t
 
 Optional: **Trace stock perimeter…** jogs the toolhead around the blank (safe Z, XY only) so you can see SharpCNC knows the boundaries — same flow as in Prepare → Material XY. Confirm the path is clear before Start.
 
+### Stock units (mm / in)
+
+Use **Stock units** on the Prepare → Stock + tool step to type the blank in **mm** or **in**. SharpCNC stores and sends sizes in millimetres for GRBL and the visualizer; switching units only changes the entry fields. Soft limits, probe plate thickness, jog steps, and calibration stay in mm. The unit choice persists across launches.
+
 ### Fields
 
 | Field | Meaning |
 |-------|---------|
-| **Width X mm** | Stock size along X (from the anchored corner) |
-| **Length Y mm** | Stock size along Y |
-| **Thickness mm** | Stock height (for awareness / future checks) |
+| **Width X** | Stock size along X (from the anchored corner), in the selected unit |
+| **Length Y** | Stock size along Y |
+| **Thickness** | Stock height (for awareness / future checks) |
 | **Bed frame (optional)** | Map layout: **NW NE** top row, **SW SE** bottom — against soft-travel bed; does **not** set material zero |
-| **Offset X / Y mm** | Manual fine placement in material mm |
+| **Offset X / Y** | Manual fine placement in material coordinates (same unit as size) |
 
-Defaults start around 300 × 200 × 18 mm. Values persist in the app.
+Defaults start around 300 × 200 × 18 mm (about 11.8 × 7.9 × 0.7 in). Values persist in the app.
 
 ### Optional fine-tune on the visualizer
 

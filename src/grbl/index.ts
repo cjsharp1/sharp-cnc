@@ -45,24 +45,35 @@ export {
 export type {
   StockConfig,
   StockCorner,
+  StockDisplayUnit,
   StockHandle,
   StockHit,
 } from "./stockConfig";
 export {
   DEFAULT_STOCK,
+  DEFAULT_STOCK_DISPLAY_UNIT,
   MIN_STOCK_XY_MM,
+  MM_PER_INCH,
   applyStockSizeKeepingOrigin,
   clampStockToBed,
   cursorForStockHit,
   hitTestStock,
   loadStock,
+  loadStockDisplayUnit,
   moveStockBy,
   resizeStockFromHandle,
+  roundStockDisplay,
   roundStockMm,
   saveStock,
+  saveStockDisplayUnit,
   stockBounds,
+  stockDisplayToMm,
+  stockMmToDisplay,
   stockOffsetForCorner,
   stockOffsetForWorkOriginCorner,
+  stockUnitLabel,
+  stockUnitMin,
+  stockUnitStep,
 } from "./stockConfig";
 
 export type { ToolBitType, ToolConfig } from "./toolConfig";

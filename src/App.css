@@ -4524,6 +4524,59 @@ button {
   padding-top: 0.1rem;
 }
 
+.prep__stock-units {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.75rem;
+  margin: 0 0 0.65rem;
+}
+
+.prep__unit-toggle,
+.mattool__unit-toggle {
+  display: inline-flex;
+  gap: 0.25rem;
+}
+
+.prep__unit-btn,
+.mattool__unit-btn {
+  min-height: 2rem;
+  min-width: 2.5rem;
+  padding: 0.3rem 0.55rem;
+  border: 1px solid var(--border-strong);
+  background: var(--inset-bg-soft);
+  color: var(--steel);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.prep__unit-btn:hover:not(:disabled),
+.mattool__unit-btn:hover:not(:disabled) {
+  border-color: var(--brass-border);
+  color: var(--brass-hot);
+  background: var(--brass-fill);
+}
+
+.prep__unit-btn.is-active,
+.mattool__unit-btn.is-active {
+  border-color: var(--brass-border-hot);
+  color: var(--brass-hot);
+  background: var(--brass-fill);
+}
+
+.prep__unit-btn:disabled,
+.mattool__unit-btn:disabled {
+  opacity: 0.55;
+}
+
+.mattool__units {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.65rem;
+}
+
 .prep__corners {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

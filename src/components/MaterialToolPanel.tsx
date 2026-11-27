@@ -6,8 +6,15 @@ import {
   applyStockSizeKeepingOrigin,
   deleteCustomFeedsPreset,
   loadCustomFeedsPresets,
+  loadStockDisplayUnit,
+  saveStockDisplayUnit,
+  stockDisplayToMm,
+  stockMmToDisplay,
   stockOffsetForCorner,
   stockOffsetForWorkOriginCorner,
+  stockUnitLabel,
+  stockUnitMin,
+  stockUnitStep,
   suggestFeedsSpeeds,
   upsertCustomFeedsPreset,
   type CustomFeedsPreset,
@@ -16,6 +23,7 @@ import {
   type MaterialKind,
   type StockConfig,
   type StockCorner,
+  type StockDisplayUnit,
   type ToolBitType,
   type ToolConfig,
 } from "../grbl";
@@ -79,6 +87,15 @@ export function MaterialToolPanel({
   const [toolheadCorner, setToolheadCorner] = useState<StockCorner>(
     stock.originCorner ?? "sw",
   );
+  const [stockUnit, setStockUnit] = useState<StockDisplayUnit>(() =>
+    loadStockDisplayUnit(),
+  );
+  const unitLabel = stockUnitLabel(stockUnit);
+
+  const setStockDisplayUnit = (next: StockDisplayUnit) => {
+    setStockUnit(next);
+    saveStockDisplayUnit(next);
+  };
 
   const patchStockSize = (
     size: Partial<Pick<StockConfig, "widthMm" | "lengthMm" | "thicknessMm">>,
@@ -88,6 +105,31 @@ export function MaterialToolPanel({
       return;
     }
     onStockChange({ ...stock, ...size });
+  };
+
+  const patchStockSizeFromDisplay = (
+    key: "widthMm" | "lengthMm" | "thicknessMm",
+    raw: string,
+    fallbackMm: number,
+  ) => {
+    const displayFallback = stockMmToDisplay(fallbackMm, stockUnit);
+    const display = parsePositive(raw, displayFallback);
+    patchStockSize({ [key]: stockDisplayToMm(display, stockUnit) });
+  };
+
+  const patchStockOffsetFromDisplay = (
+    key: "offsetXMm" | "offsetYMm",
+    raw: string,
+    fallbackMm: number,
+  ) => {
+    const displayFallback = stockMmToDisplay(fallbackMm, stockUnit);
+    const display = parseFinite(raw, displayFallback);
+    const { originCorner: _drop, ...rest } = stock;
+    void _drop;
+    onStockChange({
+      ...rest,
+      [key]: stockDisplayToMm(display, stockUnit),
+    });
   };
 
   const patchTool = (partial: Partial<ToolConfig>) => {
@@ -178,6 +220,31 @@ export function MaterialToolPanel({
 
       <div className="mattool__block">
         <p className="mattool__section">Stock</p>
+        <div className="mattool__units" role="group" aria-label="Stock size units">
+          <span className="mattool__field-label">Stock units</span>
+          <div className="mattool__unit-toggle">
+            <button
+              type="button"
+              className={`mattool__unit-btn${stockUnit === "mm" ? " is-active" : ""}`}
+              aria-pressed={stockUnit === "mm"}
+              onClick={() => setStockDisplayUnit("mm")}
+            >
+              mm
+            </button>
+            <button
+              type="button"
+              className={`mattool__unit-btn${stockUnit === "in" ? " is-active" : ""}`}
+              aria-pressed={stockUnit === "in"}
+              title="Inches for stock size entry (stored as mm for the machine)"
+              onClick={() => setStockDisplayUnit("in")}
+            >
+              in
+            </button>
+          </div>
+          <p className="mattool__micro">
+            Machine / GRBL stay in mm. Inches only change how you type the blank.
+          </p>
+        </div>
         <div className="mattool__anchor">
           <p className="mattool__field-label">
             Set XY zero + stock corner from toolhead
@@ -234,49 +301,55 @@ export function MaterialToolPanel({
         </div>
         <div className="mattool__row">
           <label className="mattool__field">
-            <span className="mattool__field-label">Width X mm</span>
+            <span className="mattool__field-label">Width X {unitLabel}</span>
             <input
               className="mattool__input"
               type="number"
-              min={0.1}
-              step={1}
-              value={stock.widthMm}
+              min={stockUnitMin(stockUnit)}
+              step={stockUnitStep(stockUnit, "xy")}
+              value={stockMmToDisplay(stock.widthMm, stockUnit)}
               onChange={(e) =>
-                patchStockSize({
-                  widthMm: parsePositive(e.target.value, stock.widthMm),
-                })
+                patchStockSizeFromDisplay(
+                  "widthMm",
+                  e.target.value,
+                  stock.widthMm,
+                )
               }
             />
           </label>
           <label className="mattool__field">
-            <span className="mattool__field-label">Length Y mm</span>
+            <span className="mattool__field-label">Length Y {unitLabel}</span>
             <input
               className="mattool__input"
               type="number"
-              min={0.1}
-              step={1}
-              value={stock.lengthMm}
+              min={stockUnitMin(stockUnit)}
+              step={stockUnitStep(stockUnit, "xy")}
+              value={stockMmToDisplay(stock.lengthMm, stockUnit)}
               onChange={(e) =>
-                patchStockSize({
-                  lengthMm: parsePositive(e.target.value, stock.lengthMm),
-                })
+                patchStockSizeFromDisplay(
+                  "lengthMm",
+                  e.target.value,
+                  stock.lengthMm,
+                )
               }
             />
           </label>
         </div>
         <div className="mattool__row">
           <label className="mattool__field">
-            <span className="mattool__field-label">Thickness mm</span>
+            <span className="mattool__field-label">Thickness {unitLabel}</span>
             <input
               className="mattool__input"
               type="number"
-              min={0.1}
-              step={0.5}
-              value={stock.thicknessMm}
+              min={stockUnitMin(stockUnit)}
+              step={stockUnitStep(stockUnit, "thickness")}
+              value={stockMmToDisplay(stock.thicknessMm, stockUnit)}
               onChange={(e) =>
-                patchStockSize({
-                  thicknessMm: parsePositive(e.target.value, stock.thicknessMm),
-                })
+                patchStockSizeFromDisplay(
+                  "thicknessMm",
+                  e.target.value,
+                  stock.thicknessMm,
+                )
               }
             />
           </label>
@@ -304,37 +377,35 @@ export function MaterialToolPanel({
         </div>
         <div className="mattool__row">
           <label className="mattool__field">
-            <span className="mattool__field-label">Offset X mm</span>
+            <span className="mattool__field-label">Offset X {unitLabel}</span>
             <input
               className="mattool__input"
               type="number"
-              step={1}
-              value={stock.offsetXMm}
-              onChange={(e) => {
-                const { originCorner: _drop, ...rest } = stock;
-                void _drop;
-                onStockChange({
-                  ...rest,
-                  offsetXMm: parseFinite(e.target.value, stock.offsetXMm),
-                });
-              }}
+              step={stockUnitStep(stockUnit, "offset")}
+              value={stockMmToDisplay(stock.offsetXMm, stockUnit)}
+              onChange={(e) =>
+                patchStockOffsetFromDisplay(
+                  "offsetXMm",
+                  e.target.value,
+                  stock.offsetXMm,
+                )
+              }
             />
           </label>
           <label className="mattool__field">
-            <span className="mattool__field-label">Offset Y mm</span>
+            <span className="mattool__field-label">Offset Y {unitLabel}</span>
             <input
               className="mattool__input"
               type="number"
-              step={1}
-              value={stock.offsetYMm}
-              onChange={(e) => {
-                const { originCorner: _drop, ...rest } = stock;
-                void _drop;
-                onStockChange({
-                  ...rest,
-                  offsetYMm: parseFinite(e.target.value, stock.offsetYMm),
-                });
-              }}
+              step={stockUnitStep(stockUnit, "offset")}
+              value={stockMmToDisplay(stock.offsetYMm, stockUnit)}
+              onChange={(e) =>
+                patchStockOffsetFromDisplay(
+                  "offsetYMm",
+                  e.target.value,
+                  stock.offsetYMm,
+                )
+              }
             />
           </label>
         </div>

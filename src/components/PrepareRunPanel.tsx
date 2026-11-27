@@ -1,6 +1,7 @@
 import {
   useEffect,
   useMemo,
+  useState,
   type ReactNode,
 } from "react";
 import {
@@ -10,8 +11,15 @@ import {
   PREPARE_GUIDED_STEPS,
   TOOL_BIT_LABELS,
   applyStockSizeKeepingOrigin,
+  loadStockDisplayUnit,
+  saveStockDisplayUnit,
+  stockDisplayToMm,
+  stockMmToDisplay,
   stockOffsetForCorner,
   stockOffsetForWorkOriginCorner,
+  stockUnitLabel,
+  stockUnitMin,
+  stockUnitStep,
   type GrblStatus,
   type JogMode,
   type PrepareGuidedStepId,
@@ -19,6 +27,7 @@ import {
   type SoftTravelLimits,
   type StockConfig,
   type StockCorner,
+  type StockDisplayUnit,
   type ToolBitType,
   type ToolConfig,
 } from "../grbl";
@@ -216,6 +225,16 @@ export function PrepareRunPanel({
 
   const canAct = enabled && !busy;
 
+  const [stockUnit, setStockUnit] = useState<StockDisplayUnit>(() =>
+    loadStockDisplayUnit(),
+  );
+  const unitLabel = stockUnitLabel(stockUnit);
+
+  const setStockDisplayUnit = (next: StockDisplayUnit) => {
+    setStockUnit(next);
+    saveStockDisplayUnit(next);
+  };
+
   useEffect(() => {
     if (!focusStep) return;
     const idx = WIZARD_STEPS.findIndex((s) => s.id === focusStep);
@@ -283,6 +302,17 @@ export function PrepareRunPanel({
       onStockChange({ ...stock, ...size });
     }
     setStepConfirmed(false, stockStep);
+  };
+
+  /** Parse a stock size field (display unit) → stored mm. */
+  const patchStockSizeFromDisplay = (
+    key: "widthMm" | "lengthMm" | "thicknessMm",
+    raw: string,
+    fallbackMm: number,
+  ) => {
+    const displayFallback = stockMmToDisplay(fallbackMm, stockUnit);
+    const display = parsePositive(raw, displayFallback);
+    patchStockSize({ [key]: stockDisplayToMm(display, stockUnit) });
   };
 
   const patchTool = (partial: Partial<ToolConfig>) => {
@@ -375,57 +405,85 @@ export function PrepareRunPanel({
           </h3>
           <p className="cal__hint">
             Enter blank size and bit. Bed corners place the stock rectangle on
-            the soft-travel frame (map: NW NE / SW SE).
+            the soft-travel frame (map: NW NE / SW SE). Machine / GRBL stay in
+            mm — inches only change how you type the blank.
           </p>
+          <div className="prep__stock-units" role="group" aria-label="Stock size units">
+            <span className="cal__field-label">Stock units</span>
+            <div className="prep__unit-toggle">
+              <button
+                type="button"
+                className={`prep__unit-btn${stockUnit === "mm" ? " is-active" : ""}`}
+                aria-pressed={stockUnit === "mm"}
+                disabled={!canAct}
+                onClick={() => setStockDisplayUnit("mm")}
+              >
+                mm
+              </button>
+              <button
+                type="button"
+                className={`prep__unit-btn${stockUnit === "in" ? " is-active" : ""}`}
+                aria-pressed={stockUnit === "in"}
+                disabled={!canAct}
+                title="Inches for stock size entry (stored as mm for the machine)"
+                onClick={() => setStockDisplayUnit("in")}
+              >
+                in
+              </button>
+            </div>
+          </div>
           <div className="cal__row">
             <label className="cal__field">
-              <span className="cal__field-label">W X mm</span>
+              <span className="cal__field-label">W X {unitLabel}</span>
               <input
                 className="cal__input"
                 type="number"
-                min={0.1}
-                step={1}
-                value={stock.widthMm}
+                min={stockUnitMin(stockUnit)}
+                step={stockUnitStep(stockUnit, "xy")}
+                value={stockMmToDisplay(stock.widthMm, stockUnit)}
                 disabled={!canAct}
                 onChange={(e) =>
-                  patchStockSize({
-                    widthMm: parsePositive(e.target.value, stock.widthMm),
-                  })
+                  patchStockSizeFromDisplay(
+                    "widthMm",
+                    e.target.value,
+                    stock.widthMm,
+                  )
                 }
               />
             </label>
             <label className="cal__field">
-              <span className="cal__field-label">L Y mm</span>
+              <span className="cal__field-label">L Y {unitLabel}</span>
               <input
                 className="cal__input"
                 type="number"
-                min={0.1}
-                step={1}
-                value={stock.lengthMm}
+                min={stockUnitMin(stockUnit)}
+                step={stockUnitStep(stockUnit, "xy")}
+                value={stockMmToDisplay(stock.lengthMm, stockUnit)}
                 disabled={!canAct}
                 onChange={(e) =>
-                  patchStockSize({
-                    lengthMm: parsePositive(e.target.value, stock.lengthMm),
-                  })
+                  patchStockSizeFromDisplay(
+                    "lengthMm",
+                    e.target.value,
+                    stock.lengthMm,
+                  )
                 }
               />
             </label>
             <label className="cal__field">
-              <span className="cal__field-label">T mm</span>
+              <span className="cal__field-label">T {unitLabel}</span>
               <input
                 className="cal__input"
                 type="number"
-                min={0.1}
-                step={0.5}
-                value={stock.thicknessMm}
+                min={stockUnitMin(stockUnit)}
+                step={stockUnitStep(stockUnit, "thickness")}
+                value={stockMmToDisplay(stock.thicknessMm, stockUnit)}
                 disabled={!canAct}
                 onChange={(e) =>
-                  patchStockSize({
-                    thicknessMm: parsePositive(
-                      e.target.value,
-                      stock.thicknessMm,
-                    ),
-                  })
+                  patchStockSizeFromDisplay(
+                    "thicknessMm",
+                    e.target.value,
+                    stock.thicknessMm,
+                  )
                 }
               />
             </label>
