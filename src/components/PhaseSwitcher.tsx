@@ -1,5 +1,6 @@
 import { useRef } from "react";
 import {
+  CONNECT_OFFLINE_PURPOSE,
   TASK_PHASES,
   type PhaseGate,
   type TaskPhaseId,
@@ -30,19 +31,21 @@ export function PhaseSwitcher({
   };
 
   const activePurpose =
-    TASK_PHASES.find((t) => t.id === active)?.purpose ?? "";
+    active === "connect"
+      ? CONNECT_OFFLINE_PURPOSE
+      : (TASK_PHASES.find((t) => t.id === active)?.purpose ?? "");
   const activeGate = gates[active];
   const gateHint =
-    !activeGate.enabled && activeGate.reason
+    active !== "connect" && !activeGate.enabled && activeGate.reason
       ? activeGate.reason
       : null;
 
   return (
     <div className="workspace__tabs-wrap phase-switcher">
       <p id="phase-tabs-help" className="visually-hidden">
-        Task phases: Connect, Calibrate, Prepare, Verify, Run. Incomplete
-        phases ahead stay locked until their gate is met. Use Left and Right
-        arrow keys on the phase list.
+        Task phases: Calibrate, Prepare, Verify, Run. Connect lives in the
+        header. Incomplete phases ahead stay locked until their gate is met.
+        Use Left and Right arrow keys on the phase list.
       </p>
       <div
         className="workspace__tabs"
@@ -63,7 +66,7 @@ export function PhaseSwitcher({
             }
           } else if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
             event.preventDefault();
-            let next = index;
+            let next = index < 0 ? 0 : index;
             for (let i = 0; i < TASK_PHASES.length; i++) {
               next = (next - 1 + TASK_PHASES.length) % TASK_PHASES.length;
               if (gates[TASK_PHASES[next]!.id].enabled) {

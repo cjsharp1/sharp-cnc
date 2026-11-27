@@ -4,7 +4,7 @@ SharpCNC helps you see position and refuse some bad moves, but **you** are still
 
 > **The on-screen E-Stop is software.** It's a command sent over USB. It does nothing if the app freezes, the cable drops, the PC sleeps, or the controller locks up. Keep a **physical power cutoff** for the spindle and the steppers within arm's reach, and test it before the first real move. The enclosure Abort button is also a GRBL soft reset, not a power cut.
 
-The **safety strip** stays visible in every phase — including before connect (Connect is the only enabled action then).
+The **safety strip** stays visible in every phase — including before connect (use the header Connect chip until linked; rail phases stay locked).
 
 ![Alarm lock banner](assets/alarm-lock.webp)
 

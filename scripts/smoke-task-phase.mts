@@ -11,6 +11,7 @@ import {
 } from "../src/grbl/calibrationConfig.ts";
 import { PREPARE_GUIDED_STEPS } from "../src/grbl/prepareConfig.ts";
 import {
+  CONNECT_OFFLINE_PURPOSE,
   TASK_PHASES,
   canStartFromVerify,
   gateForPhase,
@@ -36,17 +37,20 @@ function assert(cond: unknown, msg: string): asserts cond {
   if (!cond) throw new Error(msg);
 }
 
-const expected: TaskPhaseId[] = [
-  "connect",
+const expectedRail: Array<Exclude<TaskPhaseId, "connect">> = [
   "calibrate",
   "prepare",
   "verify",
   "run",
 ];
-assert(TASK_PHASES.length === 5, "five phases");
+assert(TASK_PHASES.length === 4, "four rail phases (Connect is header-only)");
 assert(
-  TASK_PHASES.map((p) => p.id).join(",") === expected.join(","),
-  "phase order Connect→Calibrate→Prepare→Verify→Run",
+  TASK_PHASES.map((p) => p.id).join(",") === expectedRail.join(","),
+  "rail order Calibrate→Prepare→Verify→Run",
+);
+assert(
+  CONNECT_OFFLINE_PURPOSE.toLowerCase().includes("header"),
+  "offline purpose points at header Connect",
 );
 
 assert(phaseAfterConnect(false) === "calibrate", "land calibrate");
@@ -61,7 +65,10 @@ const offline: TaskPhaseContext = {
   jobLoaded: false,
   streaming: false,
 };
-assert(gateForPhase("connect", offline).enabled, "connect always");
+assert(
+  gateForPhase("connect", offline).enabled,
+  "internal connect state always open",
+);
 assert(!gateForPhase("calibrate", offline).enabled, "calibrate needs link");
 assert(!gateForPhase("prepare", offline).enabled, "prepare needs link");
 

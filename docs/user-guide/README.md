@@ -64,7 +64,7 @@ Safety notes appear throughout. When something can crash the machine or hurt you
 
 ## Screenshots & diagrams
 
-Illustrations live in [`assets/`](assets/). Diagrams are SVG (easy to read at a glance). Screenshots show the current **task-phase** UI (Connect · Calibrate · Prepare · Verify · Run) on **Virtual CNC**, with **Material** (not Work) on the position strip.
+Illustrations live in [`assets/`](assets/). Diagrams are SVG (easy to read at a glance). Screenshots show the current **task-phase** UI (header Connect; rail **Calibrate · Prepare · Verify · Run**) on **Virtual CNC**, with **Material** (not Work) on the position strip.
 
 ## Related project docs
 

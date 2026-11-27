@@ -966,20 +966,6 @@ button {
   font-weight: 600;
 }
 
-.phase-connect {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  padding: 0.35rem 0;
-}
-
-.phase-connect__hint {
-  margin: 0;
-  font-size: var(--text-sm);
-  color: var(--muted);
-  line-height: 1.4;
-}
-
 .phase-cal__skip {
   display: flex;
   flex-wrap: wrap;

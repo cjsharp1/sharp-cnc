@@ -161,23 +161,23 @@ async function connectVirtual(page: Page): Promise<void> {
     if (idx >= 0) await select.selectOption({ index: idx });
   }
   // First-run modal intercepts header clicks — use its Connect when open.
+  // Connect is header/First-run only (no right-rail Connect tab).
   const firstRunConnect = page
     .locator(".firstrun")
     .getByRole("button", { name: /^Connect$/i });
   if (await firstRunConnect.count()) {
     await firstRunConnect.click();
   } else {
-    const connectBtn = page.getByRole("button", { name: /^Connect$/i }).first();
-    if (await connectBtn.isEnabled()) {
-      await connectBtn.click({ force: true }).catch(async () => {
-        await connectBtn.click();
-      });
-    } else {
-      const phaseConnect = page
-        .locator("#phase-panel-connect")
-        .getByRole("button", { name: /Connect/i });
-      if (await phaseConnect.count()) await phaseConnect.click();
-    }
+    const connectBtn = page
+      .locator(".connect")
+      .getByRole("button", { name: /^Connect$/i });
+    assert(
+      (await connectBtn.count()) >= 1,
+      "header Connect chip required (rail Connect tab removed)",
+    );
+    await connectBtn.first().click({ force: true }).catch(async () => {
+      await connectBtn.first().click();
+    });
   }
   await page.waitForFunction(
     () => /Linked|Virtual CNC|Idle/i.test(document.body.innerText),
@@ -278,6 +278,14 @@ try {
     } else {
       pass("O4: First-run not open (completed) — skip duplicate check");
     }
+
+    // Right rail must not expose a Connect phase tab (header owns Connect).
+    const connectTab = page.getByRole("tab", { name: /^Connect\b/i });
+    assert(
+      (await connectTab.count()) === 0,
+      "Connect tab must be removed from the right rail",
+    );
+    pass("O4: no Connect tab on right rail");
 
     // Always-on Coordinates chrome (Material/Machine) — not duplicated inside
     // Calibrate Start / Prepare after O4.

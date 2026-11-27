@@ -12,7 +12,7 @@ SharpCNC ↔ GRBL over **USB serial** (Demon Shield). Baud **115200**.
 
 **Virtual CNC** is the safe default for a first-time operator. Pick it from the same port list as real COM ports. Finish Calibrate + one Prepare → Verify dry-run there before trusting real USB and soft limits.
 
-Hint in the Connect UI: “Practice here before the real machine.”
+Prefer **Virtual CNC** in the header port list before the real machine.
 
 ## First-run wizard
 
@@ -25,7 +25,7 @@ Connecting to the real machine for the first time? Use **[First real connection]
 ## Connect (checklist)
 
 1. Open SharpCNC (desktop).
-2. On the **safety strip** / Connect controls: **Refresh** ports → pick **Virtual CNC** (practice) **or** your COM port → **Connect**.
+2. In the **header connection chip**: **Refresh** ports → pick **Virtual CNC** (practice) **or** your COM port → **Connect**. (First-run’s Connect step works the same on a fresh install.)
 3. Wait for **Linked** (USB) or **Virtual** (simulator) + live **Material / Machine** XYZ on the strip and visualizer.
 
 On connect: soft reset (`Ctrl-X`).
@@ -35,7 +35,7 @@ On connect: soft reset (`Ctrl-X`).
 - Machine **not** marked calibrated → land in **Calibrate**
 - Already calibrated → land in **Prepare**
 
-Disconnect returns you to Phase 0 (Connect).
+Disconnect returns you to the offline shell (header Connect again; rail phases locked until linked).
 
 ![Connected header chip](assets/usb-connected.png)
 

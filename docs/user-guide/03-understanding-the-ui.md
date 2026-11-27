@@ -10,7 +10,7 @@ The window always shows **connection**, **Material / Machine position**, and **s
 
 - Brand: **SharpCNC**
 - Tagline: one machine, clear position, run the job
-- **Connection chip** — compact Linked / Offline / Virtual status, port, Connect / Disconnect. After you link, this is the only Connect/Disconnect control (the Connect rail and First-run hide their duplicates). **Reset** lives on the Safety strip only.
+- **Connection chip** — compact Linked / Offline / Virtual status, port, Connect / Disconnect. This is the primary Connect control for every session (First-run also offers Connect on its first step until linked). There is no Connect tab on the right rail. **Reset** lives on the Safety strip only.
 - **Version chip** — opens **About & updates**; Update badge when a newer GitHub Release exists
 - **Menu** — Material & tool, External jobs, Calibrate, Bed travel test, Trace stock perimeter, Prepare, **Advanced…**, **Appearance**, **Debug mode**, **About & updates…**
 
@@ -22,7 +22,6 @@ Above the visualizer (every phase, including before connect):
 
 | Strip item | Role |
 |------------|------|
-| **Connect** | Port / Virtual CNC, Connect / Disconnect — Phase 0 lives here until linked |
 | **Machine XYZ** | MPos — bed / soft-travel frame |
 | **Material XYZ** | Job origin on the blank (WPos under the hood). Label **Material**, never “Work” |
 | **State** | Idle / Jog / Run / Hold / Alarm |
@@ -54,11 +53,10 @@ Axis convention (matches the guides): **+X** right, **+Y** back = up on screen, 
 
 ## Phase switcher (right rail)
 
-A persistent stepper: **Connect · Calibrate · Prepare · Verify · Run**. Incomplete phases ahead stay disabled with a one-line reason (“Mark material ready first”). Completed **Calibrate** stays unlocked for re-entry. Drag the thin handle between the visualizer and the rail to widen or narrow the panel (saved for next time). On narrow windows the layout stacks and the handle hides.
+A persistent stepper: **Calibrate · Prepare · Verify · Run**. Connect is not a rail tab — use the **header connection chip** (or First-run) until linked; rail phases stay locked with “Connect first”. Incomplete phases ahead stay disabled with a one-line reason (“Mark material ready first”). Completed **Calibrate** stays unlocked for re-entry. Drag the thin handle between the visualizer and the rail to widen or narrow the panel (saved for next time). On narrow windows the layout stacks and the handle hides.
 
 | Phase | What the pane shows |
 |-------|---------------------|
-| **Connect** | Ports, baud note, Connect, Virtual CNC |
 | **Calibrate** | Five guided steps: Start (home) · Direction · Steps/mm · Speed & accel · Soft travel (with a jog pad) |
 | **Prepare** | Stepped wizard: stock+tool → Material XY → Z → load → Mark ready |
 | **Verify** | Soft-limit summary, Simulate, checklist, **Start** |
